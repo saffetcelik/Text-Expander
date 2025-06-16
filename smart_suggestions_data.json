@@ -1,0 +1,1049 @@
+{
+  "WordFrequencies": {
+    "d\u00F6": 6,
+    "nedneden": 1,
+    "edit\u00F6": 5,
+    "l\u0131\u011F\u0131": 1,
+    "mavi": 1,
+    "s\u00FCrekli": 8,
+    "sistem": 5,
+    "ekran\u0131n": 1,
+    "neden": 2,
+    "bilgi": 3,
+    "ayr\u0131ca": 1,
+    "veya": 1,
+    "bug\u00FCn": 7,
+    "anlamak": 3,
+    "clone": 1,
+    "me": 2,
+    "rtest": 1,
+    "kalm\u0131yor": 1,
+    "tut": 2,
+    "eklinde": 1,
+    "sometin": 1,
+    "nedir": 11,
+    "ayarlardan": 1,
+    "duyap": 5,
+    "izlemesini": 1,
+    "sabit": 3,
+    "mer": 1,
+    "bir": 5,
+    "epilepsiye": 1,
+    "halen": 1,
+    "r\u00FC": 1,
+    "g\u00F6": 1,
+    "git": 1,
+    "tam": 13,
+    "izleme": 1,
+    "olarak": 11,
+    "ayn\u0131": 1,
+    "zor": 3,
+    "olsun": 1,
+    "yap\u0131yorsun": 5,
+    "gelmesi": 1,
+    "geliyor": 1,
+    "problemim": 3,
+    "ayar": 1,
+    "ggithub": 1,
+    "tin": 1,
+    "seninle": 3,
+    "kalmas\u0131n\u0131": 3,
+    "benim": 3,
+    "izlemenin": 5,
+    "geri": 2,
+    "modern": 1,
+    "uyap": 1,
+    "seninmerin": 1,
+    "iki": 1,
+    "k\u0131sm\u0131nda": 1,
+    "yok": 3,
+    "nas\u0131ls\u0131n": 16,
+    "hakk\u0131nda": 1,
+    "i\u015F": 1,
+    "istiyorum": 3,
+    "yle": 2,
+    "nekrandan": 1,
+    "sorun": 15,
+    "olabilir": 1,
+    "k\u0131sm\u0131ndaki": 1,
+    "kapat": 1,
+    "\u00FC\u00E7": 1,
+    "daha": 1,
+    "kald\u0131r": 1,
+    "merhaba": 36,
+    "gizlenip": 2,
+    "b\u00F6": 2,
+    "a\u00E7\u0131k": 5,
+    "\u00E7ok": 3,
+    "izlemeyi": 1,
+    "metin": 3,
+    "\u00FCst": 2,
+    "test": 5,
+    "merh": 1,
+    "ba\u015F": 1
+  },
+  "Bigrams": {
+    "test halen": 1,
+    "rtest merh": 1,
+    "duyap d\u00F6": 1,
+    "kalmas\u0131n\u0131 istiyorum": 1,
+    "kald\u0131r \u00F6": 1,
+    "neden b\u00F6": 1,
+    "veya kapat": 1,
+    "a\u00E7\u0131k tut": 2,
+    "ayr\u0131ca \u00FCst": 1,
+    "me merhaba": 1,
+    "sistem edit\u00F6": 1,
+    "uyap sistem": 1,
+    "anlamak \u00E7ok": 1,
+    "n izlemenin": 1,
+    "izlemenin s\u00FCrekli": 1,
+    "test me": 1,
+    "izlemesini s\u00FCrekli": 1,
+    "izleme ekran\u0131n": 1,
+    "ayn\u0131 s\u00FCrekli": 1,
+    "geri geliyor": 1,
+    "daha modern": 1,
+    "mavi ba\u015F": 1,
+    "sometin \u00F6": 1,
+    "bir ayar": 1,
+    "ayar olsun": 1,
+    "seninmerin \u00F6": 1,
+    "bir problemim": 1,
+    "epilepsiye neden": 1,
+    "git clone": 1,
+    "gelmesi epilepsiye": 1,
+    "eklinde bir": 1,
+    "tam olarak": 1,
+    "k\u0131sm\u0131nda sabit": 1,
+    "seninle bir": 1,
+    "n izleme": 1,
+    "metin \u00F6": 3,
+    "yle yap\u0131yorsun": 1,
+    "ayarlardan metin": 1,
+    "gizlenip geri": 2,
+    "hakk\u0131nda bilgi": 1,
+    "bir iki": 1,
+    "s\u00FCrekli gizlenip": 1,
+    "a\u00E7\u0131k kalmas\u0131n\u0131": 1,
+    "n izlemeyi": 1,
+    "nas\u0131ls\u0131n duyap": 1,
+    "k\u0131sm\u0131ndaki mavi": 1,
+    "\u00FCst k\u0131sm\u0131ndaki": 1,
+    "ekran\u0131n \u00FCst": 1,
+    "yap\u0131yorsun anlamak": 1,
+    "neden olabilir": 1,
+    "nekrandan gizlenip": 1,
+    "test bir": 1,
+    "izlemeyi s\u00FCrekli": 1,
+    "\u00E7ok zor": 1,
+    "modern g\u00F6": 1,
+    "me me": 1,
+    "mer uyap": 1,
+    "tut i\u015F": 1,
+    "merhaba nas\u0131ls\u0131n": 2,
+    "geliyor metin": 1,
+    "test test": 1,
+    "sabit kalm\u0131yor": 1,
+    "\u00FCst k\u0131sm\u0131nda": 1,
+    "yle daha": 1,
+    "geri gelmesi": 1,
+    "nedneden b\u00F6": 1,
+    "sorun tam": 1,
+    "l\u0131\u011F\u0131 kald\u0131r": 1,
+    "r\u00FC hakk\u0131nda": 1,
+    "problemim yok": 1,
+    "olarak nedir": 1,
+    "tin \u00F6": 1,
+    "tut veya": 1,
+    "merh mer": 1,
+    "kapat \u015F": 1,
+    "halen ayn\u0131": 1,
+    "test merhaba": 1,
+    "benim seninle": 1,
+    "iki \u00FC\u00E7": 1,
+    "clone ggithub": 1,
+    "n izlemesini": 1,
+    "\u00FC\u00E7 d\u00F6": 1,
+    "s\u00FCrekli a\u00E7\u0131k": 3
+  },
+  "Trigrams": {
+    "yle yap\u0131yorsun anlamak": 1,
+    "yle daha modern": 1,
+    "a\u00E7\u0131k kalmas\u0131n\u0131 istiyorum": 1,
+    "izlemeyi s\u00FCrekli a\u00E7\u0131k": 1,
+    "eklinde bir ayar": 1,
+    "tam olarak nedir": 1,
+    "test me me": 1,
+    "n izleme ekran\u0131n": 1,
+    "izlemesini s\u00FCrekli a\u00E7\u0131k": 1,
+    "git clone ggithub": 1,
+    "geliyor metin \u00F6": 1,
+    "benim seninle bir": 1,
+    "merhaba nas\u0131ls\u0131n duyap": 1,
+    "mer uyap sistem": 1,
+    "k\u0131sm\u0131ndaki mavi ba\u015F": 1,
+    "ayarlardan metin \u00F6": 1,
+    "ayn\u0131 s\u00FCrekli gizlenip": 1,
+    "epilepsiye neden olabilir": 1,
+    "sorun tam olarak": 1,
+    "bir problemim yok": 1,
+    "geri geliyor metin": 1,
+    "s\u00FCrekli a\u00E7\u0131k tut": 2,
+    "anlamak \u00E7ok zor": 1,
+    "ayr\u0131ca \u00FCst k\u0131sm\u0131ndaki": 1,
+    "me me merhaba": 1,
+    "gizlenip geri geliyor": 1,
+    "geri gelmesi epilepsiye": 1,
+    "a\u00E7\u0131k tut veya": 1,
+    "me merhaba nas\u0131ls\u0131n": 1,
+    "k\u0131sm\u0131nda sabit kalm\u0131yor": 1,
+    "tut veya kapat": 1,
+    "yap\u0131yorsun anlamak \u00E7ok": 1,
+    "ekran\u0131n \u00FCst k\u0131sm\u0131nda": 1,
+    "test bir iki": 1,
+    "s\u00FCrekli a\u00E7\u0131k kalmas\u0131n\u0131": 1,
+    "merh mer uyap": 1,
+    "test halen ayn\u0131": 1,
+    "r\u00FC hakk\u0131nda bilgi": 1,
+    "n izlemesini s\u00FCrekli": 1,
+    "gelmesi epilepsiye neden": 1,
+    "bir ayar olsun": 1,
+    "bir iki \u00FC\u00E7": 1,
+    "n izlemeyi s\u00FCrekli": 1,
+    "daha modern g\u00F6": 1,
+    "n izlemenin s\u00FCrekli": 1,
+    "rtest merh mer": 1,
+    "izlemenin s\u00FCrekli a\u00E7\u0131k": 1,
+    "gizlenip geri gelmesi": 1,
+    "a\u00E7\u0131k tut i\u015F": 1,
+    "izleme ekran\u0131n \u00FCst": 1,
+    "nas\u0131ls\u0131n duyap d\u00F6": 1,
+    "l\u0131\u011F\u0131 kald\u0131r \u00F6": 1,
+    "\u00FCst k\u0131sm\u0131ndaki mavi": 1,
+    "veya kapat \u015F": 1,
+    "iki \u00FC\u00E7 d\u00F6": 1,
+    "nekrandan gizlenip geri": 1,
+    "halen ayn\u0131 s\u00FCrekli": 1,
+    "uyap sistem edit\u00F6": 1,
+    "\u00FCst k\u0131sm\u0131nda sabit": 1,
+    "s\u00FCrekli gizlenip geri": 1,
+    "seninle bir problemim": 1,
+    "test test bir": 1,
+    "test merhaba nas\u0131ls\u0131n": 1
+  },
+  "CompletionPrefixes": {
+    "probl": [
+      "problemim"
+    ],
+    "nekran": [
+      "nekrandan"
+    ],
+    "gelme": [
+      "gelmesi"
+    ],
+    "merha": [
+      "merhaba"
+    ],
+    "anl": [
+      "anlamak"
+    ],
+    "ekra": [
+      "ekran\u0131n"
+    ],
+    "epileps": [
+      "epilepsiye"
+    ],
+    "problem": [
+      "problemim"
+    ],
+    "k\u0131sm\u0131": [
+      "k\u0131sm\u0131nda",
+      "k\u0131sm\u0131ndaki"
+    ],
+    "r": [
+      "rtest"
+    ],
+    "pro": [
+      "problemim"
+    ],
+    "tes": [
+      "test"
+    ],
+    "anla": [
+      "anlamak"
+    ],
+    "duy": [
+      "duyap"
+    ],
+    "proble": [
+      "problemim"
+    ],
+    "kapa": [
+      "kapat"
+    ],
+    "olabili": [
+      "olabilir"
+    ],
+    "vey": [
+      "veya"
+    ],
+    "ned": [
+      "nedir",
+      "nedneden",
+      "neden"
+    ],
+    "kalma": [
+      "kalmas\u0131n\u0131"
+    ],
+    "kal": [
+      "kalmas\u0131n\u0131",
+      "kalm\u0131yor",
+      "kald\u0131r"
+    ],
+    "c": [
+      "clone"
+    ],
+    "hal": [
+      "halen"
+    ],
+    "gizle": [
+      "gizlenip"
+    ],
+    "iz": [
+      "izlemenin",
+      "izlemeyi",
+      "izlemesini",
+      "izleme"
+    ],
+    "n": [
+      "nedir",
+      "nedneden",
+      "neden",
+      "nekrandan",
+      "nas\u0131ls\u0131n"
+    ],
+    "sist": [
+      "sistem"
+    ],
+    "anlama": [
+      "anlamak"
+    ],
+    "duya": [
+      "duyap"
+    ],
+    "i": [
+      "izlemenin",
+      "istiyorum",
+      "izlemeyi",
+      "izlemesini",
+      "iki",
+      "izleme"
+    ],
+    "epi": [
+      "epilepsiye"
+    ],
+    "a\u00E7\u0131": [
+      "a\u00E7\u0131k"
+    ],
+    "mode": [
+      "modern"
+    ],
+    "na": [
+      "nas\u0131ls\u0131n"
+    ],
+    "l\u0131": [
+      "l\u0131\u011F\u0131"
+    ],
+    "edit": [
+      "edit\u00F6"
+    ],
+    "k\u0131sm\u0131nd": [
+      "k\u0131sm\u0131nda",
+      "k\u0131sm\u0131ndaki"
+    ],
+    "yap\u0131": [
+      "yap\u0131yorsun"
+    ],
+    "ist": [
+      "istiyorum"
+    ],
+    "\u00E7o": [
+      "\u00E7ok"
+    ],
+    "\u00FC": [
+      "\u00FCst"
+    ],
+    "yo": [
+      "yok"
+    ],
+    "\u00E7": [
+      "\u00E7ok"
+    ],
+    "ggit": [
+      "ggithub"
+    ],
+    "ayarlar": [
+      "ayarlardan"
+    ],
+    "ggith": [
+      "ggithub"
+    ],
+    "y": [
+      "yok",
+      "yle",
+      "yap\u0131yorsun"
+    ],
+    "nede": [
+      "neden"
+    ],
+    "hale": [
+      "halen"
+    ],
+    "som": [
+      "sometin"
+    ],
+    "izl": [
+      "izlemenin",
+      "izlemeyi",
+      "izlemesini",
+      "izleme"
+    ],
+    "o": [
+      "olarak",
+      "olabilir",
+      "olsun"
+    ],
+    "ne": [
+      "nedir",
+      "nedneden",
+      "neden",
+      "nekrandan"
+    ],
+    "k\u0131sm\u0131n": [
+      "k\u0131sm\u0131nda",
+      "k\u0131sm\u0131ndaki"
+    ],
+    "kalm\u0131": [
+      "kalm\u0131yor"
+    ],
+    "du": [
+      "duyap"
+    ],
+    "nas": [
+      "nas\u0131ls\u0131n"
+    ],
+    "olabil": [
+      "olabilir"
+    ],
+    "ayn": [
+      "ayn\u0131"
+    ],
+    "ekran": [
+      "ekran\u0131n"
+    ],
+    "hakk\u0131n": [
+      "hakk\u0131nda"
+    ],
+    "ya": [
+      "yap\u0131yorsun"
+    ],
+    "merh": [
+      "merhaba"
+    ],
+    "u": [
+      "uyap"
+    ],
+    "nednede": [
+      "nedneden"
+    ],
+    "p": [
+      "problemim"
+    ],
+    "nekra": [
+      "nekrandan"
+    ],
+    "seninm": [
+      "seninmerin"
+    ],
+    "nas\u0131ls": [
+      "nas\u0131ls\u0131n"
+    ],
+    "rt": [
+      "rtest"
+    ],
+    "k\u0131s": [
+      "k\u0131sm\u0131nda",
+      "k\u0131sm\u0131ndaki"
+    ],
+    "giz": [
+      "gizlenip"
+    ],
+    "nedne": [
+      "nedneden"
+    ],
+    "a": [
+      "anlamak",
+      "a\u00E7\u0131k",
+      "ayarlardan",
+      "ayar",
+      "ayn\u0131",
+      "ayr\u0131ca"
+    ],
+    "eklind": [
+      "eklinde"
+    ],
+    "meti": [
+      "metin"
+    ],
+    "si": [
+      "sistem"
+    ],
+    "merhab": [
+      "merhaba"
+    ],
+    "ayr\u0131": [
+      "ayr\u0131ca"
+    ],
+    "l": [
+      "l\u0131\u011F\u0131"
+    ],
+    "olab": [
+      "olabilir"
+    ],
+    "siste": [
+      "sistem"
+    ],
+    "kap": [
+      "kapat"
+    ],
+    "izlemen": [
+      "izlemenin"
+    ],
+    "soru": [
+      "sorun"
+    ],
+    "sabi": [
+      "sabit"
+    ],
+    "anlam": [
+      "anlamak"
+    ],
+    "nas\u0131ls\u0131": [
+      "nas\u0131ls\u0131n"
+    ],
+    "moder": [
+      "modern"
+    ],
+    "yap": [
+      "yap\u0131yorsun"
+    ],
+    "senin": [
+      "seninle",
+      "seninmerin"
+    ],
+    "kald\u0131": [
+      "kald\u0131r"
+    ],
+    "nas\u0131": [
+      "nas\u0131ls\u0131n"
+    ],
+    "prob": [
+      "problemim"
+    ],
+    "gizlen": [
+      "gizlenip"
+    ],
+    "some": [
+      "sometin"
+    ],
+    "izle": [
+      "izlemenin",
+      "izlemeyi",
+      "izlemesini",
+      "izleme"
+    ],
+    "yap\u0131yor": [
+      "yap\u0131yorsun"
+    ],
+    "s\u00FCrek": [
+      "s\u00FCrekli"
+    ],
+    "kalm\u0131yo": [
+      "kalm\u0131yor"
+    ],
+    "istiyor": [
+      "istiyorum"
+    ],
+    "epile": [
+      "epilepsiye"
+    ],
+    "yap\u0131y": [
+      "yap\u0131yorsun"
+    ],
+    "izlemes": [
+      "izlemesini"
+    ],
+    "nekrand": [
+      "nekrandan"
+    ],
+    "seninme": [
+      "seninmerin"
+    ],
+    "hakk\u0131nd": [
+      "hakk\u0131nda"
+    ],
+    "clon": [
+      "clone"
+    ],
+    "mo": [
+      "modern"
+    ],
+    "rtes": [
+      "rtest"
+    ],
+    "b": [
+      "benim",
+      "bir",
+      "bilgi",
+      "ba\u015F"
+    ],
+    "eklin": [
+      "eklinde"
+    ],
+    "kald": [
+      "kald\u0131r"
+    ],
+    "ben": [
+      "benim"
+    ],
+    "gizl": [
+      "gizlenip"
+    ],
+    "mav": [
+      "mavi"
+    ],
+    "m": [
+      "metin",
+      "merhaba",
+      "merh",
+      "mer",
+      "mavi",
+      "modern"
+    ],
+    "aya": [
+      "ayarlardan",
+      "ayar"
+    ],
+    "a\u00E7": [
+      "a\u00E7\u0131k"
+    ],
+    "sen": [
+      "seninle",
+      "seninmerin"
+    ],
+    "pr": [
+      "problemim"
+    ],
+    "nas\u0131l": [
+      "nas\u0131ls\u0131n"
+    ],
+    "so": [
+      "sorun",
+      "sometin"
+    ],
+    "uya": [
+      "uyap"
+    ],
+    "h": [
+      "hakk\u0131nda",
+      "halen"
+    ],
+    "nedned": [
+      "nedneden"
+    ],
+    "bil": [
+      "bilgi"
+    ],
+    "somet": [
+      "sometin"
+    ],
+    "ba": [
+      "ba\u015F"
+    ],
+    "s\u00FC": [
+      "s\u00FCrekli"
+    ],
+    "met": [
+      "metin"
+    ],
+    "ekran\u0131": [
+      "ekran\u0131n"
+    ],
+    "s": [
+      "sorun",
+      "seninle",
+      "sometin",
+      "s\u00FCrekli",
+      "sistem",
+      "seninmerin",
+      "sabit"
+    ],
+    "ma": [
+      "mavi"
+    ],
+    "ayr": [
+      "ayr\u0131ca"
+    ],
+    "geli": [
+      "geliyor"
+    ],
+    "k\u0131": [
+      "k\u0131sm\u0131nda",
+      "k\u0131sm\u0131ndaki"
+    ],
+    "seninl": [
+      "seninle"
+    ],
+    "ha": [
+      "hakk\u0131nda",
+      "halen"
+    ],
+    "olabi": [
+      "olabilir"
+    ],
+    "sab": [
+      "sabit"
+    ],
+    "ola": [
+      "olarak",
+      "olabilir"
+    ],
+    "an": [
+      "anlamak"
+    ],
+    "d": [
+      "duyap",
+      "daha"
+    ],
+    "ed": [
+      "edit\u00F6"
+    ],
+    "epilep": [
+      "epilepsiye"
+    ],
+    "sa": [
+      "sabit"
+    ],
+    "dah": [
+      "daha"
+    ],
+    "k\u0131sm": [
+      "k\u0131sm\u0131nda",
+      "k\u0131sm\u0131ndaki"
+    ],
+    "ayr\u0131c": [
+      "ayr\u0131ca"
+    ],
+    "cl": [
+      "clone"
+    ],
+    "ek": [
+      "eklinde",
+      "ekran\u0131n"
+    ],
+    "ve": [
+      "veya"
+    ],
+    "nek": [
+      "nekrandan"
+    ],
+    "olara": [
+      "olarak"
+    ],
+    "istiyo": [
+      "istiyorum"
+    ],
+    "da": [
+      "daha"
+    ],
+    "gi": [
+      "gizlenip",
+      "git"
+    ],
+    "izleme": [
+      "izlemenin",
+      "izlemeyi",
+      "izlemesini"
+    ],
+    "epil": [
+      "epilepsiye"
+    ],
+    "bi": [
+      "bir",
+      "bilgi"
+    ],
+    "ge": [
+      "geri",
+      "gelmesi",
+      "geliyor"
+    ],
+    "beni": [
+      "benim"
+    ],
+    "is": [
+      "istiyorum"
+    ],
+    "s\u00FCr": [
+      "s\u00FCrekli"
+    ],
+    "nedn": [
+      "nedneden"
+    ],
+    "be": [
+      "benim"
+    ],
+    "seni": [
+      "seninle",
+      "seninmerin"
+    ],
+    "me": [
+      "metin",
+      "merhaba",
+      "merh",
+      "mer"
+    ],
+    "ekli": [
+      "eklinde"
+    ],
+    "gelm": [
+      "gelmesi"
+    ],
+    "izlem": [
+      "izlemenin",
+      "izlemeyi",
+      "izlemesini",
+      "izleme"
+    ],
+    "sor": [
+      "sorun"
+    ],
+    "t": [
+      "tam",
+      "tut",
+      "test",
+      "tin"
+    ],
+    "hakk": [
+      "hakk\u0131nda"
+    ],
+    "kalmas\u0131": [
+      "kalmas\u0131n\u0131"
+    ],
+    "gg": [
+      "ggithub"
+    ],
+    "se": [
+      "seninle",
+      "seninmerin"
+    ],
+    "zo": [
+      "zor"
+    ],
+    "tu": [
+      "tut"
+    ],
+    "z": [
+      "zor"
+    ],
+    "ayar": [
+      "ayarlardan"
+    ],
+    "sis": [
+      "sistem"
+    ],
+    "yap\u0131yo": [
+      "yap\u0131yorsun"
+    ],
+    "e": [
+      "epilepsiye",
+      "eklinde",
+      "edit\u00F6",
+      "ekran\u0131n"
+    ],
+    "ta": [
+      "tam"
+    ],
+    "\u00FCs": [
+      "\u00FCst"
+    ],
+    "bilg": [
+      "bilgi"
+    ],
+    "yl": [
+      "yle"
+    ],
+    "gel": [
+      "gelmesi",
+      "geliyor"
+    ],
+    "istiy": [
+      "istiyorum"
+    ],
+    "ayarl": [
+      "ayarlardan"
+    ],
+    "ayarla": [
+      "ayarlardan"
+    ],
+    "k": [
+      "kalmas\u0131n\u0131",
+      "kapat",
+      "k\u0131sm\u0131nda",
+      "kalm\u0131yor",
+      "k\u0131sm\u0131ndaki",
+      "kald\u0131r"
+    ],
+    "gelmes": [
+      "gelmesi"
+    ],
+    "geliyo": [
+      "geliyor"
+    ],
+    "ol": [
+      "olarak",
+      "olabilir",
+      "olsun"
+    ],
+    "ols": [
+      "olsun"
+    ],
+    "v": [
+      "veya"
+    ],
+    "ger": [
+      "geri"
+    ],
+    "nedi": [
+      "nedir"
+    ],
+    "olar": [
+      "olarak"
+    ],
+    "mer": [
+      "merhaba",
+      "merh"
+    ],
+    "edi": [
+      "edit\u00F6"
+    ],
+    "olsu": [
+      "olsun"
+    ],
+    "ka": [
+      "kalmas\u0131n\u0131",
+      "kapat",
+      "kalm\u0131yor",
+      "kald\u0131r"
+    ],
+    "s\u00FCre": [
+      "s\u00FCrekli"
+    ],
+    "g": [
+      "gizlenip",
+      "geri",
+      "gelmesi",
+      "git",
+      "ggithub",
+      "geliyor"
+    ],
+    "nekr": [
+      "nekrandan"
+    ],
+    "clo": [
+      "clone"
+    ],
+    "kalmas": [
+      "kalmas\u0131n\u0131"
+    ],
+    "someti": [
+      "sometin"
+    ],
+    "kalm\u0131y": [
+      "kalm\u0131yor"
+    ],
+    "hak": [
+      "hakk\u0131nda"
+    ],
+    "ti": [
+      "tin"
+    ],
+    "ggithu": [
+      "ggithub"
+    ],
+    "gizleni": [
+      "gizlenip"
+    ],
+    "ggi": [
+      "ggithub"
+    ],
+    "te": [
+      "test"
+    ],
+    "uy": [
+      "uyap"
+    ],
+    "s\u00FCrekl": [
+      "s\u00FCrekli"
+    ],
+    "rte": [
+      "rtest"
+    ],
+    "ekl": [
+      "eklinde"
+    ],
+    "mod": [
+      "modern"
+    ],
+    "l\u0131\u011F": [
+      "l\u0131\u011F\u0131"
+    ],
+    "ik": [
+      "iki"
+    ],
+    "hakk\u0131": [
+      "hakk\u0131nda"
+    ],
+    "ep": [
+      "epilepsiye"
+    ],
+    "ekr": [
+      "ekran\u0131n"
+    ],
+    "izlemey": [
+      "izlemeyi"
+    ],
+    "geliy": [
+      "geliyor"
+    ],
+    "isti": [
+      "istiyorum"
+    ],
+    "ay": [
+      "ayarlardan",
+      "ayar",
+      "ayn\u0131",
+      "ayr\u0131ca"
+    ],
+    "kalm": [
+      "kalmas\u0131n\u0131",
+      "kalm\u0131yor"
+    ]
+  },
+  "UserCorrections": {},
+  "LastUpdated": "2025-06-16T23:53:14.4268838+03:00",
+  "TotalWordsLearned": 116,
+  "TotalSuggestionsGiven": 0,
+  "TotalSuggestionsAccepted": 78,
+  "TotalSuggestionsRejected": 0
+}

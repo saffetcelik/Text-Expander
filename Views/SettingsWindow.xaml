@@ -1,0 +1,297 @@
+<Window x:Class="OtomatikMetinGenisletici.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.modernwpf.com/2019"
+        Title="⚙️ Ayarlar" 
+        Height="650" Width="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource SystemControlPageBackgroundChromeLowBrush}"
+        ui:WindowHelper.UseModernWindowStyle="True">
+    
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="Ayarlar" 
+                       FontSize="28" 
+                       FontWeight="Light" 
+                       Foreground="{StaticResource PrimaryBrush}"/>
+            <TextBlock Text="Uygulamanızı özelleştirin" 
+                       FontSize="14" 
+                       Foreground="Gray"/>
+        </StackPanel>
+
+        <!-- Settings Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- General Settings -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="🔧 Genel Ayarlar" 
+                                   FontSize="18" 
+                                   FontWeight="Medium" 
+                                   Margin="0,0,0,16"/>
+                        
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox Grid.Row="0" Grid.ColumnSpan="2" 
+                                      Name="AutoStartCheckBox"
+                                      Content="🚀 Sistem başlangıcında otomatik başlat" 
+                                      Margin="0,8"/>
+
+                            <CheckBox Grid.Row="1" Grid.ColumnSpan="2" 
+                                      Name="NotificationsCheckBox"
+                                      Content="🔔 Bildirimler" 
+                                      Margin="0,8"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" 
+                                       Text="⏱️ Genişletme gecikmesi (ms):" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <TextBox Grid.Row="2" Grid.Column="1"
+                                     Name="ExpansionDelayTextBox"
+                                     Margin="8"
+                                     Padding="8"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0"
+                                       Text="🔤 Yazı Tipi:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <ComboBox Grid.Row="3" Grid.Column="1"
+                                      Name="FontFamilyComboBox"
+                                      Margin="8"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0"
+                                       Text="📏 Yazı Boyutu:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <TextBox Grid.Row="4" Grid.Column="1"
+                                     Name="FontSizeTextBox"
+                                     Margin="8"
+                                     Padding="8"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Smart Suggestions Settings -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="🧠 Akıllı Öneriler"
+                                   FontSize="18"
+                                   FontWeight="Medium"
+                                   Margin="0,0,0,16"/>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox Grid.Row="0" Grid.ColumnSpan="2"
+                                      Name="SmartSuggestionsEnabledCheckBox"
+                                      Content="🚀 Akıllı önerileri etkinleştir"
+                                      Margin="0,8"/>
+
+                            <CheckBox Grid.Row="1" Grid.ColumnSpan="2"
+                                      Name="LearningEnabledCheckBox"
+                                      Content="📚 Öğrenmeyi etkinleştir"
+                                      Margin="0,8"/>
+
+                            <CheckBox Grid.Row="2" Grid.ColumnSpan="2"
+                                      Name="PreviewAlwaysVisibleCheckBox"
+                                      Content="👁️ Metin önizlemesini sürekli açık tut (epilepsi önlemi)"
+                                      Margin="0,8"
+                                      ToolTip="Açık: Önizleme sürekli görünür kalır&#x0a;Kapalı: Önizleme otomatik gizlenir (epilepsi riski)"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0"
+                                       Text="📊 Maks. akıllı öneri sayısı:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <TextBox Grid.Row="3" Grid.Column="1"
+                                     Name="MaxSmartSuggestionsTextBox"
+                                     Margin="8"
+                                     Padding="8"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0"
+                                       Text="📏 Min. kelime uzunluğu:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <TextBox Grid.Row="4" Grid.Column="1"
+                                     Name="MinWordLengthTextBox"
+                                     Margin="8"
+                                     Padding="8"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0"
+                                       Text="🎯 Öğrenme ağırlığı (%):"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <StackPanel Grid.Row="5" Grid.Column="1" Margin="8">
+                                <Slider Name="LearningWeightSlider"
+                                        Minimum="0" Maximum="100"
+                                        Value="80"
+                                        TickFrequency="10"
+                                        IsSnapToTickEnabled="True"/>
+                                <TextBlock Text="{Binding ElementName=LearningWeightSlider, Path=Value, StringFormat={}{0:F0}%}"
+                                           HorizontalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="Gray"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="6" Grid.ColumnSpan="2"
+                                       Text="💡 İpucu: Ctrl+Space ile ilk öneriyi hızlıca uygulayabilirsiniz"
+                                       FontSize="12"
+                                       Foreground="Gray"
+                                       FontStyle="Italic"
+                                       Margin="0,8"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Suggestion Settings -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="💡 Öneri Ayarları"
+                                   FontSize="18"
+                                   FontWeight="Medium"
+                                   Margin="0,0,0,16"/>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="📝 Min. kelime sayısı:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <TextBox Grid.Row="0" Grid.Column="1"
+                                     Name="MinPhraseLengthTextBox"
+                                     Margin="8"
+                                     Padding="8"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="📄 Maks. kelime sayısı:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <TextBox Grid.Row="1" Grid.Column="1"
+                                     Name="MaxPhraseLengthTextBox"
+                                     Margin="8"
+                                     Padding="8"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                       Text="🔢 Min. kullanım sıklığı:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <TextBox Grid.Row="2" Grid.Column="1"
+                                     Name="MinFrequencyTextBox"
+                                     Margin="8"
+                                     Padding="8"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0"
+                                       Text="📊 Maks. öneri sayısı:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <TextBox Grid.Row="3" Grid.Column="1"
+                                     Name="MaxSuggestionsTextBox"
+                                     Margin="8"
+                                     Padding="8"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0"
+                                       Text="🎯 Bağlam ağırlığı (%):"
+                                       VerticalAlignment="Center"
+                                       Margin="0,8"/>
+                            <StackPanel Grid.Row="4" Grid.Column="1" Margin="8">
+                                <Slider Name="ContextWeightSlider"
+                                        Minimum="0" Maximum="100"
+                                        Value="70"
+                                        TickFrequency="10"
+                                        IsSnapToTickEnabled="True"/>
+                                <TextBlock Text="{Binding ElementName=ContextWeightSlider, Path=Value, StringFormat={}{0:F0}%}"
+                                           HorizontalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="Gray"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Theme Settings -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="🎨 Tema Ayarları" 
+                                   FontSize="18" 
+                                   FontWeight="Medium" 
+                                   Margin="0,0,0,16"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" 
+                                       Text="🌙 Tema:" 
+                                       VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1" 
+                                      Name="ThemeComboBox"
+                                      Margin="8">
+                                <ComboBoxItem Content="Açık Tema" Tag="Light"/>
+                                <ComboBoxItem Content="Koyu Tema" Tag="Dark"/>
+                                <ComboBoxItem Content="Sistem" Tag="Default"/>
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Margin="0,24,0,0">
+            <Button Content="💾 Kaydet" 
+                    Style="{StaticResource SuccessButtonStyle}"
+                    Click="SaveButton_Click"
+                    IsDefault="True"/>
+            <Button Content="❌ İptal" 
+                    Style="{StaticResource ErrorButtonStyle}"
+                    Click="CancelButton_Click"
+                    IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
