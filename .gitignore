@@ -56,3 +56,8 @@ appsettings.*.json
 *.db
 *.sqlite
 *.sqlite3
+
+# User-specific data files
+smart_suggestions_data.json
+kisayollar.json
+settings.json
