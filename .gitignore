@@ -1,0 +1,58 @@
+# ---- .NET / Visual Studio ----
+## Build results
+bin/
+obj/
+Debug/
+Release/
+out/
+
+## User-specific files
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.cache
+*.pdb
+*.mdb
+*.ipch
+*.aps
+*.ncb
+*.opendb
+*.VC.db
+
+## Visual Studio
+.vs/
+# JetBrains Rider / ReSharper
+.idea/
+_ReSharper*/
+*.DotSettings.user
+
+## NuGet
+packages/
+*.nupkg
+*.snupkg
+
+## Testing & Analysis
+TestResults/
+*.coverlet*
+*.coverage
+
+## Logs
+*.log
+
+# ---- OS / Editor ----
+.DS_Store
+Thumbs.db
+
+# VS Code settings
+.vscode/
+
+# ---- Local configuration ----
+appsettings.*.json
+*.local.json
+
+# ---- Misc ----
+# Ignore generated SQLite or other DB files
+*.db
+*.sqlite
+*.sqlite3

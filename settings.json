@@ -1,0 +1,18 @@
+{
+  "AutoStart": false,
+  "ShowNotifications": true,
+  "ExpansionDelay": 1,
+  "FontFamily": "Arial",
+  "FontSize": 12,
+  "MinPhraseLength": 3,
+  "MaxPhraseLength": 15,
+  "MinFrequency": 2,
+  "MaxSuggestions": 20,
+  "ContextWeight": 0.7,
+  "SmartSuggestionsEnabled": true,
+  "MaxSmartSuggestions": 5,
+  "MinWordLength": 2,
+  "LearningEnabled": true,
+  "LearningWeight": 1.0,
+  "PreviewAlwaysVisible": true
+}
