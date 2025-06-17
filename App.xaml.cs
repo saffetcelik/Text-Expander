@@ -48,11 +48,11 @@ public partial class App : Application
             Console.WriteLine("[DEBUG] OnStartup başlıyor...");
             Console.WriteLine($"[DEBUG] Args: {string.Join(", ", e.Args)}");
 
-            // Modern WPF Theme
+            // Modern WPF Theme - Sadece Light tema
             Console.WriteLine("[DEBUG] Modern WPF Theme ayarlanıyor...");
             ThemeManager.Current.ApplicationTheme = ApplicationTheme.Light;
             ThemeManager.Current.AccentColor = System.Windows.Media.Colors.Blue;
-            Console.WriteLine("[DEBUG] Modern WPF Theme ayarlandı!");
+            Console.WriteLine("[DEBUG] Modern WPF Theme ayarlandı (Light tema sabit)!");
 
             Console.WriteLine("[DEBUG] Host oluşturuluyor...");
             // Build Host with Dependency Injection

@@ -249,33 +249,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Theme Settings -->
-                <Border Style="{StaticResource CardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="🎨 Tema Ayarları" 
-                                   FontSize="18" 
-                                   FontWeight="Medium" 
-                                   Margin="0,0,0,16"/>
-                        
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="200"/>
-                            </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Column="0" 
-                                       Text="🌙 Tema:" 
-                                       VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1" 
-                                      Name="ThemeComboBox"
-                                      Margin="8">
-                                <ComboBoxItem Content="Açık Tema" Tag="Light"/>
-                                <ComboBoxItem Content="Koyu Tema" Tag="Dark"/>
-                                <ComboBoxItem Content="Sistem" Tag="Default"/>
-                            </ComboBox>
-                        </Grid>
-                    </StackPanel>
-                </Border>
             </StackPanel>
         </ScrollViewer>
 
