@@ -110,6 +110,8 @@ namespace OtomatikMetinGenisletici.Services
             Console.WriteLine($"[DEBUG] KeyDown: {e.KeyCode}");
             WriteToLogFile($"[DEBUG] KeyDown: {e.KeyCode}");
 
+
+
             // Modifier tuşlarını yoksay
             if (_modifierKeys.Contains(e.KeyCode))
             {
@@ -221,17 +223,53 @@ namespace OtomatikMetinGenisletici.Services
                     break;
 
                 case Keys.Enter:
-                    Console.WriteLine($"[DEBUG] Enter pressed, clearing buffers");
-                    _wordBuffer.Clear();
-                    _sentenceBuffer.Clear();
+                    {
+                        Console.WriteLine($"[DEBUG] Enter pressed");
+
+                        // Önce mevcut kelimeyi cümle buffer'ına ekle
+                        var currentWord = _wordBuffer.ToString();
+                        if (!string.IsNullOrEmpty(currentWord))
+                        {
+                            _sentenceBuffer.Append(currentWord);
+                            _wordBuffer.Clear();
+                        }
+
+                        // TAM CÜMLE TAMAMLANDI - sentence buffer'ını gönder
+                        string completeSentence = _sentenceBuffer.ToString().Trim();
+                        if (!string.IsNullOrEmpty(completeSentence) && completeSentence.Length > 3)
+                        {
+                            Console.WriteLine($"[DEBUG] COMPLETE SENTENCE (Enter): '{completeSentence}'");
+
+                            // Duplicate sentence prevention
+                            var now = DateTime.Now;
+                            if (_lastProcessedSentence != completeSentence ||
+                                (now - _lastSentenceTime).TotalMilliseconds >= SENTENCE_COOLDOWN_MS)
+                            {
+                                _lastProcessedSentence = completeSentence;
+                                _lastSentenceTime = now;
+                                Console.WriteLine($"[DEBUG] SentenceCompleted event fired (Enter): '{completeSentence}'");
+                                SentenceCompleted?.Invoke(completeSentence);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[DEBUG] Sentence ignored (duplicate, Enter): '{completeSentence}'");
+                            }
+                        }
+
+                        // Buffer'ları temizle
+                        _wordBuffer.Clear();
+                        _sentenceBuffer.Clear();
+                    }
                     break;
 
-                case Keys.OemPeriod:    // .
-                case Keys.Oemcomma:     // ,
-                case Keys.OemSemicolon: // ; and :
-                case Keys.OemQuestion:  // ?
-                case Keys.D1 when (Control.ModifierKeys & Keys.Shift) == Keys.Shift: // !
+                case Keys.OemPeriod:    // . (nokta)
+                case Keys.Oemcomma:     // , (virgül)
+                case Keys.D1 when (Control.ModifierKeys & Keys.Shift) == Keys.Shift: // ! (ünlem)
+                // Soru işareti için özel kontrol - sadece gerçekten ? karakteri ise
+                case Keys.OemQuestion when GetKeyChar(e.KeyCode) == '?': // ? (soru işareti)
                     {
+                        Console.WriteLine($"[DEBUG] *** CÜMLE TAMAMLAMA TETİKLENDİ *** Key: {e.KeyCode}");
+                        WriteToLogFile($"[DEBUG] *** CÜMLE TAMAMLAMA TETİKLENDİ *** Key: {e.KeyCode}");
                         // Önce mevcut kelimeyi cümle buffer'ına ekle
                         var currentWord = _wordBuffer.ToString();
                         if (!string.IsNullOrEmpty(currentWord))
@@ -321,16 +359,15 @@ namespace OtomatikMetinGenisletici.Services
             return (key >= Keys.A && key <= Keys.Z) ||
                    (key >= Keys.D0 && key <= Keys.D9) ||
                    (key >= Keys.NumPad0 && key <= Keys.NumPad9) ||
-                   key == Keys.OemPeriod || key == Keys.Oemcomma ||
-                   key == Keys.OemSemicolon || key == Keys.OemQuotes ||
-                   key == Keys.OemOpenBrackets || key == Keys.OemPipe ||
                    key == Keys.Space || // Boşluk tuşu
-                   // Türkçe karakterler için OEM tuşları
+                   // Sadece Türkçe karakterler için OEM tuşları (noktalama işaretleri hariç)
                    key == Keys.Oem1 || key == Keys.Oem2 || key == Keys.Oem3 ||
                    key == Keys.Oem4 || key == Keys.Oem5 || key == Keys.Oem6 ||
-                   key == Keys.Oem7 || key == Keys.Oem8 || key == Keys.OemMinus ||
-                   key == Keys.Oemplus || key == Keys.OemBackslash ||
-                   key == Keys.OemCloseBrackets || key == Keys.OemQuestion;
+                   key == Keys.Oem7 || // i harfi için (Türkçe klavye)
+                   key == Keys.OemSemicolon || key == Keys.OemPipe || // ş, ç harfleri
+                   key == Keys.OemQuotes || // ö harfi
+                   // Diğer yaygın karakterler (noktalama işaretleri değil)
+                   key == Keys.OemMinus || key == Keys.Oemplus;
         }
 
         private char GetKeyChar(Keys key)
@@ -340,7 +377,7 @@ namespace OtomatikMetinGenisletici.Services
                 // Klavye durumunu al
                 byte[] keyboardState = new byte[256];
                 if (!GetKeyboardState(keyboardState))
-                    return GetFallbackChar(key);
+                    return '\0';
 
                 // Karakter dönüşümü için buffer
                 StringBuilder buffer = new StringBuilder(2);
@@ -358,6 +395,14 @@ namespace OtomatikMetinGenisletici.Services
                 {
                     char ch = buffer[0];
                     Console.WriteLine($"[DEBUG] Key {key} -> '{ch}' (Unicode: {(int)ch})");
+
+                    // i harfi için özel kontrol
+                    if (key == Keys.I || ch == 'i' || ch == 'I')
+                    {
+                        Console.WriteLine($"[DEBUG] *** I HARFİ ALGILANDI *** Key: {key}, Char: '{ch}', Unicode: {(int)ch}");
+                        WriteToLogFile($"[DEBUG] *** I HARFİ ALGILANDI *** Key: {key}, Char: '{ch}', Unicode: {(int)ch}");
+                    }
+
                     return ch;
                 }
                 else if (result > 1 && buffer.Length > 0)
@@ -370,15 +415,52 @@ namespace OtomatikMetinGenisletici.Services
 
                 // Başarısız olursa fallback kullan
                 Console.WriteLine($"[DEBUG] Key {key} -> fallback (ToUnicodeEx result: {result})");
-                return GetFallbackChar(key);
+
+                // i ve u harfleri için doğrudan karakter döndür
+                if (key == Keys.I)
+                {
+                    bool isShiftPressed = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
+                    bool isCapsLockOn = Control.IsKeyLocked(Keys.CapsLock);
+                    bool shouldBeUpperCase = isShiftPressed ^ isCapsLockOn;
+                    char iChar = shouldBeUpperCase ? 'I' : 'i';
+                    Console.WriteLine($"[DEBUG] *** I HARFİ ZORLA DÖNDÜRÜLDÜ: '{iChar}' ***");
+                    WriteToLogFile($"[DEBUG] *** I HARFİ ZORLA DÖNDÜRÜLDÜ: '{iChar}' ***");
+                    return iChar;
+                }
+
+                // Oem7 tuşu için özel işlem (Türkçe klavyede 'i' harfi)
+                if (key == Keys.Oem7)
+                {
+                    bool isShiftPressed = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
+                    bool isCapsLockOn = Control.IsKeyLocked(Keys.CapsLock);
+                    bool shouldBeUpperCase = isShiftPressed ^ isCapsLockOn;
+                    char iChar = shouldBeUpperCase ? 'İ' : 'i';
+                    Console.WriteLine($"[DEBUG] *** OEM7 (i) HARFİ ZORLA DÖNDÜRÜLDÜ: '{iChar}' ***");
+                    WriteToLogFile($"[DEBUG] *** OEM7 (i) HARFİ ZORLA DÖNDÜRÜLDÜ: '{iChar}' ***");
+                    return iChar;
+                }
+
+                if (key == Keys.U)
+                {
+                    bool isShiftPressed = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
+                    bool isCapsLockOn = Control.IsKeyLocked(Keys.CapsLock);
+                    bool shouldBeUpperCase = isShiftPressed ^ isCapsLockOn;
+                    char uChar = shouldBeUpperCase ? 'U' : 'u';
+                    Console.WriteLine($"[DEBUG] *** U HARFİ ZORLA DÖNDÜRÜLDÜ: '{uChar}' ***");
+                    WriteToLogFile($"[DEBUG] *** U HARFİ ZORLA DÖNDÜRÜLDÜ: '{uChar}' ***");
+                    return uChar;
+                }
+
+                return '\0';
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[DEBUG] GetKeyChar exception for {key}: {ex.Message}");
-                // Hata durumunda fallback kullan
-                return GetFallbackChar(key);
+                return '\0';
             }
         }
+
+
 
         private char GetFallbackChar(Keys key)
         {
@@ -392,6 +474,7 @@ namespace OtomatikMetinGenisletici.Services
             // Temel karakter desteği (fallback)
             return key switch
             {
+                // A-Z harfleri
                 _ when key >= Keys.A && key <= Keys.Z => shouldBeUpperCase ?
                     (char)('A' + (key - Keys.A)) : (char)('a' + (key - Keys.A)),
                 _ when key >= Keys.D0 && key <= Keys.D9 => (char)('0' + (key - Keys.D0)),
@@ -399,17 +482,10 @@ namespace OtomatikMetinGenisletici.Services
                 Keys.Space => ' ',
                 Keys.OemPeriod => '.',
                 Keys.Oemcomma => ',',
-                Keys.OemQuotes => isShiftPressed ? '"' : '\'',
                 Keys.OemMinus => isShiftPressed ? '_' : '-',
                 Keys.Oemplus => isShiftPressed ? '+' : '=',
-                // Türkçe karakterler için temel mapping (klavye layout'a göre değişebilir)
-                // Not: Bu mapping Türkçe Q klavye için yaklaşık değerlerdir
-                Keys.Oem1 => isShiftPressed ? 'İ' : 'ı',
-                Keys.Oem2 => isShiftPressed ? 'Ş' : 'ş',
-                Keys.Oem3 => isShiftPressed ? 'Ğ' : 'ğ',
-                Keys.Oem4 => isShiftPressed ? 'Ü' : 'ü',
-                Keys.Oem5 => isShiftPressed ? 'Ç' : 'ç',
-                Keys.Oem6 => isShiftPressed ? 'Ö' : 'ö',
+                Keys.Oem7 => shouldBeUpperCase ? 'İ' : 'i', // Türkçe i harfi (OemQuotes ile aynı)
+
                 _ => '\0'
             };
         }
