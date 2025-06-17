@@ -846,11 +846,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Console.WriteLine($"[PREVIEW] Mevcut akıllı öneri var: {_currentSuggestion}");
 
                 // Akıllı öneriyi preview'da göster
-                var previewText = $"💡 {_currentSuggestion} (Tab ile kabul et)";
+                var previewText = $"💡 {_currentSuggestion} (Tab)";
                 if (_currentSmartSuggestions.Count > 0)
                 {
                     var confidence = _currentSmartSuggestions[0].Confidence;
-                    previewText = $"💡 {_currentSuggestion} (Tab ile kabul et - {confidence:P0})";
+                    previewText = $"💡 {_currentSuggestion} (Tab - {confidence:P0})";
                 }
 
                 SafeSetPreviewText(previewText);
@@ -1112,7 +1112,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _currentSuggestion = suggestion.Text;
 
                     // Preview'da akıllı öneriyi göster
-                    var previewText = $"💡 {suggestion.Text} (Tab ile kabul et - {suggestion.Confidence:P0})";
+                    var previewText = $"💡 {suggestion.Text} (Tab - {suggestion.Confidence:P0})";
                     Console.WriteLine($"[SMART SUGGESTIONS] Preview gösteriliyor: {previewText}");
 
                     // Preview overlay'de göster - UI thread'de çalıştır
@@ -1343,7 +1343,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                             Console.WriteLine($"[DEBUG] *** Sonraki kelime önerisi: '{_currentSuggestion}' ***");
 
                             // Preview'da göster
-                            var previewText = $"💡 {_currentSuggestion} (Tab ile kabul et - {suggestions.First().Confidence:P0})";
+                            var previewText = $"💡 {_currentSuggestion} (Tab - {suggestions.First().Confidence:P0})";
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 SafeSetPreviewText(previewText);
@@ -1378,7 +1378,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                             Console.WriteLine($"[DEBUG] *** Tek kelime önerisi: '{_currentSuggestion}' ***");
 
-                            var previewText = $"💡 {_currentSuggestion} (Tab ile kabul et - {suggestions.First().Confidence:P0})";
+                            var previewText = $"💡 {_currentSuggestion} (Tab - {suggestions.First().Confidence:P0})";
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 SafeSetPreviewText(previewText);
@@ -2268,7 +2268,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
                                         var words = newContext.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                                        var previewText = $"📝 Cümle: '{string.Join(" ", words)}' → 🔮 Sonraki: '{_currentSuggestion}' (Tab: ekle)";
+                                        var previewText = $"🔮{_currentSuggestion}' (Tab: ekle)";
                                         SafeSetPreviewText(previewText);
                                         Console.WriteLine($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
                                         WriteToLogFile($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
@@ -2436,7 +2436,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
                                         var words = newContext.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                                        var previewText = $"📝 Cümle: '{string.Join(" ", words)}' → 🔮 Sonraki: '{_currentSuggestion}' (Tab: ekle)";
+                                        var previewText = $"🔮'{_currentSuggestion}' (Tab: ekle)";
                                         SafeSetPreviewText(previewText);
                                         Console.WriteLine($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
                                         WriteToLogFile($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");

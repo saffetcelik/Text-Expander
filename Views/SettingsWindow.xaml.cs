@@ -59,14 +59,7 @@ namespace OtomatikMetinGenisletici.Views
             MaxSuggestionsTextBox.Text = _settings.MaxSuggestions.ToString();
             ContextWeightSlider.Value = _settings.ContextWeight * 100;
 
-            // Set theme
-            var currentTheme = ThemeManager.Current.ApplicationTheme;
-            ThemeComboBox.SelectedIndex = currentTheme switch
-            {
-                ApplicationTheme.Light => 0,
-                ApplicationTheme.Dark => 1,
-                _ => 2
-            };
+            // Tema ayarı kaldırıldı - sadece Light tema kullanılıyor
         }
 
         private async void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -134,18 +127,7 @@ namespace OtomatikMetinGenisletici.Views
                     return;
                 }
 
-                // Apply theme
-                ApplicationTheme? selectedTheme = ThemeComboBox.SelectedIndex switch
-                {
-                    0 => ApplicationTheme.Light,
-                    1 => ApplicationTheme.Dark,
-                    _ => null
-                };
-
-                if (selectedTheme.HasValue)
-                {
-                    ThemeManager.Current.ApplicationTheme = selectedTheme.Value;
-                }
+                // Tema ayarı kaldırıldı - sadece Light tema kullanılıyor
 
                 // Save settings
                 _settingsService.UpdateSettings(_settings);
