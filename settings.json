@@ -8,7 +8,7 @@
   "MaxPhraseLength": 15,
   "MinFrequency": 2,
   "MaxSuggestions": 20,
-  "ContextWeight": 0.7,
+  "ContextWeight": 1.0,
   "SmartSuggestionsEnabled": true,
   "MaxSmartSuggestions": 5,
   "MinWordLength": 2,
