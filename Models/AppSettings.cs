@@ -17,7 +17,7 @@ namespace OtomatikMetinGenisletici.Models
         private double _contextWeight = 0.7;
 
         // Akıllı Öneriler Ayarları
-        private bool _smartSuggestionsEnabled = false;
+        private bool _smartSuggestionsEnabled = true;
         private int _maxSmartSuggestions = 5;
         private int _minWordLength = 2;
         private bool _learningEnabled = true;
