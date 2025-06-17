@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Animation;
 
@@ -23,6 +24,10 @@ namespace OtomatikMetinGenisletici.Views
             {
                 Console.WriteLine("[PREVIEW] PreviewOverlay constructor başlıyor...");
                 InitializeComponent();
+
+                // ESC tuşu ile kapatma özelliği
+                KeyDown += PreviewOverlay_KeyDown;
+
                 Hide();
                 Console.WriteLine("[PREVIEW] PreviewOverlay constructor tamamlandı");
             }
@@ -50,18 +55,8 @@ namespace OtomatikMetinGenisletici.Views
                     Opacity = 0.95; // Sabit opacity
                 }
 
-                PreviewTextBlock.Text = text;
-
-                // EPİLEPSİ ÖNLEMİ: Artık gizlenip gösterilmiyor, sadece metin güncelleniyor
-                if (string.IsNullOrEmpty(text))
-                {
-                    Console.WriteLine("[PREVIEW] Metin boş, ama pencere açık kalıyor (epilepsi önlemi)");
-                    PreviewTextBlock.Text = "✏️ Yazmaya başlayın..."; // Boş yerine varsayılan metin
-                }
-                else
-                {
-                    Console.WriteLine("[PREVIEW] Metin güncellendi, pencere sabit kalıyor");
-                }
+                // Eski format kontrolü ve yeni formata çevirme
+                ParseAndDisplayText(text);
 
                 // Pencere her zaman görünür ve sabit pozisyonda kalıyor
                 if (Visibility != Visibility.Visible)
@@ -77,6 +72,76 @@ namespace OtomatikMetinGenisletici.Views
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] SetText hatası: {ex.Message}");
+            }
+        }
+
+        private void ParseAndDisplayText(string text)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(text))
+                {
+                    Console.WriteLine("[PREVIEW] Metin boş, varsayılan metin gösteriliyor");
+                    PreviewTextBlock.Text = "✏️ Yazmaya başlayın...";
+                    InfoTextBlock.Visibility = Visibility.Collapsed;
+                    return;
+                }
+
+                // Basit parsing - sadece ana metni ve kısayol bilgisini al
+                string mainText = "";
+                string infoText = "";
+
+                // Farklı formatları kontrol et
+                if (text.Contains("(Tab") || text.Contains("(Ctrl+Space"))
+                {
+                    // Format: "💡 öneri metni (Tab - %80)"
+                    var parts = text.Split('(');
+                    if (parts.Length >= 2)
+                    {
+                        mainText = parts[0].Trim();
+                        var shortcutInfo = parts[1].TrimEnd(')');
+
+                        // Emoji'leri temizle
+                        mainText = mainText.Replace("💡", "").Replace("🔤", "").Replace("🔮", "").Replace("→", "").Trim();
+
+                        // Sadece kısayol bilgisini göster
+                        if (shortcutInfo.Contains("Tab"))
+                        {
+                            infoText = "Tab tuşu ile kabul edin";
+                        }
+                        else if (shortcutInfo.Contains("Ctrl+Space"))
+                        {
+                            infoText = "Ctrl+Space ile kabul edin";
+                        }
+                    }
+                }
+                else
+                {
+                    // Basit metin, emoji'leri temizle
+                    mainText = text.Replace("💡", "").Replace("🔤", "").Replace("🔮", "").Replace("→", "").Trim();
+                }
+
+                // Ana metni göster
+                PreviewTextBlock.Text = mainText;
+
+                // Bilgi metnini göster
+                if (!string.IsNullOrEmpty(infoText))
+                {
+                    InfoTextBlock.Text = infoText;
+                    InfoTextBlock.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    InfoTextBlock.Visibility = Visibility.Collapsed;
+                }
+
+                Console.WriteLine($"[PREVIEW] Sade format - Ana: '{mainText}', Bilgi: '{infoText}'");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] ParseAndDisplayText hatası: {ex.Message}");
+                PreviewTextBlock.Text = text; // Fallback
+                InfoTextBlock.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -146,12 +211,12 @@ namespace OtomatikMetinGenisletici.Views
                     Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                     var desiredSize = DesiredSize;
 
-                    double windowWidth = desiredSize.Width > 0 ? desiredSize.Width : 400; // Varsayılan genişlik
-                    double windowHeight = desiredSize.Height > 0 ? desiredSize.Height : 120; // Varsayılan yükseklik
+                    double windowWidth = desiredSize.Width > 0 ? desiredSize.Width : 450; // Varsayılan genişlik artırıldı
+                    double windowHeight = desiredSize.Height > 0 ? desiredSize.Height : 140; // Varsayılan yükseklik artırıldı
 
-                    // Ekranın üst ortasına yerleştir
+                    // Ekranın üst ortasına yerleştir - biraz daha aşağıda
                     Left = (primaryScreen.WorkingArea.Width - windowWidth) / 2;
-                    Top = 80; // Ekranın üstünden 80 pixel aşağıda
+                    Top = 120; // Ekranın üstünden 120 pixel aşağıda (daha fazla boşluk)
 
                     Console.WriteLine($"[PREVIEW] Ekran boyutu: {primaryScreen.WorkingArea.Width}x{primaryScreen.WorkingArea.Height}");
                     Console.WriteLine($"[PREVIEW] Pencere boyutu: {windowWidth}x{windowHeight}");
@@ -159,9 +224,9 @@ namespace OtomatikMetinGenisletici.Views
                 }
                 else
                 {
-                    // Fallback pozisyon
-                    Left = 200;
-                    Top = 80;
+                    // Fallback pozisyon - daha merkezi
+                    Left = 300;
+                    Top = 120;
                     Console.WriteLine("[PREVIEW] Fallback pozisyon kullanıldı");
                 }
             }
@@ -169,8 +234,8 @@ namespace OtomatikMetinGenisletici.Views
             {
                 Console.WriteLine($"[ERROR] PositionAtTopCenter hatası: {ex.Message}");
                 // Fallback pozisyon
-                Left = 200;
-                Top = 80;
+                Left = 300;
+                Top = 120;
             }
         }
 
@@ -198,6 +263,40 @@ namespace OtomatikMetinGenisletici.Views
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] HideButton_Click hatası: {ex.Message}");
+            }
+        }
+
+        // Sürükleme özelliği için event handler
+        private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                if (e.ButtonState == MouseButtonState.Pressed)
+                {
+                    Console.WriteLine("[PREVIEW] Sürükleme başlatıldı");
+                    this.DragMove();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Border_MouseLeftButtonDown hatası: {ex.Message}");
+            }
+        }
+
+        // ESC tuşu ile kapatma
+        private void PreviewOverlay_KeyDown(object sender, KeyEventArgs e)
+        {
+            try
+            {
+                if (e.Key == Key.Escape)
+                {
+                    Console.WriteLine("[PREVIEW] ESC tuşu basıldı - önizleme gizleniyor");
+                    HideWithAnimation();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] PreviewOverlay_KeyDown hatası: {ex.Message}");
             }
         }
     }
