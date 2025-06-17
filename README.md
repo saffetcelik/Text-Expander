@@ -340,12 +340,6 @@ Projeye katkıda bulunmak için:
 - **🏗️ Architecture**: Clean Architecture + MVVM
 - **🔧 Maintainability**: A+ rating
 
-## 📞 Destek ve İletişim
-
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/saffetcelik/Text-Expander/issues)
-- **💡 Feature Requests**: [GitHub Discussions](https://github.com/saffetcelik/Text-Expander/discussions)
-- **📧 Email**: [saffet@example.com](mailto:saffet@example.com)
-- **💬 Discord**: [Text Expander Community](https://discord.gg/textexpander)
 
 ## 📝 Lisans
 
