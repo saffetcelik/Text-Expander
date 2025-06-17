@@ -88,6 +88,10 @@ namespace OtomatikMetinGenisletici.Services
                     _hasUnsavedChanges = true;
 
                     Console.WriteLine($"[LEARNING] Öğrenme tamamlandı. Toplam kelime: {_learningData.TotalWordsLearned}");
+
+                    // Öğrenme sonrası hemen kaydet
+                    SaveLearningData();
+                    Console.WriteLine($"[LEARNING] Veriler kaydedildi.");
                 }
             });
         }
@@ -436,14 +440,15 @@ namespace OtomatikMetinGenisletici.Services
                 lock (_lockObject)
                 {
                     _learningData.TotalSuggestionsAccepted++;
-                    
+
                     // Kabul edilen öneriyi güçlendir
                     _learningData.WordFrequencies.AddOrUpdate(
-                        suggestion.Text, 
-                        1, 
+                        suggestion.Text,
+                        1,
                         (key, oldValue) => oldValue + 2);
 
                     _hasUnsavedChanges = true;
+                    SaveLearningData();
                 }
             });
         }
@@ -456,6 +461,7 @@ namespace OtomatikMetinGenisletici.Services
                 {
                     _learningData.TotalSuggestionsRejected++;
                     _hasUnsavedChanges = true;
+                    SaveLearningData();
                 }
             });
         }
@@ -565,6 +571,10 @@ namespace OtomatikMetinGenisletici.Services
                 {
                     Console.WriteLine($"[LEARNING] Dosya bulunamadı, yeni veri oluşturuluyor");
                     _learningData = new LearningData();
+
+                    // Boş dosyayı hemen oluştur
+                    Console.WriteLine($"[LEARNING] Boş veri dosyası oluşturuluyor: {_dataFilePath}");
+                    SaveLearningData();
                 }
             }
             catch (Exception ex)
@@ -573,6 +583,17 @@ namespace OtomatikMetinGenisletici.Services
                 _learningData = new LearningData();
                 Console.WriteLine($"[ERROR] Öğrenme verisi yükleme hatası: {ex.Message}");
                 Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
+
+                // Hata durumunda da boş dosyayı oluştur
+                try
+                {
+                    Console.WriteLine($"[LEARNING] Hata sonrası boş veri dosyası oluşturuluyor: {_dataFilePath}");
+                    SaveLearningData();
+                }
+                catch (Exception saveEx)
+                {
+                    Console.WriteLine($"[ERROR] Boş dosya oluşturma hatası: {saveEx.Message}");
+                }
             }
         }
 

@@ -74,16 +74,26 @@ namespace OtomatikMetinGenisletici.Services
 
         public async Task LearnFromTextAsync(string text)
         {
+            Console.WriteLine($"[SMART SUGGESTIONS] LearnFromTextAsync çağrıldı: '{text}'");
+            Console.WriteLine($"[SMART SUGGESTIONS] _isEnabled: {_isEnabled}");
+            Console.WriteLine($"[SMART SUGGESTIONS] _settings.LearningEnabled: {_settings.LearningEnabled}");
+            Console.WriteLine($"[SMART SUGGESTIONS] text boş mu: {string.IsNullOrWhiteSpace(text)}");
+
             if (!_isEnabled || !_settings.LearningEnabled || string.IsNullOrWhiteSpace(text))
+            {
+                Console.WriteLine($"[SMART SUGGESTIONS] Öğrenme atlandı - Enabled: {_isEnabled}, LearningEnabled: {_settings.LearningEnabled}, Text: '{text}'");
                 return;
+            }
 
             try
             {
+                Console.WriteLine($"[SMART SUGGESTIONS] TextLearningEngine'e öğrenme gönderiliyor...");
                 await _learningEngine.LearnFromTextAsync(text);
+                Console.WriteLine($"[SMART SUGGESTIONS] Öğrenme başarılı!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Öğrenme hatası: {ex.Message}");
+                Console.WriteLine($"[SMART SUGGESTIONS] Öğrenme hatası: {ex.Message}");
             }
         }
 
