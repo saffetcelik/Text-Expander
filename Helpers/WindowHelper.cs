@@ -19,6 +19,28 @@ namespace OtomatikMetinGenisletici.Helpers
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
+        [DllImport("user32.dll")]
+        private static extern bool GetCaretPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetFocus();
+
+        [DllImport("user32.dll")]
+        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+        [DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
         /// <summary>
         /// Aktif pencerenin başlığını alır
         /// </summary>
@@ -116,6 +138,59 @@ namespace OtomatikMetinGenisletici.Helpers
             {
                 // Hata durumunda güvenli tarafta kal - devre dışı bırak
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Aktif penceredeki cursor pozisyonunu ekran koordinatlarında alır
+        /// </summary>
+        public static POINT? GetCaretPosition()
+        {
+            try
+            {
+                IntPtr foregroundWindow = GetForegroundWindow();
+                if (foregroundWindow == IntPtr.Zero)
+                    return null;
+
+                uint foregroundThreadId = GetWindowThreadProcessId(foregroundWindow, out _);
+                uint currentThreadId = GetCurrentThreadId();
+
+                if (foregroundThreadId != currentThreadId)
+                {
+                    // Farklı thread'e attach ol
+                    if (!AttachThreadInput(currentThreadId, foregroundThreadId, true))
+                        return null;
+                }
+
+                try
+                {
+                    IntPtr focusedWindow = GetFocus();
+                    if (focusedWindow == IntPtr.Zero)
+                        return null;
+
+                    if (GetCaretPos(out POINT caretPos))
+                    {
+                        // Client koordinatlarını ekran koordinatlarına çevir
+                        if (ClientToScreen(focusedWindow, ref caretPos))
+                        {
+                            return caretPos;
+                        }
+                    }
+                }
+                finally
+                {
+                    if (foregroundThreadId != currentThreadId)
+                    {
+                        // Thread attach'ı kaldır
+                        AttachThreadInput(currentThreadId, foregroundThreadId, false);
+                    }
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
             }
         }
 

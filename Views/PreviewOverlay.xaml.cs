@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Animation;
+using OtomatikMetinGenisletici.Helpers;
 
 namespace OtomatikMetinGenisletici.Views
 {
@@ -50,7 +51,7 @@ namespace OtomatikMetinGenisletici.Views
                 {
                     Console.WriteLine("[PREVIEW] Pencere henüz yüklenmemiş, yükleniyor...");
                     Show();
-                    PositionAtTopCenter();
+                    PositionNearCursor();
                     Topmost = true;
                     Opacity = 0.95; // Sabit opacity
                 }
@@ -58,13 +59,18 @@ namespace OtomatikMetinGenisletici.Views
                 // Eski format kontrolü ve yeni formata çevirme
                 ParseAndDisplayText(text);
 
-                // Pencere her zaman görünür ve sabit pozisyonda kalıyor
+                // Pencere her zaman görünür ve cursor pozisyonunda kalıyor
                 if (Visibility != Visibility.Visible)
                 {
                     Show();
-                    PositionAtTopCenter();
+                    PositionNearCursor();
                     Topmost = true;
                     Opacity = 0.95;
+                }
+                else
+                {
+                    // Pencere zaten açıksa sadece pozisyonu güncelle
+                    PositionNearCursor();
                 }
 
                 Console.WriteLine($"[PREVIEW] Pencere pozisyonu: Left={Left}, Top={Top}, Width={Width}, Height={Height}");
@@ -81,17 +87,15 @@ namespace OtomatikMetinGenisletici.Views
             {
                 if (string.IsNullOrEmpty(text))
                 {
-                    Console.WriteLine("[PREVIEW] Metin boş, varsayılan metin gösteriliyor");
-                    PreviewTextBlock.Text = "✏️ Yazmaya başlayın...";
-                    InfoTextBlock.Visibility = Visibility.Collapsed;
+                    Console.WriteLine("[PREVIEW] Metin boş, gizleniyor");
+                    PreviewTextBlock.Text = "";
                     return;
                 }
 
-                // Basit parsing - sadece ana metni ve kısayol bilgisini al
+                // Sadece ana metni al, tüm bilgi yazılarını kaldır
                 string mainText = "";
-                string infoText = "";
 
-                // Farklı formatları kontrol et
+                // Farklı formatları kontrol et ve sadece ana metni çıkar
                 if (text.Contains("(Tab") || text.Contains("(Ctrl+Space"))
                 {
                     // Format: "💡 öneri metni (Tab - %80)"
@@ -99,49 +103,28 @@ namespace OtomatikMetinGenisletici.Views
                     if (parts.Length >= 2)
                     {
                         mainText = parts[0].Trim();
-                        var shortcutInfo = parts[1].TrimEnd(')');
-
-                        // Emoji'leri temizle
-                        mainText = mainText.Replace("💡", "").Replace("🔤", "").Replace("🔮", "").Replace("→", "").Trim();
-
-                        // Sadece kısayol bilgisini göster
-                        if (shortcutInfo.Contains("Tab"))
-                        {
-                            infoText = "Tab tuşu ile kabul edin";
-                        }
-                        else if (shortcutInfo.Contains("Ctrl+Space"))
-                        {
-                            infoText = "Ctrl+Space ile kabul edin";
-                        }
                     }
                 }
                 else
                 {
-                    // Basit metin, emoji'leri temizle
-                    mainText = text.Replace("💡", "").Replace("🔤", "").Replace("🔮", "").Replace("→", "").Trim();
+                    // Basit metin
+                    mainText = text;
                 }
 
-                // Ana metni göster
+                // Tüm emoji'leri ve gereksiz karakterleri temizle
+                mainText = mainText.Replace("💡", "").Replace("🔤", "").Replace("🔮", "").Replace("→", "")
+                                  .Replace("Önerilen:", "").Replace("|", "").Replace("Kelime:", "")
+                                  .Replace("Karakter:", "").Trim();
+
+                // Sadece temiz metni göster
                 PreviewTextBlock.Text = mainText;
 
-                // Bilgi metnini göster
-                if (!string.IsNullOrEmpty(infoText))
-                {
-                    InfoTextBlock.Text = infoText;
-                    InfoTextBlock.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    InfoTextBlock.Visibility = Visibility.Collapsed;
-                }
-
-                Console.WriteLine($"[PREVIEW] Sade format - Ana: '{mainText}', Bilgi: '{infoText}'");
+                Console.WriteLine($"[PREVIEW] Minimal format - Sadece metin: '{mainText}'");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] ParseAndDisplayText hatası: {ex.Message}");
                 PreviewTextBlock.Text = text; // Fallback
-                InfoTextBlock.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -152,14 +135,17 @@ namespace OtomatikMetinGenisletici.Views
             if (Visibility != Visibility.Visible)
             {
                 Console.WriteLine("[PREVIEW] Pencere gösteriliyor");
+
+                // Önce pozisyonu ayarla
+                PositionNearCursor();
                 Show();
 
                 // Yukarıdan aşağıya kayma animasyonu
                 var slideAnimation = new DoubleAnimation
                 {
-                    From = -100,
+                    From = Top - 30, // Mevcut pozisyondan 30 pixel yukarıdan başla
                     To = Top,
-                    Duration = TimeSpan.FromMilliseconds(400),
+                    Duration = TimeSpan.FromMilliseconds(300),
                     EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
                 };
 
@@ -168,7 +154,7 @@ namespace OtomatikMetinGenisletici.Views
                 {
                     From = 0,
                     To = 0.95,
-                    Duration = TimeSpan.FromMilliseconds(400)
+                    Duration = TimeSpan.FromMilliseconds(300)
                 };
 
                 BeginAnimation(TopProperty, slideAnimation);
@@ -179,6 +165,8 @@ namespace OtomatikMetinGenisletici.Views
             else
             {
                 Console.WriteLine("[PREVIEW] Pencere zaten görünür");
+                // Pencere zaten açıksa sadece pozisyonu güncelle
+                PositionNearCursor();
             }
         }
 
@@ -196,6 +184,67 @@ namespace OtomatikMetinGenisletici.Views
 
                 fadeAnimation.Completed += (s, e) => Hide();
                 BeginAnimation(OpacityProperty, fadeAnimation);
+            }
+        }
+
+        private void PositionNearCursor()
+        {
+            try
+            {
+                // Cursor pozisyonunu al
+                var caretPos = WindowHelper.GetCaretPosition();
+
+                if (caretPos.HasValue)
+                {
+                    Console.WriteLine($"[PREVIEW] Cursor pozisyonu bulundu: X={caretPos.Value.X}, Y={caretPos.Value.Y}");
+
+                    // Pencere boyutunu hesapla
+                    Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    var desiredSize = DesiredSize;
+
+                    double windowWidth = desiredSize.Width > 0 ? desiredSize.Width : 450;
+                    double windowHeight = desiredSize.Height > 0 ? desiredSize.Height : 140;
+
+                    // Cursor'un tam sağ altına yerleştir
+                    double targetLeft = caretPos.Value.X + 10; // Cursor'un 10 pixel sağında
+                    double targetTop = caretPos.Value.Y + 20; // Cursor'un 20 pixel altında
+
+                    // Ekran sınırlarını kontrol et
+                    var primaryScreen = System.Windows.Forms.Screen.PrimaryScreen;
+                    if (primaryScreen?.WorkingArea != null)
+                    {
+                        // Sol sınır kontrolü
+                        if (targetLeft < primaryScreen.WorkingArea.Left)
+                            targetLeft = primaryScreen.WorkingArea.Left + 10;
+
+                        // Sağ sınır kontrolü
+                        if (targetLeft + windowWidth > primaryScreen.WorkingArea.Right)
+                            targetLeft = primaryScreen.WorkingArea.Right - windowWidth - 10;
+
+                        // Alt sınır kontrolü - eğer cursor çok aşağıdaysa üste taşı
+                        if (targetTop + windowHeight > primaryScreen.WorkingArea.Bottom)
+                            targetTop = caretPos.Value.Y - windowHeight - 10; // Cursor'un üstüne
+
+                        // Üst sınır kontrolü
+                        if (targetTop < primaryScreen.WorkingArea.Top)
+                            targetTop = primaryScreen.WorkingArea.Top + 10;
+                    }
+
+                    Left = targetLeft;
+                    Top = targetTop;
+
+                    Console.WriteLine($"[PREVIEW] Cursor yakını pozisyon: Left={Left}, Top={Top}");
+                }
+                else
+                {
+                    Console.WriteLine("[PREVIEW] Cursor pozisyonu alınamadı, fallback pozisyon kullanılıyor");
+                    PositionAtTopCenter();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] PositionNearCursor hatası: {ex.Message}");
+                PositionAtTopCenter();
             }
         }
 

@@ -14,5 +14,5 @@
   "MinWordLength": 2,
   "LearningEnabled": true,
   "LearningWeight": 1.0,
-  "PreviewAlwaysVisible": true
+  "PreviewAlwaysVisible": false
 }
