@@ -351,44 +351,7 @@
                             <!-- Left Column -->
                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
 
-                                <!-- Current Suggestions -->
-                                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
-                                    <StackPanel>
-                                        <Grid Margin="0,0,0,16">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="💡 Mevcut Öneriler"
-                                                       Style="{StaticResource SubHeaderTextStyle}"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding CurrentSuggestionsCount, StringFormat='{}{0} öneri'}"
-                                                       FontSize="12" Foreground="Gray"/>
-                                        </Grid>
 
-                                        <TextBlock Text="💡 İpucu: Ctrl+Space ile ilk öneriyi hızlıca uygulayabilirsiniz"
-                                                   FontSize="12"
-                                                   Foreground="Gray"
-                                                   FontStyle="Italic"
-                                                   Margin="0,0,0,8"/>
-
-                                        <DataGrid ItemsSource="{Binding SmartSuggestions}"
-                                                  SelectedItem="{Binding SelectedSmartSuggestion}"
-                                                  AutoGenerateColumns="False"
-                                                  CanUserAddRows="False"
-                                                  CanUserDeleteRows="False"
-                                                  IsReadOnly="True"
-                                                  GridLinesVisibility="None"
-                                                  HeadersVisibility="Column"
-                                                  MaxHeight="200">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Öneri" Binding="{Binding Text}" Width="*"/>
-                                                <DataGridTextColumn Header="Güven" Binding="{Binding Confidence, StringFormat=P0}" Width="60"/>
-                                                <DataGridTextColumn Header="Tür" Binding="{Binding Type}" Width="80"/>
-                                                <DataGridTextColumn Header="Sıklık" Binding="{Binding Frequency}" Width="60"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </StackPanel>
-                                </Border>
 
                                 <!-- Most Used Words -->
                                 <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
