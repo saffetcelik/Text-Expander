@@ -44,8 +44,28 @@ namespace OtomatikMetinGenisletici.Services
 
         public async Task InitializeAsync()
         {
-            // Başlangıç verilerini yükle
-            await Task.CompletedTask;
+            try
+            {
+                Console.WriteLine("[SMART SUGGESTIONS] InitializeAsync başlıyor...");
+
+                // TextLearningEngine'in verilerinin yüklendiğinden emin ol
+                // Engine constructor'da zaten LoadLearningData() çağrılıyor ama
+                // async olmadığı için burada kontrol edelim
+
+                // İstatistikleri al ve logla
+                var stats = await GetStatisticsAsync();
+                Console.WriteLine($"[SMART SUGGESTIONS] Başlangıç istatistikleri:");
+                Console.WriteLine($"[SMART SUGGESTIONS] - Toplam kelime: {stats.TotalUniqueWords}");
+                Console.WriteLine($"[SMART SUGGESTIONS] - Toplam bigram: {stats.TotalBigrams}");
+                Console.WriteLine($"[SMART SUGGESTIONS] - Toplam trigram: {stats.TotalTrigrams}");
+                Console.WriteLine($"[SMART SUGGESTIONS] - Son güncelleme: {stats.LastLearningSession}");
+
+                Console.WriteLine("[SMART SUGGESTIONS] InitializeAsync tamamlandı.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] SmartSuggestionsService InitializeAsync hatası: {ex.Message}");
+            }
         }
 
         public async Task<List<SmartSuggestion>> GetSuggestionsAsync(string context, int maxSuggestions = 5)
@@ -227,6 +247,57 @@ namespace OtomatikMetinGenisletici.Services
         {
             _settingsService.SettingsChanged -= OnSettingsChanged;
             _learningEngine?.Dispose();
+        }
+
+        // Veri Yönetimi Fonksiyonları
+        public async Task<bool> UpdateWordAsync(string oldWord, string newWord, int newCount)
+        {
+            return await Task.Run(() => _learningEngine.UpdateWordFrequency(oldWord, newWord, newCount));
+        }
+
+        public async Task<bool> DeleteWordAsync(string word)
+        {
+            return await Task.Run(() => _learningEngine.DeleteWord(word));
+        }
+
+        public async Task<bool> UpdateBigramAsync(string oldBigram, string newBigram, int newCount)
+        {
+            return await Task.Run(() => _learningEngine.UpdateBigram(oldBigram, newBigram, newCount));
+        }
+
+        public async Task<bool> DeleteBigramAsync(string bigram)
+        {
+            return await Task.Run(() => _learningEngine.DeleteBigram(bigram));
+        }
+
+        public async Task<bool> UpdateTrigramAsync(string oldTrigram, string newTrigram, int newCount)
+        {
+            return await Task.Run(() => _learningEngine.UpdateTrigram(oldTrigram, newTrigram, newCount));
+        }
+
+        public async Task<bool> DeleteTrigramAsync(string trigram)
+        {
+            return await Task.Run(() => _learningEngine.DeleteTrigram(trigram));
+        }
+
+        public async Task<List<(string Word, int Count)>> SearchWordsAsync(string searchTerm, int maxResults = 50)
+        {
+            return await Task.Run(() => _learningEngine.SearchWords(searchTerm, maxResults));
+        }
+
+        public async Task<List<(string Bigram, int Count)>> SearchBigramsAsync(string searchTerm, int maxResults = 50)
+        {
+            return await Task.Run(() => _learningEngine.SearchBigrams(searchTerm, maxResults));
+        }
+
+        public async Task<List<(string Trigram, int Count)>> SearchTrigramsAsync(string searchTerm, int maxResults = 50)
+        {
+            return await Task.Run(() => _learningEngine.SearchTrigrams(searchTerm, maxResults));
+        }
+
+        public async Task SaveDataAsync()
+        {
+            await Task.Run(() => _learningEngine.SaveLearningData());
         }
     }
 }

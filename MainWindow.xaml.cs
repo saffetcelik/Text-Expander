@@ -1,11 +1,15 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using Microsoft.Extensions.DependencyInjection;
 using OtomatikMetinGenisletici.ViewModels;
 using OtomatikMetinGenisletici.Services;
 using OtomatikMetinGenisletici.Views;
+using OtomatikMetinGenisletici.Models;
 
 namespace OtomatikMetinGenisletici;
 
@@ -234,27 +238,7 @@ public partial class MainWindow : Window
         settingsWindow.ShowDialog();
     }
 
-    private async void RefreshSuggestions_Click(object sender, RoutedEventArgs e)
-    {
-        await _viewModel.RefreshSmartSuggestionsDataAsync();
-    }
 
-    private async void ClearSuggestionHistory_Click(object sender, RoutedEventArgs e)
-    {
-        var result = MessageBox.Show(
-            "Öneri geçmişi temizlenecek. Devam etmek istediğinizden emin misiniz?",
-            "Öneri Geçmişini Temizle",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
-
-        if (result == MessageBoxResult.Yes)
-        {
-            // Geçmişi temizle (şimdilik sadece UI'ı yenile)
-            await _viewModel.RefreshSmartSuggestionsDataAsync();
-            MessageBox.Show("Öneri geçmişi temizlendi!", "Başarılı",
-                MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-    }
 
     private async void ShowDetailedStats_Click(object sender, RoutedEventArgs e)
     {
@@ -515,4 +499,186 @@ public partial class MainWindow : Window
         MessageBox.Show("Öğrenme logu temizlendi!", "Bilgi",
             MessageBoxButton.OK, MessageBoxImage.Information);
     }
+
+    private async void NGramCountSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_viewModel != null)
+        {
+            await _viewModel.UpdateNGramDisplayCountAsync((int)e.NewValue);
+        }
+    }
+
+    private async void MinFrequencySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_viewModel != null)
+        {
+            await _viewModel.UpdateNGramMinFrequencyAsync((int)e.NewValue);
+        }
+    }
+
+    private async void RefreshNGramData_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel != null)
+        {
+            await _viewModel.RefreshNGramDataAsync();
+            MessageBox.Show("N-Gram verileri yenilendi!", "Bilgi",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    // Veri Düzenleme Event Handler'ları
+    private async void EditWord_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.Tag is WordUsageStatistic word)
+        {
+            var dialog = new EditWordDialog(word.Word, word.Count);
+            if (dialog.ShowDialog() == true)
+            {
+                if (_viewModel != null)
+                {
+                    bool success = await _viewModel.UpdateWordAsync(word.Word, dialog.NewWord, dialog.NewCount);
+                    if (success)
+                    {
+                        await _viewModel.RefreshSmartSuggestionsDataAsync();
+                        MessageBox.Show("Kelime başarıyla güncellendi!", "Başarılı",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Kelime güncellenirken hata oluştu!", "Hata",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+    }
+
+    private async void DeleteWord_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.Tag is WordUsageStatistic word)
+        {
+            var result = MessageBox.Show($"'{word.Word}' kelimesini silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz ve ilgili bigram/trigramlar da silinecektir.",
+                "Kelime Sil", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes && _viewModel != null)
+            {
+                bool success = await _viewModel.DeleteWordAsync(word.Word);
+                if (success)
+                {
+                    await _viewModel.RefreshSmartSuggestionsDataAsync();
+                    MessageBox.Show("Kelime başarıyla silindi!", "Başarılı",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Kelime silinirken hata oluştu!", "Hata",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+    }
+
+    private async void EditBigram_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.Tag is NGramStatistic bigram)
+        {
+            var dialog = new EditBigramDialog(bigram.NGram, bigram.Count);
+            if (dialog.ShowDialog() == true)
+            {
+                if (_viewModel != null)
+                {
+                    bool success = await _viewModel.UpdateBigramAsync(bigram.NGram, dialog.NewBigram, dialog.NewCount);
+                    if (success)
+                    {
+                        await _viewModel.RefreshSmartSuggestionsDataAsync();
+                        MessageBox.Show("Bigram başarıyla güncellendi!", "Başarılı",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Bigram güncellenirken hata oluştu!", "Hata",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+    }
+
+    private async void DeleteBigram_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.Tag is NGramStatistic bigram)
+        {
+            var result = MessageBox.Show($"'{bigram.NGram}' bigramını silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz.",
+                "Bigram Sil", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes && _viewModel != null)
+            {
+                bool success = await _viewModel.DeleteBigramAsync(bigram.NGram);
+                if (success)
+                {
+                    await _viewModel.RefreshSmartSuggestionsDataAsync();
+                    MessageBox.Show("Bigram başarıyla silindi!", "Başarılı",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Bigram silinirken hata oluştu!", "Hata",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+    }
+
+    private async void EditTrigram_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.Tag is NGramStatistic trigram)
+        {
+            var dialog = new EditTrigramDialog(trigram.NGram, trigram.Count);
+            if (dialog.ShowDialog() == true)
+            {
+                if (_viewModel != null)
+                {
+                    bool success = await _viewModel.UpdateTrigramAsync(trigram.NGram, dialog.NewTrigram, dialog.NewCount);
+                    if (success)
+                    {
+                        await _viewModel.RefreshSmartSuggestionsDataAsync();
+                        MessageBox.Show("Trigram başarıyla güncellendi!", "Başarılı",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Trigram güncellenirken hata oluştu!", "Hata",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+    }
+
+    private async void DeleteTrigram_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.Tag is NGramStatistic trigram)
+        {
+            var result = MessageBox.Show($"'{trigram.NGram}' trigramını silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz.",
+                "Trigram Sil", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes && _viewModel != null)
+            {
+                bool success = await _viewModel.DeleteTrigramAsync(trigram.NGram);
+                if (success)
+                {
+                    await _viewModel.RefreshSmartSuggestionsDataAsync();
+                    MessageBox.Show("Trigram başarıyla silindi!", "Başarılı",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Trigram silinirken hata oluştu!", "Hata",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+    }
+
+
 }

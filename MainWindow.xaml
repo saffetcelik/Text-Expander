@@ -290,7 +290,7 @@
                                     <Border Grid.Column="0" Background="#E3F2FD" CornerRadius="8" Padding="16" Margin="0,0,8,0">
                                         <StackPanel HorizontalAlignment="Center">
                                             <TextBlock Text="📚" FontSize="24" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="0"
+                                            <TextBlock Text="{Binding TotalLearnedWords}"
                                                        FontSize="20" FontWeight="Bold"
                                                        HorizontalAlignment="Center"/>
                                             <TextBlock Text="Öğrenilen Kelime"
@@ -303,7 +303,7 @@
                                     <Border Grid.Column="1" Background="#E8F5E8" CornerRadius="8" Padding="16" Margin="0,0,8,0">
                                         <StackPanel HorizontalAlignment="Center">
                                             <TextBlock Text="💡" FontSize="24" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="0"
+                                            <TextBlock Text="{Binding TotalSuggestionsGiven}"
                                                        FontSize="20" FontWeight="Bold"
                                                        HorizontalAlignment="Center"/>
                                             <TextBlock Text="Verilen Öneri"
@@ -316,7 +316,7 @@
                                     <Border Grid.Column="2" Background="#FFF3E0" CornerRadius="8" Padding="16" Margin="0,0,8,0">
                                         <StackPanel HorizontalAlignment="Center">
                                             <TextBlock Text="✅" FontSize="24" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="0"
+                                            <TextBlock Text="{Binding AcceptedSuggestions}"
                                                        FontSize="20" FontWeight="Bold"
                                                        HorizontalAlignment="Center"/>
                                             <TextBlock Text="Kabul Edilen"
@@ -329,7 +329,7 @@
                                     <Border Grid.Column="3" Background="#F3E5F5" CornerRadius="8" Padding="16">
                                         <StackPanel HorizontalAlignment="Center">
                                             <TextBlock Text="🎯" FontSize="24" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="0%"
+                                            <TextBlock Text="{Binding AccuracyRate, StringFormat=P1}"
                                                        FontSize="20" FontWeight="Bold"
                                                        HorizontalAlignment="Center"/>
                                             <TextBlock Text="Doğruluk Oranı"
@@ -433,36 +433,113 @@
                                                    Margin="0,0,0,16"/>
 
                                         <TabControl>
-                                            <TabItem Header="Bigrams">
-                                                <DataGrid ItemsSource="{Binding TopBigrams}"
+                                            <TabItem Header="Bir Kelime Dizileri">
+                                                <DataGrid ItemsSource="{Binding MostUsedWords}"
                                                           AutoGenerateColumns="False"
                                                           CanUserAddRows="False"
                                                           CanUserDeleteRows="False"
-                                                          IsReadOnly="True"
+                                                          IsReadOnly="False"
                                                           GridLinesVisibility="None"
                                                           HeadersVisibility="Column"
-                                                          MaxHeight="150">
+                                                          MaxHeight="150"
+                                                          SelectionMode="Single">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="İki Kelime Dizisi" Binding="{Binding Text}" Width="*"/>
-                                                        <DataGridTextColumn Header="Sıklık" Binding="{Binding Frequency}" Width="60"/>
-                                                        <DataGridTextColumn Header="Son Kullanım" Binding="{Binding LastUsed, StringFormat=dd.MM.yyyy}" Width="80"/>
+                                                        <DataGridTextColumn Header="#" Binding="{Binding Rank}" Width="30" IsReadOnly="True"/>
+                                                        <DataGridTextColumn Header="Kelime" Binding="{Binding Word}" Width="*"/>
+                                                        <DataGridTextColumn Header="Sıklık" Binding="{Binding Count}" Width="60"/>
+                                                        <DataGridTemplateColumn Header="İşlemler" Width="120">
+                                                            <DataGridTemplateColumn.CellTemplate>
+                                                                <DataTemplate>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Button Content="✏️" ToolTip="Düzenle"
+                                                                                Style="{StaticResource ModernButtonStyle}"
+                                                                                FontSize="10" Padding="4"
+                                                                                Click="EditWord_Click"
+                                                                                Tag="{Binding}"
+                                                                                Margin="0,0,4,0"/>
+                                                                        <Button Content="🗑️" ToolTip="Sil"
+                                                                                Style="{StaticResource ErrorButtonStyle}"
+                                                                                FontSize="10" Padding="4"
+                                                                                Click="DeleteWord_Click"
+                                                                                Tag="{Binding}"/>
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </DataGridTemplateColumn.CellTemplate>
+                                                        </DataGridTemplateColumn>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
                                             </TabItem>
 
-                                            <TabItem Header="Trigrams">
+                                            <TabItem Header="İki Kelime Dizileri">
+                                                <DataGrid ItemsSource="{Binding TopBigrams}"
+                                                          AutoGenerateColumns="False"
+                                                          CanUserAddRows="False"
+                                                          CanUserDeleteRows="False"
+                                                          IsReadOnly="False"
+                                                          GridLinesVisibility="None"
+                                                          HeadersVisibility="Column"
+                                                          MaxHeight="150"
+                                                          SelectionMode="Single">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="#" Binding="{Binding Rank}" Width="30" IsReadOnly="True"/>
+                                                        <DataGridTextColumn Header="İki Kelime Dizisi" Binding="{Binding NGram}" Width="*"/>
+                                                        <DataGridTextColumn Header="Sıklık" Binding="{Binding Count}" Width="60"/>
+                                                        <DataGridTemplateColumn Header="İşlemler" Width="120">
+                                                            <DataGridTemplateColumn.CellTemplate>
+                                                                <DataTemplate>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Button Content="✏️" ToolTip="Düzenle"
+                                                                                Style="{StaticResource ModernButtonStyle}"
+                                                                                FontSize="10" Padding="4"
+                                                                                Click="EditBigram_Click"
+                                                                                Tag="{Binding}"
+                                                                                Margin="0,0,4,0"/>
+                                                                        <Button Content="🗑️" ToolTip="Sil"
+                                                                                Style="{StaticResource ErrorButtonStyle}"
+                                                                                FontSize="10" Padding="4"
+                                                                                Click="DeleteBigram_Click"
+                                                                                Tag="{Binding}"/>
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </DataGridTemplateColumn.CellTemplate>
+                                                        </DataGridTemplateColumn>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </TabItem>
+
+                                            <TabItem Header="Üç Kelime Dizileri">
                                                 <DataGrid ItemsSource="{Binding TopTrigrams}"
                                                           AutoGenerateColumns="False"
                                                           CanUserAddRows="False"
                                                           CanUserDeleteRows="False"
-                                                          IsReadOnly="True"
+                                                          IsReadOnly="False"
                                                           GridLinesVisibility="None"
                                                           HeadersVisibility="Column"
-                                                          MaxHeight="150">
+                                                          MaxHeight="150"
+                                                          SelectionMode="Single">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="Üç Kelime Dizisi" Binding="{Binding Text}" Width="*"/>
-                                                        <DataGridTextColumn Header="Sıklık" Binding="{Binding Frequency}" Width="60"/>
-                                                        <DataGridTextColumn Header="Son Kullanım" Binding="{Binding LastUsed, StringFormat=dd.MM.yyyy}" Width="80"/>
+                                                        <DataGridTextColumn Header="#" Binding="{Binding Rank}" Width="30" IsReadOnly="True"/>
+                                                        <DataGridTextColumn Header="Üç Kelime Dizisi" Binding="{Binding NGram}" Width="*"/>
+                                                        <DataGridTextColumn Header="Sıklık" Binding="{Binding Count}" Width="60"/>
+                                                        <DataGridTemplateColumn Header="İşlemler" Width="120">
+                                                            <DataGridTemplateColumn.CellTemplate>
+                                                                <DataTemplate>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Button Content="✏️" ToolTip="Düzenle"
+                                                                                Style="{StaticResource ModernButtonStyle}"
+                                                                                FontSize="10" Padding="4"
+                                                                                Click="EditTrigram_Click"
+                                                                                Tag="{Binding}"
+                                                                                Margin="0,0,4,0"/>
+                                                                        <Button Content="🗑️" ToolTip="Sil"
+                                                                                Style="{StaticResource ErrorButtonStyle}"
+                                                                                FontSize="10" Padding="4"
+                                                                                Click="DeleteTrigram_Click"
+                                                                                Tag="{Binding}"/>
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </DataGridTemplateColumn.CellTemplate>
+                                                        </DataGridTemplateColumn>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
                                             </TabItem>
@@ -474,115 +551,36 @@
                             <!-- Right Column -->
                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
 
-                                <!-- Quick Actions -->
+
+
+                                <!-- N-Gram Settings -->
                                 <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
                                     <StackPanel>
-                                        <TextBlock Text="⚡ Hızlı İşlemler"
-                                                   Style="{StaticResource SubHeaderTextStyle}"
-                                                   Margin="0,0,0,16"/>
-
-                                        <Button Content="✅ Seçili Öneriyi Kabul Et"
-                                                Style="{StaticResource SuccessButtonStyle}"
-                                                Command="{Binding AcceptSmartSuggestionCommand}"
-                                                Margin="0,0,0,8"/>
-
-                                        <Button Content="❌ Seçili Öneriyi Reddet"
-                                                Style="{StaticResource ErrorButtonStyle}"
-                                                Command="{Binding RejectSmartSuggestionCommand}"
-                                                Margin="0,0,0,8"/>
-
-                                        <Separator Margin="0,8"/>
-
-                                        <Button Content="🔄 Önerileri Yenile"
-                                                Style="{StaticResource ModernButtonStyle}"
-                                                Click="RefreshSuggestions_Click"
-                                                Margin="0,0,0,8"/>
-
-                                        <Button Content="🧹 Öneri Geçmişini Temizle"
-                                                Style="{StaticResource ModernButtonStyle}"
-                                                Click="ClearSuggestionHistory_Click"
-                                                Margin="0,0,0,8"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Learning Progress -->
-                                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
-                                    <StackPanel>
-                                        <TextBlock Text="📈 Öğrenme İlerlemesi"
+                                        <TextBlock Text="⚙️ N-Gram Ayarları"
                                                    Style="{StaticResource SubHeaderTextStyle}"
                                                    Margin="0,0,0,16"/>
 
                                         <StackPanel>
-                                            <TextBlock Text="Kelime Dağarcığı" FontWeight="Bold" Margin="0,0,0,4"/>
-                                            <ProgressBar Value="{Binding VocabularyProgress}"
-                                                         Maximum="100"
-                                                         Height="12"
-                                                         Background="LightGray"
-                                                         Foreground="#4CAF50"/>
-                                            <TextBlock Text="{Binding VocabularyProgressText}"
-                                                       FontSize="10"
-                                                       Foreground="Gray"
-                                                       Margin="0,2,0,8"/>
+                                            <TextBlock Text="Gösterilecek N-Gram Sayısı:" FontWeight="Bold" Margin="0,0,0,4"/>
+                                            <Slider x:Name="NGramCountSlider"
+                                                    Minimum="5" Maximum="20" Value="10"
+                                                    TickFrequency="5" IsSnapToTickEnabled="True"
+                                                    ValueChanged="NGramCountSlider_ValueChanged"/>
+                                            <TextBlock Text="{Binding ElementName=NGramCountSlider, Path=Value, StringFormat='{}{0:F0} adet'}"
+                                                       FontSize="10" Foreground="Gray" Margin="0,2,0,8"/>
 
-                                            <TextBlock Text="Tahmin Doğruluğu" FontWeight="Bold" Margin="0,0,0,4"/>
-                                            <ProgressBar Value="{Binding PredictionAccuracy}"
-                                                         Maximum="100"
-                                                         Height="12"
-                                                         Background="LightGray"
-                                                         Foreground="#2196F3"/>
-                                            <TextBlock Text="{Binding PredictionAccuracyText}"
-                                                       FontSize="10"
-                                                       Foreground="Gray"
-                                                       Margin="0,2,0,8"/>
+                                            <TextBlock Text="Minimum Sıklık:" FontWeight="Bold" Margin="0,0,0,4"/>
+                                            <Slider x:Name="MinFrequencySlider"
+                                                    Minimum="1" Maximum="10" Value="2"
+                                                    TickFrequency="1" IsSnapToTickEnabled="True"
+                                                    ValueChanged="MinFrequencySlider_ValueChanged"/>
+                                            <TextBlock Text="{Binding ElementName=MinFrequencySlider, Path=Value, StringFormat='En az {0:F0} kez kullanılmış'}"
+                                                       FontSize="10" Foreground="Gray" Margin="0,2,0,8"/>
 
-                                            <TextBlock Text="Öğrenme Hızı" FontWeight="Bold" Margin="0,0,0,4"/>
-                                            <ProgressBar Value="{Binding LearningSpeed}"
-                                                         Maximum="100"
-                                                         Height="12"
-                                                         Background="LightGray"
-                                                         Foreground="#FF9800"/>
-                                            <TextBlock Text="{Binding LearningSpeedText}"
-                                                       FontSize="10"
-                                                       Foreground="Gray"
-                                                       Margin="0,2"/>
+                                            <Button Content="🔄 N-Gram Verilerini Yenile"
+                                                    Style="{StaticResource ModernButtonStyle}"
+                                                    Click="RefreshNGramData_Click"/>
                                         </StackPanel>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Recent Activity -->
-                                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
-                                    <StackPanel>
-                                        <TextBlock Text="🕒 Son Aktiviteler"
-                                                   Style="{StaticResource SubHeaderTextStyle}"
-                                                   Margin="0,0,0,16"/>
-
-                                        <ListBox ItemsSource="{Binding RecentLearningActivities}"
-                                                 Background="Transparent"
-                                                 BorderThickness="0"
-                                                 MaxHeight="200">
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid Margin="0,4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Grid.Column="0"
-                                                                   Text="{Binding Icon}"
-                                                                   FontSize="16"
-                                                                   Margin="0,0,8,0"/>
-                                                        <StackPanel Grid.Column="1">
-                                                            <TextBlock Text="{Binding Description}"
-                                                                       FontWeight="Bold"
-                                                                       FontSize="12"/>
-                                                            <TextBlock Text="{Binding Timestamp, StringFormat=dd.MM.yyyy HH:mm}"
-                                                                       FontSize="10"
-                                                                       Foreground="Gray"/>
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
                                     </StackPanel>
                                 </Border>
 
@@ -630,60 +628,29 @@
                                        Style="{StaticResource HeaderTextStyle}"/>
 
                             <!-- Charts and analytics will be added here -->
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="En Çok Kullanılan Kısayollar"
-                                                   Style="{StaticResource SubHeaderTextStyle}"/>
-                                        <ListBox ItemsSource="{Binding TopShortcuts}"
-                                                 Background="Transparent"
-                                                 BorderThickness="0">
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid Margin="0,4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Grid.Column="0" Text="{Binding Key}" FontWeight="Bold"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding UsageCount}"
-                                                                   Foreground="{StaticResource PrimaryBrush}"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Grid.Column="1" Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="Son Aktiviteler"
-                                                   Style="{StaticResource SubHeaderTextStyle}"/>
-                                        <ListBox ItemsSource="{Binding RecentActivities}"
-                                                 Background="Transparent"
-                                                 BorderThickness="0">
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid Margin="0,4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Grid.Column="0" Text="{Binding Key}"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding LastUsed, StringFormat=HH:mm}"
-                                                                   Foreground="Gray" FontSize="12"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="En Çok Kullanılan Kısayollar"
+                                               Style="{StaticResource SubHeaderTextStyle}"/>
+                                    <ListBox ItemsSource="{Binding TopShortcuts}"
+                                             Background="Transparent"
+                                             BorderThickness="0">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Key}" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding UsageCount}"
+                                                               Foreground="{StaticResource PrimaryBrush}"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </Border>
