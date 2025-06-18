@@ -46,5 +46,8 @@ namespace OtomatikMetinGenisletici.Models
         public double AccuracyScore { get; set; }
         public DateTime LastLearningSession { get; set; }
         public TimeSpan TotalLearningTime { get; set; }
+        public int TotalSuggestionsGiven { get; set; }
+        public int TotalSuggestionsAccepted { get; set; }
+        public int TotalSuggestionsRejected { get; set; }
     }
 }

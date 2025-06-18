@@ -171,6 +171,10 @@ namespace OtomatikMetinGenisletici.Services
                         Console.WriteLine($"[SUGGESTIONS] - {suggestion.Text} ({suggestion.Confidence:P0}) [{suggestion.Type}]");
                     }
 
+                    // Öneri sayısını artır
+                    _learningData.TotalSuggestionsGiven += finalSuggestions.Count;
+                    _hasUnsavedChanges = true;
+
                     return finalSuggestions;
                 }
             });
@@ -476,6 +480,11 @@ namespace OtomatikMetinGenisletici.Services
                     .Select(kvp => (kvp.Key, kvp.Value))
                     .ToList();
 
+                // Doğruluk oranını hesapla
+                var totalSuggestions = _learningData.TotalSuggestionsGiven;
+                var acceptedSuggestions = _learningData.TotalSuggestionsAccepted;
+                var accuracyScore = totalSuggestions > 0 ? (double)acceptedSuggestions / totalSuggestions : 0.0;
+
                 return new LearningStatistics
                 {
                     TotalUniqueWords = _learningData.WordFrequencies.Count,
@@ -485,7 +494,13 @@ namespace OtomatikMetinGenisletici.Services
                     CompletionPrefixes = _learningData.CompletionPrefixes.Count,
                     UserCorrections = _learningData.UserCorrections.Count,
                     MostCommonWords = mostCommonWords,
-                    LastLearningSession = _learningData.LastUpdated
+                    LastLearningSession = _learningData.LastUpdated,
+                    AccuracyScore = accuracyScore,
+                    AveragePredictionTime = 0.0, // Şimdilik sabit
+                    TotalLearningTime = TimeSpan.FromMinutes(Math.Max(1, _learningData.WordFrequencies.Count / 10)), // Basit hesaplama
+                    TotalSuggestionsGiven = _learningData.TotalSuggestionsGiven,
+                    TotalSuggestionsAccepted = _learningData.TotalSuggestionsAccepted,
+                    TotalSuggestionsRejected = _learningData.TotalSuggestionsRejected
                 };
             }
         }
@@ -496,6 +511,11 @@ namespace OtomatikMetinGenisletici.Services
             {
                 lock (_lockObject)
                 {
+                    // Doğruluk oranını hesapla
+                    var totalSuggestions = _learningData.TotalSuggestionsGiven;
+                    var acceptedSuggestions = _learningData.TotalSuggestionsAccepted;
+                    var accuracyScore = totalSuggestions > 0 ? (double)acceptedSuggestions / totalSuggestions : 0.0;
+
                     return new DetailedStatistics
                     {
                         TotalUniqueWords = _learningData.WordFrequencies.Count,
@@ -510,9 +530,9 @@ namespace OtomatikMetinGenisletici.Services
                             .Select(kvp => (kvp.Key, kvp.Value))
                             .ToList(),
                         AveragePredictionTime = 0.0,
-                        AccuracyScore = 0.75,
+                        AccuracyScore = accuracyScore,
                         LastLearningSession = _learningData.LastUpdated,
-                        TotalLearningTime = TimeSpan.FromMinutes(30),
+                        TotalLearningTime = TimeSpan.FromMinutes(Math.Max(1, _learningData.WordFrequencies.Count / 10)),
                         TotalSuggestionsGiven = _learningData.TotalSuggestionsGiven,
                         TotalSuggestionsAccepted = _learningData.TotalSuggestionsAccepted,
                         TotalSuggestionsRejected = _learningData.TotalSuggestionsRejected,
@@ -520,6 +540,7 @@ namespace OtomatikMetinGenisletici.Services
                             .ToDictionary(g => g.Key, g => g.Sum(w => w.Value)),
                         BigramsByFrequency = _learningData.Bigrams.ToDictionary(b => b.Key, b => b.Value),
                         TrigramsByFrequency = _learningData.Trigrams.ToDictionary(t => t.Key, t => t.Value),
+                        WordsByFrequency = _learningData.WordFrequencies.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
                         RecentActivities = new List<LearningActivity>()
                     };
                 }
@@ -644,6 +665,223 @@ namespace OtomatikMetinGenisletici.Services
             if (_hasUnsavedChanges)
             {
                 SaveLearningData();
+            }
+        }
+
+        // Veri Yönetimi Fonksiyonları
+        public bool UpdateWordFrequency(string oldWord, string newWord, int newCount)
+        {
+            lock (_lockObject)
+            {
+                try
+                {
+                    if (_learningData.WordFrequencies.ContainsKey(oldWord))
+                    {
+                        _learningData.WordFrequencies.TryRemove(oldWord, out _);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(newWord) && newCount > 0)
+                    {
+                        _learningData.WordFrequencies[newWord] = newCount;
+                    }
+
+                    _hasUnsavedChanges = true;
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Kelime güncelleme hatası: {ex.Message}");
+                    return false;
+                }
+            }
+        }
+
+        public bool DeleteWord(string word)
+        {
+            lock (_lockObject)
+            {
+                try
+                {
+                    bool removed = _learningData.WordFrequencies.TryRemove(word, out _);
+                    if (removed)
+                    {
+                        // İlgili bigram ve trigramları da temizle
+                        var bigramsToRemove = _learningData.Bigrams.Keys
+                            .Where(b => b.Split(' ').Contains(word))
+                            .ToList();
+
+                        foreach (var bigram in bigramsToRemove)
+                        {
+                            _learningData.Bigrams.TryRemove(bigram, out _);
+                        }
+
+                        var trigramsToRemove = _learningData.Trigrams.Keys
+                            .Where(t => t.Split(' ').Contains(word))
+                            .ToList();
+
+                        foreach (var trigram in trigramsToRemove)
+                        {
+                            _learningData.Trigrams.TryRemove(trigram, out _);
+                        }
+
+                        // Completion prefixes'leri temizle
+                        var prefixesToRemove = _learningData.CompletionPrefixes.Keys
+                            .Where(p => _learningData.CompletionPrefixes[p].Contains(word))
+                            .ToList();
+
+                        foreach (var prefix in prefixesToRemove)
+                        {
+                            _learningData.CompletionPrefixes[prefix].Remove(word);
+                            if (_learningData.CompletionPrefixes[prefix].Count == 0)
+                            {
+                                _learningData.CompletionPrefixes.TryRemove(prefix, out _);
+                            }
+                        }
+
+                        _hasUnsavedChanges = true;
+                    }
+                    return removed;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Kelime silme hatası: {ex.Message}");
+                    return false;
+                }
+            }
+        }
+
+        public bool UpdateBigram(string oldBigram, string newBigram, int newCount)
+        {
+            lock (_lockObject)
+            {
+                try
+                {
+                    if (_learningData.Bigrams.ContainsKey(oldBigram))
+                    {
+                        _learningData.Bigrams.TryRemove(oldBigram, out _);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(newBigram) && newCount > 0)
+                    {
+                        _learningData.Bigrams[newBigram] = newCount;
+                    }
+
+                    _hasUnsavedChanges = true;
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Bigram güncelleme hatası: {ex.Message}");
+                    return false;
+                }
+            }
+        }
+
+        public bool DeleteBigram(string bigram)
+        {
+            lock (_lockObject)
+            {
+                try
+                {
+                    bool removed = _learningData.Bigrams.TryRemove(bigram, out _);
+                    if (removed)
+                    {
+                        _hasUnsavedChanges = true;
+                    }
+                    return removed;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Bigram silme hatası: {ex.Message}");
+                    return false;
+                }
+            }
+        }
+
+        public bool UpdateTrigram(string oldTrigram, string newTrigram, int newCount)
+        {
+            lock (_lockObject)
+            {
+                try
+                {
+                    if (_learningData.Trigrams.ContainsKey(oldTrigram))
+                    {
+                        _learningData.Trigrams.TryRemove(oldTrigram, out _);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(newTrigram) && newCount > 0)
+                    {
+                        _learningData.Trigrams[newTrigram] = newCount;
+                    }
+
+                    _hasUnsavedChanges = true;
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Trigram güncelleme hatası: {ex.Message}");
+                    return false;
+                }
+            }
+        }
+
+        public bool DeleteTrigram(string trigram)
+        {
+            lock (_lockObject)
+            {
+                try
+                {
+                    bool removed = _learningData.Trigrams.TryRemove(trigram, out _);
+                    if (removed)
+                    {
+                        _hasUnsavedChanges = true;
+                    }
+                    return removed;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Trigram silme hatası: {ex.Message}");
+                    return false;
+                }
+            }
+        }
+
+        public List<(string Word, int Count)> SearchWords(string searchTerm, int maxResults = 50)
+        {
+            lock (_lockObject)
+            {
+                return _learningData.WordFrequencies
+                    .Where(kvp => kvp.Key.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(kvp => kvp.Value)
+                    .Take(maxResults)
+                    .Select(kvp => (kvp.Key, kvp.Value))
+                    .ToList();
+            }
+        }
+
+        public List<(string Bigram, int Count)> SearchBigrams(string searchTerm, int maxResults = 50)
+        {
+            lock (_lockObject)
+            {
+                return _learningData.Bigrams
+                    .Where(kvp => kvp.Key.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(kvp => kvp.Value)
+                    .Take(maxResults)
+                    .Select(kvp => (kvp.Key, kvp.Value))
+                    .ToList();
+            }
+        }
+
+        public List<(string Trigram, int Count)> SearchTrigrams(string searchTerm, int maxResults = 50)
+        {
+            lock (_lockObject)
+            {
+                return _learningData.Trigrams
+                    .Where(kvp => kvp.Key.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(kvp => kvp.Value)
+                    .Take(maxResults)
+                    .Select(kvp => (kvp.Key, kvp.Value))
+                    .ToList();
             }
         }
     }

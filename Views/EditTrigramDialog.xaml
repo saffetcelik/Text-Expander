@@ -1,0 +1,67 @@
+<Window x:Class="OtomatikMetinGenisletici.Views.EditTrigramDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Trigram Düzenle" Height="400" Width="1000"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="{StaticResource SurfaceBrush}">
+
+    <Border Background="White" CornerRadius="12" Margin="10"
+            Effect="{StaticResource CardShadow}">
+        <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="🔗 Trigram Düzenle"
+                   Style="{StaticResource HeaderTextStyle}"/>
+
+        <!-- Original Trigram -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,20">
+            <TextBlock Text="Mevcut Üç Kelime Dizisi:" Style="{StaticResource SubHeaderTextStyle}"/>
+            <TextBox x:Name="OriginalTrigramTextBox" IsReadOnly="True"
+                     Style="{StaticResource ModernTextBoxStyle}"
+                     Background="#F5F5F5"/>
+        </StackPanel>
+
+        <!-- New Trigram -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,20">
+            <TextBlock Text="Yeni Üç Kelime Dizisi:" Style="{StaticResource SubHeaderTextStyle}"/>
+            <TextBox x:Name="NewTrigramTextBox" Style="{StaticResource ModernTextBoxStyle}"/>
+        </StackPanel>
+
+        <!-- Count -->
+        <StackPanel Grid.Row="3" Margin="0,0,0,20">
+            <TextBlock Text="Kullanım Sayısı:" Style="{StaticResource SubHeaderTextStyle}"/>
+            <TextBox x:Name="CountTextBox" Style="{StaticResource ModernTextBoxStyle}"/>
+        </StackPanel>
+
+        <!-- Info -->
+        <Border Grid.Row="4" Background="#E3F2FD" BorderBrush="#2196F3" BorderThickness="1"
+                CornerRadius="8" Padding="16" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Text="💡 Bilgi" FontWeight="Bold" Foreground="#1976D2" FontSize="14"/>
+                <TextBlock Text="Trigram üç ardışık kelimeden oluşur. Örnek: 'merhaba dünya nasılsın'"
+                           TextWrapping="Wrap" Foreground="#1976D2" FontSize="12" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="❌ İptal" Width="100" Height="40" Margin="0,0,15,0"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Click="Cancel_Click"/>
+            <Button Content="💾 Kaydet" Width="100" Height="40"
+                    Style="{StaticResource SuccessButtonStyle}"
+                    Click="Save_Click" IsDefault="True"/>
+        </StackPanel>
+        </Grid>
+    </Border>
+</Window>

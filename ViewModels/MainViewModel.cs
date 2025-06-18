@@ -42,11 +42,9 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         // Smart Suggestions Properties
         public ObservableCollection<SmartSuggestion> SmartSuggestions { get; } = new();
-        // Geçici olarak devre dışı - sorun yaratıyor
-        // public ObservableCollection<WordUsageStatistic> MostUsedWords { get; } = new();
-        // public ObservableCollection<NGramStatistic> TopBigrams { get; } = new();
-        // public ObservableCollection<NGramStatistic> TopTrigrams { get; } = new();
-        // public ObservableCollection<LearningActivity> RecentLearningActivities { get; } = new();
+        public ObservableCollection<WordUsageStatistic> MostUsedWords { get; } = new();
+        public ObservableCollection<NGramStatistic> TopBigrams { get; } = new();
+        public ObservableCollection<NGramStatistic> TopTrigrams { get; } = new();
 
         public bool IsSmartSuggestionsEnabled
         {
@@ -161,6 +159,21 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             get => _learningSpeedText;
             set { _learningSpeedText = value; OnPropertyChanged(); }
+        }
+
+        // N-Gram Settings
+        private int _ngramDisplayCount = 10;
+        public int NGramDisplayCount
+        {
+            get => _ngramDisplayCount;
+            set { _ngramDisplayCount = value; OnPropertyChanged(); }
+        }
+
+        private int _ngramMinFrequency = 2;
+        public int NGramMinFrequency
+        {
+            get => _ngramMinFrequency;
+            set { _ngramMinFrequency = value; OnPropertyChanged(); }
         }
 
         public string ShortcutFilter
@@ -2656,57 +2669,20 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                 // Update basic statistics
                 TotalLearnedWords = stats.TotalUniqueWords;
-                TotalSuggestionsGiven = stats.TotalWordCount; // Geçici olarak
-                AcceptedSuggestions = 0; // Geçici olarak - LearningStatistics'te yok
-                AccuracyRate = stats.AccuracyScore; // AccuracyScore kullan
+                TotalSuggestionsGiven = stats.TotalSuggestionsGiven;
+                AcceptedSuggestions = stats.TotalSuggestionsAccepted;
+                AccuracyRate = stats.AccuracyScore;
 
                 // Update progress indicators
                 VocabularyProgress = Math.Min(100, (stats.TotalUniqueWords / 1000.0) * 100);
                 VocabularyProgressText = $"{stats.TotalUniqueWords} / 1000 kelime";
 
-                PredictionAccuracy = stats.AccuracyScore; // AccuracyScore kullan
-                PredictionAccuracyText = $"{stats.AccuracyScore:F1}% doğruluk";
+                PredictionAccuracy = stats.AccuracyScore * 100;
+                PredictionAccuracyText = $"{stats.AccuracyScore:P1}";
 
                 // Learning speed calculation (basit)
                 LearningSpeed = stats.TotalUniqueWords > 100 ? 75 : stats.TotalUniqueWords > 50 ? 50 : 25;
                 LearningSpeedText = LearningSpeed > 60 ? "Hızlı" : LearningSpeed > 30 ? "Orta" : "Yavaş";
-
-                Console.WriteLine($"[SMART SUGGESTIONS] Dashboard verileri güncellendi");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] RefreshSmartSuggestionsDataAsync hatası: {ex.Message}");
-            }
-
-            /*
-            try
-            {
-                Console.WriteLine("[DEBUG] RefreshSmartSuggestionsDataAsync başlıyor...");
-
-                if (_smartSuggestionsService == null)
-                {
-                    Console.WriteLine("[DEBUG] SmartSuggestionsService null, çıkılıyor");
-                    return;
-                }
-
-                var stats = await _smartSuggestionsService.GetStatisticsAsync();
-                Console.WriteLine($"[DEBUG] İstatistikler alındı: {stats.TotalUniqueWords} kelime");
-
-                // Update basic statistics
-                TotalLearnedWords = stats.TotalUniqueWords;
-                TotalSuggestionsGiven = stats.TotalWordCount; // Geçici olarak
-                AcceptedSuggestions = 0; // Bu veri henüz yok
-                AccuracyRate = stats.AccuracyScore;
-
-                // Update progress indicators
-                VocabularyProgress = Math.Min(100, (TotalLearnedWords / 1000.0) * 100);
-                VocabularyProgressText = $"{TotalLearnedWords} / 1000 kelime";
-
-                PredictionAccuracy = AccuracyRate * 100;
-                PredictionAccuracyText = $"{PredictionAccuracy:F0}% doğruluk";
-
-                LearningSpeed = Math.Min(100, (TotalLearnedWords / 100.0) * 100);
-                LearningSpeedText = LearningSpeed > 75 ? "Hızlı" : LearningSpeed > 50 ? "Orta" : "Yavaş";
 
                 // Update most used words
                 Application.Current.Dispatcher.Invoke(() =>
@@ -2732,41 +2708,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 // Update N-gram data
                 await UpdateNGramDataAsync();
 
-                // Update recent activities
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    RecentLearningActivities.Clear();
-                    RecentLearningActivities.Add(new LearningActivity
-                    {
-                        Icon = "📚",
-                        Description = $"{TotalLearnedWords} kelime öğrenildi",
-                        Timestamp = stats.LastLearningSession,
-                        Type = LearningActivityType.WordLearned
-                    });
-
-                    if (stats.TotalBigrams > 0)
-                    {
-                        RecentLearningActivities.Add(new LearningActivity
-                        {
-                            Icon = "🔗",
-                            Description = $"{stats.TotalBigrams} bigram analiz edildi",
-                            Timestamp = stats.LastLearningSession,
-                            Type = LearningActivityType.WordLearned
-                        });
-                    }
-
-                    if (stats.TotalTrigrams > 0)
-                    {
-                        RecentLearningActivities.Add(new LearningActivity
-                        {
-                            Icon = "🔗",
-                            Description = $"{stats.TotalTrigrams} trigram analiz edildi",
-                            Timestamp = stats.LastLearningSession,
-                            Type = LearningActivityType.WordLearned
-                        });
-                    }
-                });
-
                 // Notify property changes
                 OnPropertyChanged(nameof(TotalLearnedWords));
                 OnPropertyChanged(nameof(TotalSuggestionsGiven));
@@ -2786,18 +2727,12 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SMART SUGGESTIONS] Dashboard güncelleme hatası: {ex.Message}");
+                Console.WriteLine($"[ERROR] RefreshSmartSuggestionsDataAsync hatası: {ex.Message}");
             }
-            */
         }
 
         private async Task UpdateNGramDataAsync()
         {
-            // Geçici olarak devre dışı - sorun yaratıyor
-            Console.WriteLine("[DEBUG] UpdateNGramDataAsync geçici olarak devre dışı");
-            return;
-
-            /*
             try
             {
                 Console.WriteLine("[DEBUG] UpdateNGramDataAsync başlıyor...");
@@ -2814,37 +2749,68 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    // Most Used Words güncelle
+                    MostUsedWords.Clear();
+                    var topWords = learningData.WordsByFrequency
+                        .Where(x => x.Value >= NGramMinFrequency)
+                        .OrderByDescending(x => x.Value)
+                        .Take(NGramDisplayCount)
+                        .ToList();
+
+                    var maxWordCount = topWords.FirstOrDefault().Value;
+                    for (int i = 0; i < topWords.Count(); i++)
+                    {
+                        var word = topWords[i];
+                        MostUsedWords.Add(new WordUsageStatistic
+                        {
+                            Rank = i + 1,
+                            Word = word.Key,
+                            Count = word.Value,
+                            Percentage = maxWordCount > 0 ? (word.Value / (double)maxWordCount) * 100 : 0
+                        });
+                    }
+
                     // Bigrams güncelle
                     TopBigrams.Clear();
                     var topBigrams = learningData.BigramsByFrequency
+                        .Where(x => x.Value >= NGramMinFrequency)
                         .OrderByDescending(x => x.Value)
-                        .Take(10)
+                        .Take(NGramDisplayCount)
                         .ToList();
 
-                    foreach (var bigram in topBigrams)
+                    var maxBigramCount = topBigrams.FirstOrDefault().Value;
+                    for (int i = 0; i < topBigrams.Count; i++)
                     {
+                        var bigram = topBigrams[i];
                         TopBigrams.Add(new NGramStatistic
                         {
-                            Text = bigram.Key,
-                            Frequency = bigram.Value,
-                            LastUsed = DateTime.Now // Gerçek veri olmadığı için şimdilik
+                            Rank = i + 1,
+                            NGram = bigram.Key,
+                            Count = bigram.Value,
+                            Percentage = maxBigramCount > 0 ? (bigram.Value / (double)maxBigramCount) * 100 : 0,
+                            Type = "Bigram"
                         });
                     }
 
                     // Trigrams güncelle
                     TopTrigrams.Clear();
                     var topTrigrams = learningData.TrigramsByFrequency
+                        .Where(x => x.Value >= NGramMinFrequency)
                         .OrderByDescending(x => x.Value)
-                        .Take(10)
+                        .Take(NGramDisplayCount)
                         .ToList();
 
-                    foreach (var trigram in topTrigrams)
+                    var maxTrigramCount = topTrigrams.FirstOrDefault().Value;
+                    for (int i = 0; i < topTrigrams.Count; i++)
                     {
+                        var trigram = topTrigrams[i];
                         TopTrigrams.Add(new NGramStatistic
                         {
-                            Text = trigram.Key,
-                            Frequency = trigram.Value,
-                            LastUsed = DateTime.Now // Gerçek veri olmadığı için şimdilik
+                            Rank = i + 1,
+                            NGram = trigram.Key,
+                            Count = trigram.Value,
+                            Percentage = maxTrigramCount > 0 ? (trigram.Value / (double)maxTrigramCount) * 100 : 0,
+                            Type = "Trigram"
                         });
                     }
                 });
@@ -2854,8 +2820,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"[SMART SUGGESTIONS] N-gram güncelleme hatası: {ex.Message}");
-            }
-            */
+        }
         }
 
         public void ClearLearningLog()
@@ -2881,6 +2846,150 @@ namespace OtomatikMetinGenisletici.ViewModels
 
             TotalLearnedSentences++;
         }
+
+        public async Task UpdateNGramDisplayCountAsync(int count)
+        {
+            NGramDisplayCount = count;
+            await UpdateNGramDataAsync();
+        }
+
+        public async Task UpdateNGramMinFrequencyAsync(int minFrequency)
+        {
+            NGramMinFrequency = minFrequency;
+            await UpdateNGramDataAsync();
+        }
+
+        public async Task RefreshNGramDataAsync()
+        {
+            await UpdateNGramDataAsync();
+        }
+
+        // Veri Yönetimi Metodları
+        public async Task<bool> UpdateWordAsync(string oldWord, string newWord, int newCount)
+        {
+            if (_smartSuggestionsService == null) return false;
+
+            try
+            {
+                bool success = await _smartSuggestionsService.UpdateWordAsync(oldWord, newWord, newCount);
+                if (success)
+                {
+                    await _smartSuggestionsService.SaveDataAsync();
+                }
+                return success;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UpdateWordAsync: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteWordAsync(string word)
+        {
+            if (_smartSuggestionsService == null) return false;
+
+            try
+            {
+                bool success = await _smartSuggestionsService.DeleteWordAsync(word);
+                if (success)
+                {
+                    await _smartSuggestionsService.SaveDataAsync();
+                }
+                return success;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] DeleteWordAsync: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateBigramAsync(string oldBigram, string newBigram, int newCount)
+        {
+            if (_smartSuggestionsService == null) return false;
+
+            try
+            {
+                bool success = await _smartSuggestionsService.UpdateBigramAsync(oldBigram, newBigram, newCount);
+                if (success)
+                {
+                    await _smartSuggestionsService.SaveDataAsync();
+                }
+                return success;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UpdateBigramAsync: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteBigramAsync(string bigram)
+        {
+            if (_smartSuggestionsService == null) return false;
+
+            try
+            {
+                bool success = await _smartSuggestionsService.DeleteBigramAsync(bigram);
+                if (success)
+                {
+                    await _smartSuggestionsService.SaveDataAsync();
+                }
+                return success;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] DeleteBigramAsync: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateTrigramAsync(string oldTrigram, string newTrigram, int newCount)
+        {
+            if (_smartSuggestionsService == null) return false;
+
+            try
+            {
+                bool success = await _smartSuggestionsService.UpdateTrigramAsync(oldTrigram, newTrigram, newCount);
+                if (success)
+                {
+                    await _smartSuggestionsService.SaveDataAsync();
+                }
+                return success;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UpdateTrigramAsync: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteTrigramAsync(string trigram)
+        {
+            if (_smartSuggestionsService == null) return false;
+
+            try
+            {
+                bool success = await _smartSuggestionsService.DeleteTrigramAsync(trigram);
+                if (success)
+                {
+                    await _smartSuggestionsService.SaveDataAsync();
+                }
+                return success;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] DeleteTrigramAsync: {ex.Message}");
+                return false;
+            }
+        }
+
+
+
+
+
+
 
         public void Dispose()
         {

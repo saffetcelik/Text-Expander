@@ -60,36 +60,58 @@ namespace OtomatikMetinGenisletici.Models
 
     public class NGramStatistic : INotifyPropertyChanged
     {
-        private string _text = string.Empty;
-        private int _frequency;
-        private DateTime _lastUsed;
+        private int _rank;
+        private string _nGram = string.Empty;
+        private int _count;
+        private double _percentage;
+        private string _type = string.Empty;
 
-        public string Text
+        public int Rank
         {
-            get => _text;
+            get => _rank;
             set
             {
-                _text = value;
+                _rank = value;
                 OnPropertyChanged();
             }
         }
 
-        public int Frequency
+        public string NGram
         {
-            get => _frequency;
+            get => _nGram;
             set
             {
-                _frequency = value;
+                _nGram = value;
                 OnPropertyChanged();
             }
         }
 
-        public DateTime LastUsed
+        public int Count
         {
-            get => _lastUsed;
+            get => _count;
             set
             {
-                _lastUsed = value;
+                _count = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public double Percentage
+        {
+            get => _percentage;
+            set
+            {
+                _percentage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string Type
+        {
+            get => _type;
+            set
+            {
+                _type = value;
                 OnPropertyChanged();
             }
         }
@@ -187,6 +209,7 @@ namespace OtomatikMetinGenisletici.Models
         public Dictionary<string, int> WordsByLength { get; set; } = new();
         public Dictionary<string, int> BigramsByFrequency { get; set; } = new();
         public Dictionary<string, int> TrigramsByFrequency { get; set; } = new();
+        public Dictionary<string, int> WordsByFrequency { get; set; } = new();
         public List<LearningActivity> RecentActivities { get; set; } = new();
     }
 
