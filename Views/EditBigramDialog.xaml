@@ -8,44 +8,51 @@
 
     <Border Background="White" CornerRadius="12" Margin="10"
             Effect="{StaticResource CardShadow}">
-        <Grid Margin="30">
+        <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
         <TextBlock Grid.Row="0" Text="🔗 Bigram Düzenle"
-                   Style="{StaticResource HeaderTextStyle}"/>
+                   Style="{StaticResource HeaderTextStyle}"
+                   HorizontalAlignment="Center" Margin="0,0,0,20"/>
 
-        <!-- Original Bigram -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,20">
-            <TextBlock Text="Mevcut İki Kelime Dizisi:" Style="{StaticResource SubHeaderTextStyle}"/>
-            <TextBox x:Name="OriginalBigramTextBox" IsReadOnly="True"
-                     Style="{StaticResource ModernTextBoxStyle}"
-                     Background="#F5F5F5"/>
-        </StackPanel>
+        <!-- Main Content - Horizontal Layout -->
+        <Grid Grid.Row="1" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="200"/>
+            </Grid.ColumnDefinitions>
 
-        <!-- New Bigram -->
-        <StackPanel Grid.Row="2" Margin="0,0,0,20">
-            <TextBlock Text="Yeni İki Kelime Dizisi:" Style="{StaticResource SubHeaderTextStyle}"/>
-            <TextBox x:Name="NewBigramTextBox" Style="{StaticResource ModernTextBoxStyle}"/>
-        </StackPanel>
+            <!-- Original Bigram -->
+            <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                <TextBlock Text="Mevcut İki Kelime Dizisi:" Style="{StaticResource SubHeaderTextStyle}"/>
+                <TextBox x:Name="OriginalBigramTextBox" IsReadOnly="True"
+                         Style="{StaticResource ModernTextBoxStyle}"
+                         Background="#F5F5F5"/>
+            </StackPanel>
 
-        <!-- Count -->
-        <StackPanel Grid.Row="3" Margin="0,0,0,20">
-            <TextBlock Text="Kullanım Sayısı:" Style="{StaticResource SubHeaderTextStyle}"/>
-            <TextBox x:Name="CountTextBox" Style="{StaticResource ModernTextBoxStyle}"/>
-        </StackPanel>
+            <!-- New Bigram -->
+            <StackPanel Grid.Column="1" Margin="0,0,15,0">
+                <TextBlock Text="Yeni İki Kelime Dizisi:" Style="{StaticResource SubHeaderTextStyle}"/>
+                <TextBox x:Name="NewBigramTextBox" Style="{StaticResource ModernTextBoxStyle}"/>
+            </StackPanel>
+
+            <!-- Count -->
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Kullanım Sayısı:" Style="{StaticResource SubHeaderTextStyle}"/>
+                <TextBox x:Name="CountTextBox" Style="{StaticResource ModernTextBoxStyle}"/>
+            </StackPanel>
+        </Grid>
 
         <!-- Info -->
-        <Border Grid.Row="4" Background="#E8F5E8" BorderBrush="#4CAF50" BorderThickness="1"
-                CornerRadius="8" Padding="16" Margin="0,0,0,20">
+        <Border Grid.Row="2" Background="#E8F5E8" BorderBrush="#4CAF50" BorderThickness="1"
+                CornerRadius="8" Padding="12" Margin="0,0,0,20">
             <StackPanel>
                 <TextBlock Text="💡 Bilgi" FontWeight="Bold" Foreground="#2E7D32" FontSize="14"/>
                 <TextBlock Text="Bigram iki ardışık kelimeden oluşur. Örnek: 'merhaba dünya'"
@@ -54,7 +61,7 @@
         </Border>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="❌ İptal" Width="100" Height="40" Margin="0,0,15,0"
                     Style="{StaticResource SecondaryButtonStyle}"
                     Click="Cancel_Click"/>
