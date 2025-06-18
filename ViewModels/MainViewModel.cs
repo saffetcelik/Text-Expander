@@ -24,7 +24,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         private string _contextBuffer = string.Empty;
         private Shortcut? _selectedShortcut;
         private List<SmartSuggestion> _currentSmartSuggestions = new();
-        private SmartSuggestion? _selectedSmartSuggestion;
+
 
 
         public ObservableCollection<Shortcut> Shortcuts => _shortcutService.Shortcuts;
@@ -116,7 +116,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             set { _accuracyRate = value; OnPropertyChanged(); }
         }
 
-        public int CurrentSuggestionsCount => SmartSuggestions.Count;
+
 
         // Progress Properties
         private double _vocabularyProgress;
@@ -199,23 +199,14 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        public SmartSuggestion? SelectedSmartSuggestion
-        {
-            get => _selectedSmartSuggestion;
-            set
-            {
-                _selectedSmartSuggestion = value;
-                OnPropertyChanged();
-            }
-        }
+
 
 
 
         public ICommand AddShortcutCommand { get; set; }
         public ICommand EditShortcutCommand { get; set; }
         public ICommand DeleteShortcutCommand { get; }
-        public ICommand AcceptSmartSuggestionCommand { get; set; }
-        public ICommand RejectSmartSuggestionCommand { get; set; }
+
         public ICommand OpenSettingsCommand { get; set; }
 
         public MainViewModel(
@@ -257,8 +248,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 AddShortcutCommand = new RelayCommand(AddShortcut);
                 EditShortcutCommand = new RelayCommand(EditShortcut, () => SelectedShortcut != null);
                 DeleteShortcutCommand = new RelayCommand(DeleteShortcut, () => SelectedShortcut != null);
-                AcceptSmartSuggestionCommand = new RelayCommand(AcceptSmartSuggestionFromUI, () => SelectedSmartSuggestion != null);
-                RejectSmartSuggestionCommand = new RelayCommand(RejectSmartSuggestion, () => SelectedSmartSuggestion != null);
+
                 OpenSettingsCommand = new RelayCommand(OpenSettings);
 
                 Console.WriteLine("[DEBUG] Servisler başlatılıyor...");
@@ -549,7 +539,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     SmartSuggestions.Clear();
-                    OnPropertyChanged(nameof(CurrentSuggestionsCount));
                 });
             }
 
@@ -700,7 +689,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                         {
                             SmartSuggestions.Add(suggestion);
                         }
-                        OnPropertyChanged(nameof(CurrentSuggestionsCount));
                     });
                 }
                 else
@@ -751,7 +739,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                         {
                             SmartSuggestions.Add(suggestion);
                         }
-                        OnPropertyChanged(nameof(CurrentSuggestionsCount));
                     });
                 }
                 else
@@ -843,7 +830,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                         {
                             SmartSuggestions.Clear();
                             SmartSuggestions.Add(shortcutSuggestion);
-                            OnPropertyChanged(nameof(CurrentSuggestionsCount));
                         });
 
                         SafeSetPreviewText($"→ {previewText}");
@@ -939,7 +925,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     SmartSuggestions.Clear();
-                    OnPropertyChanged(nameof(CurrentSuggestionsCount));
                 });
             }
         }
@@ -1141,7 +1126,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                             {
                                 SmartSuggestions.Add(smartSuggestion);
                             }
-                            OnPropertyChanged(nameof(CurrentSuggestionsCount));
 
                             Console.WriteLine($"[DEBUG] Preview overlay SetText çağrıldı: {previewText}");
                         }
@@ -1159,7 +1143,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         SmartSuggestions.Clear();
-                        OnPropertyChanged(nameof(CurrentSuggestionsCount));
 
                         // ÖNEMLİ: Önizlemeyi ASLA gizleme!
                         // Öneri yok - sessiz kal
@@ -1206,7 +1189,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     SmartSuggestions.Clear();
-                    OnPropertyChanged(nameof(CurrentSuggestionsCount));
                 });
             }
             else
@@ -1255,7 +1237,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     // Önizleme açık kalsın - sadece önerileri temizle
                     SafeSetPreviewText("🔄 Yeni tahmin hazırlanıyor...");
                     SmartSuggestions.Clear();
-                    OnPropertyChanged(nameof(CurrentSuggestionsCount));
                 });
 
                 // Öneriyi kullanıcı metnine uygula
@@ -1312,7 +1293,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 // Önizleme açık kalsın - hazır mesajı göster
                 SafeSetPreviewText("✏️ Yazmaya devam edin...");
                 SmartSuggestions.Clear();
-                OnPropertyChanged(nameof(CurrentSuggestionsCount));
             });
         }
 
@@ -1367,7 +1347,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                                 {
                                     SmartSuggestions.Add(suggestion);
                                 }
-                                OnPropertyChanged(nameof(CurrentSuggestionsCount));
                             });
                             Console.WriteLine($"[SMART SUGGESTIONS] Boşluk sonrası öneri gösteriliyor: {previewText}");
                             return;
@@ -1402,7 +1381,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                                 {
                                     SmartSuggestions.Add(suggestion);
                                 }
-                                OnPropertyChanged(nameof(CurrentSuggestionsCount));
                             });
                             Console.WriteLine($"[SMART SUGGESTIONS] Tek kelime önerisi gösteriliyor: {previewText}");
                             return;
@@ -1434,7 +1412,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                                 {
                                     SmartSuggestions.Add(suggestion);
                                 }
-                                OnPropertyChanged(nameof(CurrentSuggestionsCount));
                             });
                             return;
                         }
@@ -1449,7 +1426,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                         // Tahmin yok ama önizleme açık kalsın - boş string gönderme!
                         SafeSetPreviewText("✏️ Yazmaya devam edin...");
                         SmartSuggestions.Clear();
-                        OnPropertyChanged(nameof(CurrentSuggestionsCount));
                     });
                 }
                 catch (Exception ex)
@@ -1774,7 +1750,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                         Console.WriteLine($"[DEBUG] UI'a eklenen öneri: '{suggestion.Text}'");
                         WriteToLogFile($"[DEBUG] UI'a eklenen öneri: '{suggestion.Text}'");
                     }
-                    OnPropertyChanged(nameof(CurrentSuggestionsCount));
                 });
 
                 // İlk öneriyi mevcut öneri olarak ayarla
@@ -2073,7 +2048,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                         {
                             SmartSuggestions.Add(suggestion);
                         }
-                        OnPropertyChanged(nameof(CurrentSuggestionsCount));
                     });
 
                     Console.WriteLine($"[SMART SUGGESTIONS] Öneri ayarlandı: {firstSuggestion.Text}");
@@ -2086,7 +2060,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         SmartSuggestions.Clear();
-                        OnPropertyChanged(nameof(CurrentSuggestionsCount));
                     });
                 }
             }
@@ -2106,8 +2079,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     SmartSuggestions.Add(suggestion);
                 }
 
-                // Dashboard'daki mevcut öneri sayısını güncelle
-                OnPropertyChanged(nameof(CurrentSuggestionsCount));
+
             });
         }
 
@@ -2139,13 +2111,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        private async void AcceptSmartSuggestionFromUI()
-        {
-            if (SelectedSmartSuggestion != null)
-            {
-                await ApplySmartSuggestionAsync(SelectedSmartSuggestion);
-            }
-        }
+
 
         private async Task ApplySmartSuggestionAsync(SmartSuggestion suggestion)
         {
@@ -2435,7 +2401,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                                             {
                                                 SmartSuggestions.Add(suggestion);
                                             }
-                                            OnPropertyChanged(nameof(CurrentSuggestionsCount));
                                         });
 
                                         // Önizlemeyi güncelle
@@ -2639,13 +2604,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, System.UIntPtr.Zero);
         }
 
-        private async void RejectSmartSuggestion()
-        {
-            if (SelectedSmartSuggestion != null)
-            {
-                await _smartSuggestionsService.RejectSuggestionAsync(SelectedSmartSuggestion, _contextBuffer);
-            }
-        }
+
 
         public async Task<LearningStatistics> GetSmartSuggestionsStatisticsAsync()
         {
@@ -2713,7 +2672,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 OnPropertyChanged(nameof(TotalSuggestionsGiven));
                 OnPropertyChanged(nameof(AcceptedSuggestions));
                 OnPropertyChanged(nameof(AccuracyRate));
-                OnPropertyChanged(nameof(CurrentSuggestionsCount));
                 OnPropertyChanged(nameof(VocabularyProgress));
                 OnPropertyChanged(nameof(VocabularyProgressText));
                 OnPropertyChanged(nameof(PredictionAccuracy));
