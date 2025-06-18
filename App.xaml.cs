@@ -7,6 +7,7 @@ using OtomatikMetinGenisletici.Services;
 using OtomatikMetinGenisletici.ViewModels;
 using OtomatikMetinGenisletici.Views;
 using ModernWpf;
+using System.Threading;
 
 namespace OtomatikMetinGenisletici;
 
@@ -21,6 +22,8 @@ public static class ServiceProviderExtensions
 public partial class App : Application
 {
     public IHost? _host;
+    private static Mutex? _mutex;
+    private const string MutexName = "OtomatikMetinGenisletici_SingleInstance";
 
     public App()
     {
@@ -47,6 +50,58 @@ public partial class App : Application
         {
             Console.WriteLine("[DEBUG] OnStartup başlıyor...");
             Console.WriteLine($"[DEBUG] Args: {string.Join(", ", e.Args)}");
+
+            // Tek instance kontrolü
+            bool isNewInstance;
+            _mutex = new Mutex(true, MutexName, out isNewInstance);
+
+            if (!isNewInstance)
+            {
+                Console.WriteLine("[DEBUG] Program zaten çalışıyor!");
+
+                var result = MessageBox.Show(
+                    "Metin Genişletici Programı  Zaten Açık!\n\nYeniden başlatılsın mı?",
+                    "Metin Genişletici Programı  Zaten Açık",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question,
+                    MessageBoxResult.No);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    Console.WriteLine("[DEBUG] Kullanıcı yeniden başlatmayı seçti, mevcut instance kapatılıyor...");
+
+                    // Mevcut instance'ları bul ve kapat
+                    try
+                    {
+                        var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
+                        var processes = System.Diagnostics.Process.GetProcessesByName(currentProcess.ProcessName);
+
+                        foreach (var process in processes)
+                        {
+                            if (process.Id != currentProcess.Id)
+                            {
+                                Console.WriteLine($"[DEBUG] Process kapatılıyor: {process.Id}");
+                                process.Kill();
+                                process.WaitForExit(3000); // 3 saniye bekle
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ERROR] Mevcut process kapatma hatası: {ex.Message}");
+                    }
+
+                    // Kısa bir süre bekle
+                    await Task.Delay(1000);
+                    Console.WriteLine("[DEBUG] Yeni instance başlatılıyor...");
+                }
+                else
+                {
+                    Console.WriteLine("[DEBUG] Kullanıcı iptal etti, program kapatılıyor...");
+                    Shutdown();
+                    return;
+                }
+            }
 
             // Modern WPF Theme - Sadece Light tema
             Console.WriteLine("[DEBUG] Modern WPF Theme ayarlanıyor...");
@@ -129,10 +184,21 @@ public partial class App : Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
-        if (_host != null)
+        try
         {
-            await _host.StopAsync();
-            _host.Dispose();
+            if (_host != null)
+            {
+                await _host.StopAsync();
+                _host.Dispose();
+            }
+
+            // Mutex'i serbest bırak
+            _mutex?.ReleaseMutex();
+            _mutex?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] OnExit hatası: {ex.Message}");
         }
 
         base.OnExit(e);

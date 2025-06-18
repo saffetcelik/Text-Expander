@@ -48,6 +48,12 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+
+        <Style x:Key="CenterAlignedTextStyle" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -209,68 +215,6 @@
             <TabItem Header="🧠 Akıllı Öneriler">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="16">
-                        <!-- Header Section -->
-                        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="🧠 Akıllı Öneriler Dashboard"
-                                               Style="{StaticResource HeaderTextStyle}"/>
-                                    <TextBlock Text="Yazım alışkanlıklarınızı öğrenen akıllı öneri sistemi"
-                                               FontSize="14"
-                                               Foreground="Gray"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Durum: " FontWeight="Bold"/>
-                                        <TextBlock Text="Aktif"
-                                                   Foreground="Green"/>
-                                    </StackPanel>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                    <Button Content="🔄 Yenile"
-                                            Style="{StaticResource ModernButtonStyle}"
-                                            Click="RefreshSmartSuggestions_Click"
-                                            Margin="0,0,8,0"/>
-                                    <Button Content="⚙️ Ayarlar"
-                                            Style="{StaticResource ModernButtonStyle}"
-                                            Click="OpenSmartSuggestionsSettings_Click"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <!-- Öğrenme Logu -->
-                        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
-                            <StackPanel>
-                                <TextBlock Text="📝 Öğrenme Logu"
-                                           Style="{StaticResource SubHeaderTextStyle}"
-                                           Margin="0,0,0,12"/>
-
-                                <ScrollViewer Height="150" VerticalScrollBarVisibility="Auto">
-                                    <TextBlock Name="LearningLogTextBlock"
-                                               Text="{Binding LearningLog}"
-                                               FontFamily="Consolas"
-                                               FontSize="11"
-                                               Foreground="DarkGreen"
-                                               TextWrapping="Wrap"/>
-                                </ScrollViewer>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Button Content="🔄 Logu Temizle"
-                                            Style="{StaticResource ModernButtonStyle}"
-                                            Click="ClearLearningLog_Click"
-                                            Margin="0,0,8,0"/>
-                                    <TextBlock Text="{Binding TotalLearnedSentences, StringFormat='Toplam Öğrenilen Cümle: {0}'}"
-                                               VerticalAlignment="Center"
-                                               FontSize="12"
-                                               Foreground="Gray"/>
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-
                         <!-- Statistics Overview -->
                         <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
                             <StackPanel>
@@ -582,42 +526,144 @@
                 </ScrollViewer>
             </TabItem>
 
-            <!-- Analytics Tab -->
-            <TabItem Header="📊 Analitik">
+            <!-- Learning Logs Tab -->
+            <TabItem Header="📝 Öğrenme Logları">
                 <Border Style="{StaticResource CardStyle}" Margin="0">
-                    <ScrollViewer>
-                        <StackPanel>
-                            <TextBlock Text="Kullanım İstatistikleri"
-                                       Style="{StaticResource HeaderTextStyle}"/>
+                    <StackPanel Margin="16">
+                        <!-- Header Section -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                            <!-- Charts and analytics will be added here -->
-                            <Border Style="{StaticResource CardStyle}">
-                                <StackPanel>
-                                    <TextBlock Text="En Çok Kullanılan Kısayollar"
-                                               Style="{StaticResource SubHeaderTextStyle}"/>
-                                    <ListBox ItemsSource="{Binding TopShortcuts}"
-                                             Background="Transparent"
-                                             BorderThickness="0">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Margin="0,4">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{Binding Key}" FontWeight="Bold"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding UsageCount}"
-                                                               Foreground="{StaticResource PrimaryBrush}"/>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="📝 Öğrenme Logları"
+                                           Style="{StaticResource HeaderTextStyle}"/>
+                                <TextBlock Text="Yazım alışkanlıklarınızı öğrenen akıllı öneri sistemi"
+                                           FontSize="14"
+                                           Foreground="Gray"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <TextBlock Text="Durum: " FontWeight="Bold"/>
+                                    <TextBlock Text="Aktif"
+                                               Foreground="Green"/>
                                 </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ScrollViewer>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="🔄 Yenile"
+                                        Style="{StaticResource ModernButtonStyle}"
+                                        Click="RefreshSmartSuggestions_Click"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="⚙️ Ayarlar"
+                                        Style="{StaticResource ModernButtonStyle}"
+                                        Click="OpenSmartSuggestionsSettings_Click"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Öğrenme Logu -->
+                        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="📝 Öğrenme Logu"
+                                           Style="{StaticResource SubHeaderTextStyle}"
+                                           Margin="0,0,0,12"/>
+
+                                <DataGrid ItemsSource="{Binding LearningLogEntries}"
+                                          AutoGenerateColumns="False"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          IsReadOnly="True"
+                                          GridLinesVisibility="Horizontal"
+                                          HeadersVisibility="Column"
+                                          Height="300"
+                                          SelectionMode="Single"
+                                          AlternatingRowBackground="#F8F9FA"
+                                          RowBackground="White">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="#" Binding="{Binding Id}" Width="40"
+                                                            ElementStyle="{StaticResource CenterAlignedTextStyle}"/>
+                                        <DataGridTextColumn Header="Tarih" Binding="{Binding Date}" Width="80"
+                                                            ElementStyle="{StaticResource CenterAlignedTextStyle}"/>
+                                        <DataGridTextColumn Header="Saat" Binding="{Binding Time}" Width="70"
+                                                            ElementStyle="{StaticResource CenterAlignedTextStyle}"/>
+                                        <DataGridTextColumn Header="Öğrenilen Cümle" Binding="{Binding Sentence}" Width="*"/>
+                                        <DataGridTextColumn Header="Kelime" Binding="{Binding WordCount}" Width="60"
+                                                            ElementStyle="{StaticResource CenterAlignedTextStyle}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="🔄 Logu Temizle"
+                                            Style="{StaticResource ModernButtonStyle}"
+                                            Click="ClearLearningLog_Click"
+                                            Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding TotalLearnedSentences, StringFormat='Toplam Öğrenilen Cümle: {0}'}"
+                                               VerticalAlignment="Center"
+                                               FontSize="12"
+                                               Foreground="Gray"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Log Statistics -->
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="📊 Log İstatistikleri"
+                                           Style="{StaticResource SubHeaderTextStyle}"
+                                           Margin="0,0,0,16"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Total Learned Sentences -->
+                                    <Border Grid.Column="0" Background="#E3F2FD" CornerRadius="8" Padding="16" Margin="0,0,8,0">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="📚" FontSize="24" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding TotalLearnedSentences}"
+                                                       FontSize="20" FontWeight="Bold"
+                                                       HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Öğrenilen Cümle"
+                                                       FontSize="12"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Learning Rate -->
+                                    <Border Grid.Column="1" Background="#E8F5E8" CornerRadius="8" Padding="16" Margin="0,0,8,0">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="📈" FontSize="24" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding LearningRate, StringFormat='{}{0:F1}/gün'}"
+                                                       FontSize="20" FontWeight="Bold"
+                                                       HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Öğrenme Hızı"
+                                                       FontSize="12"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Last Learning -->
+                                    <Border Grid.Column="2" Background="#FFF3E0" CornerRadius="8" Padding="16">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="🕒" FontSize="24" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding LastLearningTime, StringFormat='dd.MM.yyyy'}"
+                                                       FontSize="16" FontWeight="Bold"
+                                                       HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Son Öğrenme"
+                                                       FontSize="12"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </Border>
             </TabItem>
+
         </TabControl>
     </Grid>
 </Window>

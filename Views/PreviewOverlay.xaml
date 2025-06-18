@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Preview"
         SizeToContent="WidthAndHeight"
-        MinWidth="250" MaxWidth="700"
+        MinWidth="100" MaxWidth="500"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -12,152 +12,48 @@
         Focusable="False"
         ResizeMode="NoResize">
 
-    <!-- Modern Draggable Container -->
+    <!-- Minimal Modern Container -->
     <Border Name="MainBorder"
-            CornerRadius="16"
-            Opacity="0.96"
-            Margin="12"
-            MouseLeftButtonDown="Border_MouseLeftButtonDown"
-            Cursor="SizeAll">
+            CornerRadius="8"
+            Opacity="0.95"
+            Margin="4">
 
-        <!-- Modern Gradient Background -->
+        <!-- Minimal Background -->
         <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#1E1E1E" Offset="0"/>
-                <GradientStop Color="#2D2D30" Offset="0.5"/>
-                <GradientStop Color="#1A1A1A" Offset="1"/>
-            </LinearGradientBrush>
+            <SolidColorBrush Color="#2D2D30"/>
         </Border.Background>
 
-        <!-- Modern Border with Accent -->
+        <!-- Subtle Border -->
         <Border.BorderBrush>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                <GradientStop Color="#007ACC" Offset="0"/>
-                <GradientStop Color="#00A2E8" Offset="0.5"/>
-                <GradientStop Color="#0078D4" Offset="1"/>
-            </LinearGradientBrush>
+            <SolidColorBrush Color="#007ACC"/>
         </Border.BorderBrush>
-        <Border.BorderThickness>2</Border.BorderThickness>
+        <Border.BorderThickness>1</Border.BorderThickness>
 
-        <!-- Enhanced Shadow Effect -->
+        <!-- Subtle Shadow -->
         <Border.Effect>
             <DropShadowEffect Color="#000000"
                               Direction="270"
-                              ShadowDepth="8"
-                              BlurRadius="25"
-                              Opacity="0.4"/>
+                              ShadowDepth="4"
+                              BlurRadius="12"
+                              Opacity="0.3"/>
         </Border.Effect>
 
-        <Grid>
-            <!-- Modern Header with Drag Handle -->
-            <Border Background="Transparent"
-                    Height="8"
-                    VerticalAlignment="Top"
-                    MouseLeftButtonDown="Border_MouseLeftButtonDown"
-                    Cursor="SizeAll">
-                <!-- Subtle drag indicator -->
-                <Rectangle Fill="#007ACC"
-                           Height="2"
-                           Width="40"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           RadiusX="1" RadiusY="1"
-                           Opacity="0.6"/>
-            </Border>
-
-            <!-- Modern Content Area -->
-            <Grid Margin="0,8,0,0">
-                <Border Padding="24,20,24,20">
-                    <!-- Content Background with subtle inner glow -->
-                    <Border.Background>
-                        <RadialGradientBrush Center="0.5,0.5" RadiusX="1" RadiusY="1">
-                            <GradientStop Color="#00FFFFFF" Offset="0"/>
-                            <GradientStop Color="#10007ACC" Offset="1"/>
-                        </RadialGradientBrush>
-                    </Border.Background>
-
-                    <!-- Sade İçerik Yapısı -->
-                    <StackPanel>
-                        <!-- Ana Öneri Metni -->
-                        <TextBlock Name="PreviewTextBlock"
-                                   Text=""
-                                   FontFamily="Segoe UI"
-                                   FontSize="16"
-                                   FontWeight="Normal"
-                                   Foreground="#F0F0F0"
-                                   TextWrapping="Wrap"
-                                   MaxWidth="600"
-                                   LineHeight="24"
-                                   HorizontalAlignment="Left"
-                                   VerticalAlignment="Center"
-                                   TextOptions.TextFormattingMode="Display"
-                                   TextOptions.TextRenderingMode="ClearType"
-                                   Margin="0,0,0,8"/>
-
-                        <!-- Basit Bilgi Satırı -->
-                        <TextBlock Name="InfoTextBlock"
-                                   Text=""
-                                   FontFamily="Segoe UI"
-                                   FontSize="11"
-                                   FontWeight="Normal"
-                                   Foreground="#B0B0B0"
-                                   HorizontalAlignment="Left"
-                                   VerticalAlignment="Center"
-                                   Visibility="Collapsed"
-                                   Margin="0,4,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- Modern Close Button - Top Right -->
-                <Button Name="HideButton"
-                        Content="×"
-                        Width="28"
-                        Height="28"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Margin="0,12,12,0"
-                        Cursor="Hand"
-                        ToolTip="Önizlemeyi Gizle (ESC)"
-                        Click="HideButton_Click">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Name="ButtonBorder"
-                                                Background="#40000000"
-                                                CornerRadius="14"
-                                                BorderThickness="1"
-                                                BorderBrush="#30FFFFFF">
-                                            <ContentPresenter HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center"
-                                                              TextElement.FontSize="14"
-                                                              TextElement.FontWeight="Normal"
-                                                              TextElement.Foreground="#E0E0E0"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="ButtonBorder" Property="Background" Value="#80FF4444"/>
-                                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFF4444"/>
-                                                <Setter Property="ContentTemplate">
-                                                    <Setter.Value>
-                                                        <DataTemplate>
-                                                            <TextBlock Text="×" Foreground="White" FontWeight="Bold"/>
-                                                        </DataTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Trigger>
-                                            <Trigger Property="IsPressed" Value="True">
-                                                <Setter TargetName="ButtonBorder" Property="Background" Value="#A0FF2222"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                </Button>
-            </Grid>
-        </Grid>
+        <!-- Minimal Content -->
+        <Border Padding="12,8">
+            <!-- Sadece Öneri Metni -->
+            <TextBlock Name="PreviewTextBlock"
+                       Text=""
+                       FontFamily="Segoe UI"
+                       FontSize="14"
+                       FontWeight="Normal"
+                       Foreground="#F0F0F0"
+                       TextWrapping="Wrap"
+                       MaxWidth="400"
+                       LineHeight="20"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center"
+                       TextOptions.TextFormattingMode="Display"
+                       TextOptions.TextRenderingMode="ClearType"/>
+        </Border>
     </Border>
 </Window>

@@ -80,6 +80,13 @@ namespace OtomatikMetinGenisletici.ViewModels
             set { _learningLog = value; OnPropertyChanged(); }
         }
 
+        private ObservableCollection<LearningLogEntry> _learningLogEntries = new ObservableCollection<LearningLogEntry>();
+        public ObservableCollection<LearningLogEntry> LearningLogEntries
+        {
+            get => _learningLogEntries;
+            set { _learningLogEntries = value; OnPropertyChanged(); }
+        }
+
         private int _totalLearnedSentences;
         public int TotalLearnedSentences
         {
@@ -309,6 +316,10 @@ namespace OtomatikMetinGenisletici.ViewModels
                 FilterShortcuts();
                 UpdateStats();
                 UpdateAnalytics();
+
+                Console.WriteLine("[DEBUG] Öğrenme logları yükleniyor...");
+                // Öğrenme loglarını dosyadan yükle
+                LoadLearningLogFromFile();
 
                 Console.WriteLine("[DEBUG] Smart Suggestions dashboard yükleniyor...");
                 // Dashboard verilerini arka planda yükle
@@ -2784,25 +2795,180 @@ namespace OtomatikMetinGenisletici.ViewModels
         public void ClearLearningLog()
         {
             LearningLog = "Öğrenme logu temizlendi...\n";
+            LearningLogEntries.Clear();
             TotalLearnedSentences = 0;
+            SaveLearningLogToFile();
         }
 
         public void AddToLearningLog(string sentence)
         {
-            var timestamp = DateTime.Now.ToString("HH:mm:ss");
-            var logEntry = $"[{timestamp}] Öğrenildi: \"{sentence}\"\n";
-
-            // En son 50 satırı tut
-            var lines = LearningLog.Split('\n').ToList();
-            if (lines.Count > 50)
+            var timestamp = DateTime.Now;
+            var logEntry = new LearningLogEntry(sentence, timestamp)
             {
-                lines = lines.Skip(lines.Count - 50).ToList();
+                Id = TotalLearnedSentences + 1
+            };
+
+            // Tablo formatına ekle (en yeni en üste)
+            LearningLogEntries.Insert(0, logEntry);
+
+            // En son 50 girdiyi tut
+            while (LearningLogEntries.Count > 50)
+            {
+                LearningLogEntries.RemoveAt(LearningLogEntries.Count - 1);
             }
 
-            lines.Add(logEntry.TrimEnd('\n'));
+            // Eski format için de güncelle (geriye uyumluluk)
+            var timestampStr = timestamp.ToString("HH:mm:ss");
+            var textLogEntry = $"[{timestampStr}] Öğrenildi: \"{sentence}\"";
+
+            // Mevcut logları satırlara böl
+            var lines = LearningLog.Split('\n').Where(line => !string.IsNullOrWhiteSpace(line)).ToList();
+
+            // Varsayılan mesajı kaldır
+            if (lines.Count == 1 && (lines[0].Contains("Öğrenme logu burada görünecek") ||
+                                     lines[0].Contains("Henüz öğrenilen cümle yok") ||
+                                     lines[0].Contains("Öğrenme logu yüklenirken hata")))
+            {
+                lines.Clear();
+            }
+
+            // Yeni girdiyi en üste ekle
+            lines.Insert(0, textLogEntry);
+
+            // En son 50 satırı tut (en yeniler üstte)
+            if (lines.Count > 50)
+            {
+                lines = lines.Take(50).ToList();
+            }
+
             LearningLog = string.Join("\n", lines) + "\n";
 
             TotalLearnedSentences++;
+
+            // Öğrenme logunu dosyaya kaydet
+            SaveLearningLogToFile();
+        }
+
+        private void SaveLearningLogToFile()
+        {
+            try
+            {
+                string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "learning_log.txt");
+                var logData = new
+                {
+                    LearningLog = LearningLog,
+                    TotalLearnedSentences = TotalLearnedSentences,
+                    LastUpdated = DateTime.Now
+                };
+
+                string json = System.Text.Json.JsonSerializer.Serialize(logData, new System.Text.Json.JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                File.WriteAllText(logPath, json);
+                Console.WriteLine($"[DEBUG] Öğrenme logu dosyaya kaydedildi: {logPath}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Öğrenme logu kaydetme hatası: {ex.Message}");
+            }
+        }
+
+        private void LoadLearningLogFromFile()
+        {
+            try
+            {
+                string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "learning_log.txt");
+                if (File.Exists(logPath))
+                {
+                    string json = File.ReadAllText(logPath);
+                    using (var document = System.Text.Json.JsonDocument.Parse(json))
+                    {
+                        var root = document.RootElement;
+
+                        if (root.TryGetProperty("LearningLog", out var learningLogProp))
+                        {
+                            string savedLog = learningLogProp.GetString() ?? "Öğrenme logu burada görünecek...\n";
+                            LearningLog = savedLog;
+
+                            // Eski formatı tablo formatına çevir
+                            ConvertTextLogToTableFormat(savedLog);
+                        }
+
+                        if (root.TryGetProperty("TotalLearnedSentences", out var totalProp))
+                        {
+                            TotalLearnedSentences = totalProp.GetInt32();
+                        }
+
+                        Console.WriteLine($"[DEBUG] Öğrenme logu dosyadan yüklendi: {TotalLearnedSentences} cümle");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("[DEBUG] Öğrenme logu dosyası bulunamadı, varsayılan değerler kullanılıyor");
+                    LearningLog = "Henüz öğrenilen cümle yok. Yazmaya başlayın!\n";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Öğrenme logu yükleme hatası: {ex.Message}");
+                LearningLog = "Öğrenme logu yüklenirken hata oluştu.\n";
+            }
+        }
+
+        private void ConvertTextLogToTableFormat(string textLog)
+        {
+            try
+            {
+                LearningLogEntries.Clear();
+                var lines = textLog.Split('\n').Where(line => !string.IsNullOrWhiteSpace(line)).ToList();
+                int id = 1;
+
+                foreach (var line in lines)
+                {
+                    // [HH:mm:ss] Öğrenildi: "cümle" formatını parse et
+                    if (line.Contains("Öğrenildi:") && line.Contains("[") && line.Contains("]"))
+                    {
+                        try
+                        {
+                            var timeStart = line.IndexOf('[') + 1;
+                            var timeEnd = line.IndexOf(']');
+                            var timeStr = line.Substring(timeStart, timeEnd - timeStart);
+
+                            var sentenceStart = line.IndexOf('"') + 1;
+                            var sentenceEnd = line.LastIndexOf('"');
+                            var sentence = line.Substring(sentenceStart, sentenceEnd - sentenceStart);
+
+                            // Bugünün tarihi ile timestamp oluştur
+                            var today = DateTime.Today;
+                            if (TimeSpan.TryParse(timeStr, out var time))
+                            {
+                                var timestamp = today.Add(time);
+                                var entry = new LearningLogEntry(sentence, timestamp) { Id = id++ };
+                                LearningLogEntries.Add(entry);
+                            }
+                        }
+                        catch
+                        {
+                            // Parse hatası olursa bu satırı atla
+                            continue;
+                        }
+                    }
+                }
+
+                // En yeniler üstte olacak şekilde sırala
+                var sortedEntries = LearningLogEntries.OrderByDescending(e => e.Timestamp).ToList();
+                LearningLogEntries.Clear();
+                foreach (var entry in sortedEntries)
+                {
+                    LearningLogEntries.Add(entry);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Text log to table conversion error: {ex.Message}");
+            }
         }
 
         public async Task UpdateNGramDisplayCountAsync(int count)
