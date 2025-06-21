@@ -2,7 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:OtomatikMetinGenisletici"
-             xmlns:ui="http://schemas.modernwpf.com/2019">
+             xmlns:ui="http://schemas.modernwpf.com/2019"
+             xmlns:converters="clr-namespace:OtomatikMetinGenisletici.Converters">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -17,6 +18,7 @@
             <SolidColorBrush x:Key="SuccessBrush" Color="#4CAF50"/>
             <SolidColorBrush x:Key="WarningBrush" Color="#FF9800"/>
             <SolidColorBrush x:Key="ErrorBrush" Color="#F44336"/>
+            <SolidColorBrush x:Key="InfoBrush" Color="#2196F3"/>
             <SolidColorBrush x:Key="SurfaceBrush" Color="#FAFAFA"/>
             <SolidColorBrush x:Key="OnSurfaceBrush" Color="#212121"/>
 
@@ -167,6 +169,14 @@
                 <Setter Property="Foreground" Value="{StaticResource OnSurfaceBrush}"/>
                 <Setter Property="Margin" Value="0,0,0,8"/>
             </Style>
+
+            <Style x:Key="CenterAlignedTextStyle" TargetType="TextBlock">
+                <Setter Property="TextAlignment" Value="Center"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+            </Style>
+
+            <!-- Converters -->
+            <converters:BoolToStatusConverter x:Key="BoolToStatusConverter"/>
 
             <!-- Card Shadow Effect -->
             <DropShadowEffect x:Key="CardShadow"

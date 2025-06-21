@@ -59,18 +59,39 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             get
             {
-                // GEÇİCİ ÇÖZÜM: Her zaman true döndür (epilepsi önlemi)
-                return true;
-
-                // ASIL KOD (sonra düzeltilecek):
-                // var value = _settingsService?.Settings?.PreviewAlwaysVisible ?? true;
-                // Console.WriteLine($"[DEBUG] IsPreviewAlwaysVisible çağrıldı: {value}");
-                // return value;
+                // Artık ayardan değeri al - sadece yazı yazarken görünmesi için false
+                var value = _settingsService?.Settings?.PreviewAlwaysVisible ?? false;
+                Console.WriteLine($"[DEBUG] IsPreviewAlwaysVisible çağrıldı: {value}");
+                return value;
             }
         }
 
-        public string PreviewVisibilityStatusText => IsPreviewAlwaysVisible ? "🟢 Sürekli Açık" : "🔴 Otomatik Gizle";
-        public string PreviewVisibilityStatusColor => IsPreviewAlwaysVisible ? "Green" : "Red";
+        public string PreviewVisibilityStatusText => IsPreviewAlwaysVisible ? "🟢 Sürekli Açık" : "🔴 Yazarken Görünür";
+        public string PreviewVisibilityStatusColor => IsPreviewAlwaysVisible ? "Green" : "Orange";
+
+        // Pencere Filtreleme Özellikleri
+        public bool IsWindowFilteringEnabled
+        {
+            get => _settingsService?.Settings?.WindowFilteringEnabled ?? true;
+        }
+
+        public string WindowFilteringStatusText
+        {
+            get
+            {
+                if (!IsWindowFilteringEnabled)
+                    return "🔴 Pasif";
+
+                var activeFilters = WindowFilters?.Count(f => f.IsEnabled) ?? 0;
+                var modeText = WindowFilterMode == WindowFilterMode.AllowList ? "İzin" : "Engel";
+                return activeFilters > 0 ? $"🟢 {activeFilters} {modeText}" : "🟡 Filtre Yok";
+            }
+        }
+        public string WindowFilteringStatusColor => IsWindowFilteringEnabled ? "Green" : "Red";
+
+        public ObservableCollection<WindowFilter> WindowFilters => _settingsService?.Settings?.WindowFilters ?? new ObservableCollection<WindowFilter>();
+
+        public WindowFilterMode WindowFilterMode => _settingsService?.Settings?.WindowFilterMode ?? WindowFilterMode.AllowList;
 
         // Learning Log Properties
         private string _learningLog = "Öğrenme logu burada görünecek...\n";
@@ -261,6 +282,9 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Console.WriteLine("[DEBUG] Servisler başlatılıyor...");
                 InitializeServices();
 
+                // Önizleme gizleme timer'ını başlat
+                InitializePreviewTimer();
+
                 Console.WriteLine("[DEBUG] MainViewModel constructor tamamlandı.");
             }
             catch (Exception ex)
@@ -399,10 +423,19 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Console.WriteLine($"[DEBUG] IsSmartSuggestionsEnabled: {smartEnabled}");
                 WriteToLogFile($"[DEBUG] IsSmartSuggestionsEnabled: {smartEnabled}");
 
-                // İlk açılışta temiz başla - test mesajı gösterme
-                SafeSetPreviewText("✏️ Yazmaya başlayın...");
-                Console.WriteLine("[DEBUG] İlk açılış preview'ı ayarlandı");
-                WriteToLogFile("[DEBUG] İlk açılış preview'ı ayarlandı");
+                // İlk açılışta önizlemeyi gizle (sadece yazı yazarken görünecek)
+                if (!IsPreviewAlwaysVisible)
+                {
+                    HidePreview();
+                    Console.WriteLine("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
+                    WriteToLogFile("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
+                }
+                else
+                {
+                    SafeSetPreviewText("✏️ Yazmaya başlayın...");
+                    Console.WriteLine("[DEBUG] İlk açılış preview'ı ayarlandı (sürekli açık modu)");
+                    WriteToLogFile("[DEBUG] İlk açılış preview'ı ayarlandı (sürekli açık modu)");
+                }
 
                 // AYAR DEBUG - Başlangıçta ayarları kontrol et
                 Console.WriteLine($"[AYAR DEBUG] Constructor'da PreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
@@ -436,6 +469,69 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch
             {
                 // Log yazma hatası olursa sessizce devam et
+            }
+        }
+
+        private void InitializePreviewTimer()
+        {
+            try
+            {
+                // 3 saniye sonra önizlemeyi gizleyecek timer
+                _hidePreviewTimer = new System.Timers.Timer(3000); // 3 saniye
+                _hidePreviewTimer.Elapsed += OnHidePreviewTimerElapsed;
+                _hidePreviewTimer.AutoReset = false; // Sadece bir kez çalışsın
+                Console.WriteLine("[DEBUG] Preview timer başlatıldı");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] InitializePreviewTimer hatası: {ex.Message}");
+            }
+        }
+
+        private void OnHidePreviewTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            try
+            {
+                Console.WriteLine("[TIMER] Önizleme gizleme timer'ı tetiklendi");
+
+                // Eğer ayar sürekli açık değilse ve son tuş basımından 3 saniye geçtiyse gizle
+                if (!IsPreviewAlwaysVisible &&
+                    (DateTime.Now - _lastKeyPressTime).TotalSeconds >= 3)
+                {
+                    Console.WriteLine("[TIMER] Önizleme gizleniyor (3 saniye boyunca yazı yazılmadı)");
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        HidePreview();
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] OnHidePreviewTimerElapsed hatası: {ex.Message}");
+            }
+        }
+
+        private void RestartHidePreviewTimer()
+        {
+            try
+            {
+                // Eğer sürekli açık ayarı aktifse timer'ı çalıştırma
+                if (IsPreviewAlwaysVisible)
+                {
+                    return;
+                }
+
+                // Mevcut timer'ı durdur
+                _hidePreviewTimer?.Stop();
+
+                // Timer'ı yeniden başlat
+                _hidePreviewTimer?.Start();
+
+                Console.WriteLine("[TIMER] Preview gizleme timer'ı yeniden başlatıldı (3 saniye)");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] RestartHidePreviewTimer hatası: {ex.Message}");
             }
         }
 
@@ -512,15 +608,21 @@ namespace OtomatikMetinGenisletici.ViewModels
             Console.WriteLine($"[KEYPRESS] *** OnKeyPressed çağrıldı, buffer: '{buffer}' ***");
             WriteToLogFile($"[KEYPRESS] *** OnKeyPressed çağrıldı, buffer: '{buffer}' ***");
 
-            // Aktif pencere bu uygulama ise işlem yapma
-            bool shouldBeActive = WindowHelper.ShouldTextExpansionBeActive();
+            // Yazı yazma zamanını güncelle
+            _lastKeyPressTime = DateTime.Now;
+
+            // Timer'ı yeniden başlat (önceki timer'ı durdur ve yenisini başlat)
+            RestartHidePreviewTimer();
+
+            // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
+            bool shouldBeActive = WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled, WindowFilterMode);
             Console.WriteLine($"[KEYPRESS] ShouldTextExpansionBeActive: {shouldBeActive}");
             WriteToLogFile($"[KEYPRESS] ShouldTextExpansionBeActive: {shouldBeActive}");
 
             if (!shouldBeActive)
             {
-                Console.WriteLine($"[KEYPRESS] OnKeyPressed: Uygulama aktif, işlem yapılmıyor");
-                WriteToLogFile($"[KEYPRESS] OnKeyPressed: Uygulama aktif, işlem yapılmıyor");
+                Console.WriteLine($"[KEYPRESS] OnKeyPressed: Pencere filtreleri nedeniyle işlem yapılmıyor");
+                WriteToLogFile($"[KEYPRESS] OnKeyPressed: Pencere filtreleri nedeniyle işlem yapılmıyor");
                 return;
             }
 
@@ -770,6 +872,14 @@ namespace OtomatikMetinGenisletici.ViewModels
             Console.WriteLine($"[PREVIEW] *** ShowPreview çağrıldı, buffer: '{buffer}' ***");
             WriteToLogFile($"[PREVIEW] *** ShowPreview çağrıldı, buffer: '{buffer}' ***");
 
+            // Eğer sürekli açık ayarı kapalıysa ve buffer boşsa önizlemeyi gizle
+            if (!IsPreviewAlwaysVisible && string.IsNullOrEmpty(buffer?.Trim()))
+            {
+                Console.WriteLine("[PREVIEW] Buffer boş ve sürekli açık ayarı kapalı, önizleme gizleniyor");
+                HidePreview();
+                return;
+            }
+
             // PreviewOverlay null kontrolü
             if (_previewOverlay == null)
             {
@@ -778,16 +888,16 @@ namespace OtomatikMetinGenisletici.ViewModels
                 return;
             }
 
-            // Aktif pencere bu uygulama ise önizleme gösterme
-            bool shouldBeActive = WindowHelper.ShouldTextExpansionBeActive();
+            // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa önizleme gösterme
+            bool shouldBeActive = WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled, WindowFilterMode);
             Console.WriteLine($"[PREVIEW] ShouldTextExpansionBeActive: {shouldBeActive}");
             WriteToLogFile($"[PREVIEW] ShouldTextExpansionBeActive: {shouldBeActive}");
 
             if (!shouldBeActive)
             {
-                Console.WriteLine("[PREVIEW] Uygulama aktif, ama preview açık kalıyor");
-                WriteToLogFile("[PREVIEW] Uygulama aktif, ama preview açık kalıyor");
-                SafeSetPreviewText("⏸️ Uygulama aktif (metin genişletme duraklatıldı)");
+                Console.WriteLine("[PREVIEW] Pencere filtreleri nedeniyle metin genişletme duraklatıldı");
+                WriteToLogFile("[PREVIEW] Pencere filtreleri nedeniyle metin genişletme duraklatıldı");
+                SafeSetPreviewText("⏸️ Bu pencerede metin genişletme devre dışı");
                 return;
             }
 
@@ -951,8 +1061,8 @@ namespace OtomatikMetinGenisletici.ViewModels
             // Kelimeyi temizle
             var cleanWord = word.Trim();
 
-            // Kısayol genişletme kontrolü (sadece bu uygulama aktif değilse)
-            if (WindowHelper.ShouldTextExpansionBeActive() &&
+            // Kısayol genişletme kontrolü (sadece izin verilen pencerelerde)
+            if (WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled) &&
                 !string.IsNullOrEmpty(cleanWord) &&
                 _shortcutService.TryExpandShortcut(cleanWord, out string expansion))
             {
@@ -965,8 +1075,8 @@ namespace OtomatikMetinGenisletici.ViewModels
             Console.WriteLine($"[SMART SUGGESTIONS] Cümle tamamlandı: '{sentence}'");
             WriteToLogFile($"[SMART SUGGESTIONS] Cümle tamamlandı: '{sentence}'");
 
-            // Aktif pencere bu uygulama ise işlem yapma
-            if (!WindowHelper.ShouldTextExpansionBeActive())
+            // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
+            if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
                 return;
 
             // Cümle temizle - noktalama işaretlerini kaldır
@@ -1109,9 +1219,9 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Console.WriteLine($"[DEBUG] ShowSmartSuggestionPreview çağrıldı, buffer: '{buffer}', öneri sayısı: {_currentSmartSuggestions.Count}");
 
                 // Aktif pencere kontrolü
-                if (!WindowHelper.ShouldTextExpansionBeActive())
+                if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
                 {
-                    Console.WriteLine("[DEBUG] Uygulama aktif, preview gösterilmiyor");
+                    Console.WriteLine("[DEBUG] Pencere filtreleri nedeniyle preview gösterilmiyor");
                     return;
                 }
 
@@ -1173,10 +1283,10 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             Console.WriteLine("[DEBUG] *** Ctrl+Space basıldı ***");
 
-            // Aktif pencere bu uygulama ise işlem yapma
-            if (!WindowHelper.ShouldTextExpansionBeActive())
+            // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
+            if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
             {
-                Console.WriteLine("[DEBUG] Uygulama aktif, Ctrl+Space işlemi atlandı");
+                Console.WriteLine("[DEBUG] Pencere filtreleri nedeniyle Ctrl+Space işlemi atlandı");
                 return;
             }
 
@@ -1213,11 +1323,11 @@ namespace OtomatikMetinGenisletici.ViewModels
             Console.WriteLine("[DEBUG] *** Tab tuşu basıldı ***");
             WriteToLogFile("[DEBUG] *** Tab tuşu basıldı ***");
 
-            // Eğer odağımız hâlâ bu uygulamadaysa hiçbir şey yapma
-            if (!WindowHelper.ShouldTextExpansionBeActive())
+            // Eğer pencere filtrelerine uymuyorsa hiçbir şey yapma
+            if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
             {
-                Console.WriteLine("[DEBUG] Uygulama aktif, Tab işlemi atlandı");
-                WriteToLogFile("[DEBUG] Uygulama aktif, Tab işlemi atlandı");
+                Console.WriteLine("[DEBUG] Pencere filtreleri nedeniyle Tab işlemi atlandı");
+                WriteToLogFile("[DEBUG] Pencere filtreleri nedeniyle Tab işlemi atlandı");
                 return;
             }
 
@@ -1311,10 +1421,10 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             Console.WriteLine($"[DEBUG] *** Boşluk tuşu basıldı, buffer: '{currentBuffer}' ***");
 
-            // Aktif pencere bu uygulama ise işlem yapma
-            if (!WindowHelper.ShouldTextExpansionBeActive())
+            // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
+            if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
             {
-                Console.WriteLine("[DEBUG] Uygulama aktif, boşluk işlemi atlandı");
+                Console.WriteLine("[DEBUG] Pencere filtreleri nedeniyle boşluk işlemi atlandı");
                 return;
             }
 
@@ -1721,6 +1831,10 @@ namespace OtomatikMetinGenisletici.ViewModels
         // BASİT VE MANTIKLI AKILLI ÖNERİ SİSTEMİ
         private readonly List<string> _learnedWords = new List<string>();
 
+        // Yazı yazma durumu takibi için
+        private DateTime _lastKeyPressTime = DateTime.MinValue;
+        private System.Timers.Timer? _hidePreviewTimer;
+
         private async Task UpdateWordCompletionAsync(string partialWord, string fullContext)
         {
             Console.WriteLine($"[DEBUG] *** UpdateWordCompletionAsync çağrıldı ***");
@@ -2113,6 +2227,13 @@ namespace OtomatikMetinGenisletici.ViewModels
             OnPropertyChanged(nameof(IsPreviewAlwaysVisible));
             OnPropertyChanged(nameof(PreviewVisibilityStatusText));
             OnPropertyChanged(nameof(PreviewVisibilityStatusColor));
+
+            // Pencere filtreleme ayarları değiştiğinde UI'ı güncelle
+            OnPropertyChanged(nameof(IsWindowFilteringEnabled));
+            OnPropertyChanged(nameof(WindowFilteringStatusText));
+            OnPropertyChanged(nameof(WindowFilteringStatusColor));
+            OnPropertyChanged(nameof(WindowFilters));
+            OnPropertyChanged(nameof(WindowFilterMode));
 
             // SmartSuggestionsService'e ayar değişikliğini bildir
             if (_smartSuggestionsService != null)
@@ -3140,6 +3261,14 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
 
             _previewOverlay?.Close();
+
+            // Timer'ı temizle
+            if (_hidePreviewTimer != null)
+            {
+                _hidePreviewTimer.Stop();
+                _hidePreviewTimer.Dispose();
+                _hidePreviewTimer = null;
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

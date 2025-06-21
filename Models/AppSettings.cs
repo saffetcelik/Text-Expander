@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
 
 namespace OtomatikMetinGenisletici.Models
 {
@@ -24,7 +25,61 @@ namespace OtomatikMetinGenisletici.Models
         private double _learningWeight = 0.8;
 
         // Önizleme Ayarları
-        private bool _previewAlwaysVisible = true; // Varsayılan: sürekli açık
+        private bool _previewAlwaysVisible = false; // Varsayılan: sadece yazı yazarken görünür
+
+        // Pencere Filtreleme Ayarları
+        private ObservableCollection<WindowFilter> _windowFilters = new();
+        private bool _windowFilteringEnabled = true;
+        private WindowFilterMode _windowFilterMode = WindowFilterMode.AllowList;
+
+        public AppSettings()
+        {
+            InitializeDefaultWindowFilters();
+        }
+
+        private void InitializeDefaultWindowFilters()
+        {
+            // Varsayılan pencere filtrelerini ekle
+            _windowFilters.Add(new WindowFilter
+            {
+                Name = "Notepad",
+                TitlePattern = "notepad",
+                FilterType = WindowFilterType.TitleContains,
+                IsEnabled = true
+            });
+
+            _windowFilters.Add(new WindowFilter
+            {
+                Name = "Word",
+                TitlePattern = "Microsoft Word",
+                FilterType = WindowFilterType.TitleContains,
+                IsEnabled = true
+            });
+
+            _windowFilters.Add(new WindowFilter
+            {
+                Name = "UYAP",
+                TitlePattern = "UYAP",
+                FilterType = WindowFilterType.TitleContains,
+                IsEnabled = true
+            });
+
+            _windowFilters.Add(new WindowFilter
+            {
+                Name = "Visual Studio Code",
+                ProcessName = "Code",
+                FilterType = WindowFilterType.ProcessEquals,
+                IsEnabled = true
+            });
+
+            _windowFilters.Add(new WindowFilter
+            {
+                Name = "Chrome (Devre Dışı)",
+                ProcessName = "chrome",
+                FilterType = WindowFilterType.ProcessEquals,
+                IsEnabled = false
+            });
+        }
 
         public bool AutoStart
         {
@@ -182,6 +237,36 @@ namespace OtomatikMetinGenisletici.Models
             set
             {
                 _previewAlwaysVisible = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<WindowFilter> WindowFilters
+        {
+            get => _windowFilters;
+            set
+            {
+                _windowFilters = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool WindowFilteringEnabled
+        {
+            get => _windowFilteringEnabled;
+            set
+            {
+                _windowFilteringEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public WindowFilterMode WindowFilterMode
+        {
+            get => _windowFilterMode;
+            set
+            {
+                _windowFilterMode = value;
                 OnPropertyChanged();
             }
         }
