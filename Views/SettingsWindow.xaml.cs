@@ -167,7 +167,7 @@ namespace OtomatikMetinGenisletici.Views
                 _settings.ContextWeight = ContextWeightSlider.Value / 100.0;
 
                 // Window Filtering Settings
-                _settings.WindowFilteringEnabled = WindowFilteringEnabledCheckBox.IsChecked ?? true;
+                _settings.WindowFilteringEnabled = WindowFilteringEnabledCheckBox.IsChecked ?? false;
                 _settings.WindowFilterMode = AllowListModeRadio.IsChecked == true
                     ? WindowFilterMode.AllowList
                     : WindowFilterMode.BlockList;

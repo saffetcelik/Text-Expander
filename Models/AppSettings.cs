@@ -29,56 +29,13 @@ namespace OtomatikMetinGenisletici.Models
 
         // Pencere Filtreleme Ayarları
         private ObservableCollection<WindowFilter> _windowFilters = new();
-        private bool _windowFilteringEnabled = true;
+        private bool _windowFilteringEnabled = false; // Varsayılan: tüm pencerelerde çalış
         private WindowFilterMode _windowFilterMode = WindowFilterMode.AllowList;
 
         public AppSettings()
         {
-            InitializeDefaultWindowFilters();
-        }
-
-        private void InitializeDefaultWindowFilters()
-        {
-            // Varsayılan pencere filtrelerini ekle
-            _windowFilters.Add(new WindowFilter
-            {
-                Name = "Notepad",
-                TitlePattern = "notepad",
-                FilterType = WindowFilterType.TitleContains,
-                IsEnabled = true
-            });
-
-            _windowFilters.Add(new WindowFilter
-            {
-                Name = "Word",
-                TitlePattern = "Microsoft Word",
-                FilterType = WindowFilterType.TitleContains,
-                IsEnabled = true
-            });
-
-            _windowFilters.Add(new WindowFilter
-            {
-                Name = "UYAP",
-                TitlePattern = "UYAP",
-                FilterType = WindowFilterType.TitleContains,
-                IsEnabled = true
-            });
-
-            _windowFilters.Add(new WindowFilter
-            {
-                Name = "Visual Studio Code",
-                ProcessName = "Code",
-                FilterType = WindowFilterType.ProcessEquals,
-                IsEnabled = true
-            });
-
-            _windowFilters.Add(new WindowFilter
-            {
-                Name = "Chrome (Devre Dışı)",
-                ProcessName = "chrome",
-                FilterType = WindowFilterType.ProcessEquals,
-                IsEnabled = false
-            });
+            // Varsayılan olarak hiçbir pencere filtresi eklenmez
+            // Kullanıcı istediğinde kendi filtrelerini oluşturabilir
         }
 
         public bool AutoStart
