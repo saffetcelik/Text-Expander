@@ -74,6 +74,15 @@ namespace OtomatikMetinGenisletici.Services
 
             // Önizleme Ayarları
             _settings.PreviewAlwaysVisible = newSettings.PreviewAlwaysVisible;
+
+            // Pencere Filtreleme Ayarları
+            _settings.WindowFilteringEnabled = newSettings.WindowFilteringEnabled;
+            _settings.WindowFilterMode = newSettings.WindowFilterMode;
+            _settings.WindowFilters.Clear();
+            foreach (var filter in newSettings.WindowFilters)
+            {
+                _settings.WindowFilters.Add(filter);
+            }
         }
 
         public AppSettings GetCopy()
@@ -99,7 +108,12 @@ namespace OtomatikMetinGenisletici.Services
                 LearningWeight = _settings.LearningWeight,
 
                 // Önizleme Ayarları
-                PreviewAlwaysVisible = _settings.PreviewAlwaysVisible
+                PreviewAlwaysVisible = _settings.PreviewAlwaysVisible,
+
+                // Pencere Filtreleme Ayarları
+                WindowFilteringEnabled = _settings.WindowFilteringEnabled,
+                WindowFilterMode = _settings.WindowFilterMode,
+                WindowFilters = new System.Collections.ObjectModel.ObservableCollection<Models.WindowFilter>(_settings.WindowFilters)
             };
         }
     }

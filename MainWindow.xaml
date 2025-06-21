@@ -107,6 +107,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Style="{StaticResource StatsCardStyle}">
@@ -137,6 +138,17 @@
                                FontSize="16"
                                Style="{StaticResource StatsTextStyle}"/>
                     <TextBlock Text="Dinleme Durumu"
+                               FontSize="12"
+                               Style="{StaticResource StatsTextStyle}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="3" Style="{StaticResource StatsCardStyle}" Background="{StaticResource InfoBrush}">
+                <StackPanel>
+                    <TextBlock Text="{Binding WindowFilteringStatusText}"
+                               FontSize="16"
+                               Style="{StaticResource StatsTextStyle}"/>
+                    <TextBlock Text="Pencere Filtreleme"
                                FontSize="12"
                                Style="{StaticResource StatsTextStyle}"/>
                 </StackPanel>

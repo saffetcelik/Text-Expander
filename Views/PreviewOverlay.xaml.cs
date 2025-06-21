@@ -292,9 +292,8 @@ namespace OtomatikMetinGenisletici.Views
         {
             try
             {
-                Console.WriteLine("[PREVIEW] HidePreview çağrıldı - ARTIK GİZLENMİYOR (epilepsi önlemi)");
-                // ARTIK GİZLENMİYOR - Epilepsi önlemi için sürekli açık kalıyor
-                // HideWithAnimation(); // Bu satır devre dışı
+                Console.WriteLine("[PREVIEW] HidePreview çağrıldı - pencere gizleniyor");
+                HideWithAnimation();
             }
             catch (Exception ex)
             {
