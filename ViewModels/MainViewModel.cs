@@ -19,7 +19,9 @@ namespace OtomatikMetinGenisletici.ViewModels
         private readonly ISettingsService _settingsService;
         private readonly IKeyboardHookService _keyboardHookService;
         private readonly IAdvancedInputService _advancedInputService;
+        private readonly ITourService _tourService;
         private PreviewOverlay? _previewOverlay;
+        private Views.ShortcutPreviewWindow? _shortcutPreviewWindow;
 
         private string _shortcutFilter = string.Empty;
 
@@ -71,6 +73,15 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         public string PreviewVisibilityStatusText => IsPreviewAlwaysVisible ? "🟢 Sürekli Açık" : "🔴 Yazarken Görünür";
         public string PreviewVisibilityStatusColor => IsPreviewAlwaysVisible ? "Green" : "Orange";
+
+        // Kısayol Önizleme Paneli Özellikleri
+        public bool IsShortcutPreviewPanelVisible
+        {
+            get => _settingsService?.Settings?.ShortcutPreviewPanelVisible ?? false;
+        }
+
+        public string ShortcutPreviewPanelStatusText => IsShortcutPreviewPanelVisible ? "🟢 Görünür" : "🔴 Gizli";
+        public string ShortcutPreviewPanelStatusColor => IsShortcutPreviewPanelVisible ? "Green" : "Red";
 
         // Pencere Filtreleme Özellikleri
         public bool IsWindowFilteringEnabled
@@ -239,13 +250,15 @@ namespace OtomatikMetinGenisletici.ViewModels
         public ICommand DeleteShortcutCommand { get; }
 
         public ICommand OpenSettingsCommand { get; set; }
+        public ICommand StartTourCommand { get; set; }
 
         public MainViewModel(
             IShortcutService shortcutService,
             ISmartSuggestionsService smartSuggestionsService,
             ISettingsService settingsService,
             IKeyboardHookService keyboardHookService,
-            IAdvancedInputService advancedInputService)
+            IAdvancedInputService advancedInputService,
+            ITourService tourService)
         {
             try
             {
@@ -257,6 +270,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
                 _keyboardHookService = keyboardHookService ?? throw new ArgumentNullException(nameof(keyboardHookService));
                 _advancedInputService = advancedInputService ?? throw new ArgumentNullException(nameof(advancedInputService));
+                _tourService = tourService ?? throw new ArgumentNullException(nameof(tourService));
 
                 Console.WriteLine("[DEBUG] Servisler atandı, PreviewOverlay oluşturuluyor...");
 
@@ -283,9 +297,13 @@ namespace OtomatikMetinGenisletici.ViewModels
                 DeleteShortcutCommand = new RelayCommand(DeleteShortcut, () => SelectedShortcut != null);
 
                 OpenSettingsCommand = new RelayCommand(OpenSettings);
+                StartTourCommand = new RelayCommand(StartTour);
 
                 Console.WriteLine("[DEBUG] Servisler başlatılıyor...");
                 InitializeServices();
+
+                // İlk çalıştırma kontrolü - tur başlat
+                CheckAndStartFirstRunTour();
 
                 // Önizleme gizleme timer'ını başlat
                 InitializePreviewTimer();
@@ -359,6 +377,13 @@ namespace OtomatikMetinGenisletici.ViewModels
                 TestPreviewOverlay();
 
                 Console.WriteLine("[DEBUG] Pencere değişikliği algılama hazır (OnKeyPressed içinde kontrol edilecek)");
+
+                // Kısayol önizleme paneli ayarlarda açıksa göster
+                if (IsShortcutPreviewPanelVisible)
+                {
+                    Console.WriteLine("[DEBUG] Kısayol önizleme paneli ayarlarda açık, gösteriliyor...");
+                    ShowShortcutPreviewPanel();
+                }
 
                 Console.WriteLine("[DEBUG] InitializeServices tamamlandı.");
             }
@@ -475,11 +500,11 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                // 3 saniye sonra önizlemeyi gizleyecek timer
-                _hidePreviewTimer = new System.Timers.Timer(1000); // 3 saniye
+                // 1 saniye sonra önizlemeyi gizleyecek timer (kullanıcının tercihi)
+                _hidePreviewTimer = new System.Timers.Timer(2000); // 2 saniye
                 _hidePreviewTimer.Elapsed += OnHidePreviewTimerElapsed;
                 _hidePreviewTimer.AutoReset = false; // Sadece bir kez çalışsın
-                Console.WriteLine("[DEBUG] Preview timer başlatıldı");
+                Console.WriteLine("[DEBUG] Preview timer başlatıldı (1 saniye)");
             }
             catch (Exception ex)
             {
@@ -491,17 +516,20 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                Console.WriteLine("[TIMER] Önizleme gizleme timer'ı tetiklendi");
+                Console.WriteLine("[TIMER] Önizleme gizleme timer'ı tetiklendi (1 saniye sonra)");
 
-                // Eğer ayar sürekli açık değilse ve son tuş basımından 3 saniye geçtiyse gizle
-                if (!IsPreviewAlwaysVisible &&
-                    (DateTime.Now - _lastKeyPressTime).TotalSeconds >= 3)
+                // Eğer ayar sürekli açık değilse önizlemeyi gizle
+                if (!IsPreviewAlwaysVisible)
                 {
-                    Console.WriteLine("[TIMER] Önizleme gizleniyor (3 saniye boyunca yazı yazılmadı)");
+                    Console.WriteLine("[TIMER] Önizleme gizleniyor (1 saniye boyunca yazı yazılmadı)");
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         HidePreview();
                     });
+                }
+                else
+                {
+                    Console.WriteLine("[TIMER] Önizleme gizlenmedi (sürekli açık ayarı aktif)");
                 }
             }
             catch (Exception ex)
@@ -526,7 +554,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 // Timer'ı yeniden başlat
                 _hidePreviewTimer?.Start();
 
-                Console.WriteLine("[TIMER] Preview gizleme timer'ı yeniden başlatıldı (3 saniye)");
+                Console.WriteLine("[TIMER] Preview gizleme timer'ı yeniden başlatıldı (1 saniye)");
             }
             catch (Exception ex)
             {
@@ -1063,8 +1091,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                     }
                     else
                     {
-                        // Tahmin yok - test metni göster
-                        previewText = $"📝 '{buffer.Trim()}' yazıyorsunuz...";
+                        // Tahmin yok - önizlemeyi gizle
+                        Console.WriteLine("[PREVIEW] Tahmin yok, önizleme gizleniyor");
+                        WriteToLogFile("[PREVIEW] Tahmin yok, önizleme gizleniyor");
+                        HidePreview();
+                        return;
                     }
 
                     SafeSetPreviewText(previewText);
@@ -1302,11 +1333,9 @@ namespace OtomatikMetinGenisletici.ViewModels
                     {
                         SmartSuggestions.Clear();
 
-                        // ÖNEMLİ: Önizlemeyi ASLA gizleme!
-                        // Öneri yok - test metni göster
-                        var testText = $"📝 '{buffer.Trim()}' yazıyorsunuz...";
-                        SafeSetPreviewText(testText);
-                        Console.WriteLine($"[SMART SUGGESTIONS] Öneri yok, test metni gösteriliyor: {testText}");
+                        // Öneri yok - önizlemeyi gizle
+                        Console.WriteLine($"[SMART SUGGESTIONS] Öneri yok, önizleme gizleniyor");
+                        HidePreview();
                     });
                 }
             }
@@ -1356,103 +1385,125 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        private async void OnTabPressed()
+        private bool OnTabPressed()
         {
             Console.WriteLine("[DEBUG] *** Tab tuşu basıldı ***");
             WriteToLogFile("[DEBUG] *** Tab tuşu basıldı ***");
 
-            // Eğer pencere filtrelerine uymuyorsa hiçbir şey yapma
+            // Eğer pencere filtrelerine uymuyorsa Tab'ı engelleme
             if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
             {
-                Console.WriteLine("[DEBUG] Pencere filtreleri nedeniyle Tab işlemi atlandı");
-                WriteToLogFile("[DEBUG] Pencere filtreleri nedeniyle Tab işlemi atlandı");
-                return;
+                Console.WriteLine("[DEBUG] Pencere filtreleri nedeniyle Tab işlemi atlandı - normal Tab işlevi");
+                WriteToLogFile("[DEBUG] Pencere filtreleri nedeniyle Tab işlemi atlandı - normal Tab işlevi");
+                return false; // Tab'ı engelleme
             }
 
-            // Geçerli bir akıllı öneri var mı?
-            if (_currentSmartSuggestions.Count > 0)
+            // Öneri yoksa Tab tuşunu engelleme - normal Tab işlevine izin ver
+            if (_currentSmartSuggestions.Count == 0 && string.IsNullOrEmpty(_currentSuggestion))
             {
-                var suggestion = _currentSmartSuggestions[0];
-                Console.WriteLine($"[DEBUG] *** Tab ile öneri kabul ediliyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
-                WriteToLogFile($"[DEBUG] *** Tab ile öneri kabul ediliyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
+                Console.WriteLine("[DEBUG] Öneri yok - Tab tuşunun normal işlevine izin ver");
+                WriteToLogFile("[DEBUG] Öneri yok - Tab tuşunun normal işlevine izin ver");
+                return false; // Tab'ı engelleme - normal işlevine izin ver
+            }
 
-                try
+            // Öneri var - Tab'ı işle ve engelle
+            Console.WriteLine("[DEBUG] Öneri var - Tab'ı metin tamamlama için kullan");
+            WriteToLogFile("[DEBUG] Öneri var - Tab'ı metin tamamlama için kullan");
+
+            // Async işlemi başlat
+            _ = Task.Run(async () => await ProcessTabForTextCompletion());
+
+            return true; // Tab'ı engelle - metin tamamlama için kullanıldı
+        }
+
+        private async Task ProcessTabForTextCompletion()
+        {
+            try
+            {
+                // Geçerli bir akıllı öneri var mı?
+                if (_currentSmartSuggestions.Count > 0)
                 {
-                    // Öneriyi servis tarafında kabul et (istatistik tutmak için)
-                    if (_smartSuggestionsService != null)
+                    var suggestion = _currentSmartSuggestions[0];
+                    Console.WriteLine($"[DEBUG] *** Tab ile öneri kabul ediliyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
+                    WriteToLogFile($"[DEBUG] *** Tab ile öneri kabul ediliyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
+
+                    try
                     {
-                        await _smartSuggestionsService.AcceptSuggestionAsync(suggestion, _contextBuffer);
+                        // Öneriyi servis tarafında kabul et (istatistik tutmak için)
+                        if (_smartSuggestionsService != null)
+                        {
+                            await _smartSuggestionsService.AcceptSuggestionAsync(suggestion, _contextBuffer);
+                        }
                     }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ERROR] AcceptSuggestionAsync hatası: {ex.Message}");
+                        WriteToLogFile($"[ERROR] AcceptSuggestionAsync hatası: {ex.Message}");
+                    }
+
+                    // Önizleme açık kalsın - sadece önerileri temizle
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        // Önizleme açık kalsın - sadece önerileri temizle
+                        SafeSetPreviewText("🔄 Yeni tahmin hazırlanıyor...");
+                        SmartSuggestions.Clear();
+                    });
+
+                    // Öneriyi kullanıcı metnine uygula
+                    switch (suggestion.Type)
+                    {
+                        case SuggestionType.WordCompletion:
+                            // Mevcut kelimeyi seçip tam kelime ile değiştir
+                            await ApplyWordCompletionAsync(suggestion.Text);
+                            break;
+
+                        default:
+                            // Sonraki kelime veya kelime grubu → başına boşluk ekleyerek ekle
+                            await ApplySuggestionTextAsync(suggestion.Text);
+                            break;
+                    }
+
+                    // Öneri kabul edildikten sonra context buffer'ı temizle
+                    _contextBuffer = "";
+                    _currentSmartSuggestions.Clear();
+                    _currentSuggestion = "";
+
+                    Console.WriteLine("[DEBUG] Tab ile öneri kabul edildi ve temizlendi");
+                    WriteToLogFile("[DEBUG] Tab ile öneri kabul edildi ve temizlendi");
                 }
-                catch (Exception ex)
+                else if (!string.IsNullOrEmpty(_currentSuggestion))
                 {
-                    Console.WriteLine($"[ERROR] AcceptSuggestionAsync hatası: {ex.Message}");
-                    WriteToLogFile($"[ERROR] AcceptSuggestionAsync hatası: {ex.Message}");
+                    // Güvenli tarafta kalmak için (edge-case) – öneri listesi boş ama string dolu
+                    Console.WriteLine($"[DEBUG] *** Tab ile string bazlı öneri kabul ediliyor: {_currentSuggestion} ***");
+                    WriteToLogFile($"[DEBUG] *** Tab ile string bazlı öneri kabul ediliyor: {_currentSuggestion} ***");
+
+                    // Önizleme açık kalsın - işlem mesajı göster
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        SafeSetPreviewText("🔄 Öneri uygulanıyor...");
+                    });
+
+                    await ApplySuggestionTextAsync(_currentSuggestion);
+                    _currentSuggestion = "";
                 }
 
+                // Uygulama tamamlandıktan sonra arayüz ve durum temizliği
                 // Önizleme açık kalsın - sadece önerileri temizle
-                await Application.Current.Dispatcher.InvokeAsync(() =>
+                _currentSmartSuggestions.Clear();
+                _currentSuggestion = string.Empty;
+
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    // Önizleme açık kalsın - sadece önerileri temizle
-                    SafeSetPreviewText("🔄 Yeni tahmin hazırlanıyor...");
+                    // Önizlemeyi gizle
+                    HidePreview();
                     SmartSuggestions.Clear();
                 });
-
-                // Öneriyi kullanıcı metnine uygula
-                switch (suggestion.Type)
-                {
-                    case SuggestionType.WordCompletion:
-                        // Mevcut kelimeyi seçip tam kelime ile değiştir
-                        await ApplyWordCompletionAsync(suggestion.Text);
-                        break;
-
-                    default:
-                        // Sonraki kelime veya kelime grubu → başına boşluk ekleyerek ekle
-                        await ApplySuggestionTextAsync(suggestion.Text);
-                        break;
-                }
-
-                // Öneri kabul edildikten sonra context buffer'ı temizle
-                _contextBuffer = "";
-                _currentSmartSuggestions.Clear();
-                _currentSuggestion = "";
-
-                Console.WriteLine("[DEBUG] Tab ile öneri kabul edildi ve temizlendi");
-                WriteToLogFile("[DEBUG] Tab ile öneri kabul edildi ve temizlendi");
             }
-            else if (!string.IsNullOrEmpty(_currentSuggestion))
+            catch (Exception ex)
             {
-                // Güvenli tarafta kalmak için (edge-case) – öneri listesi boş ama string dolu
-                Console.WriteLine($"[DEBUG] *** Tab ile string bazlı öneri kabul ediliyor: {_currentSuggestion} ***");
-                WriteToLogFile($"[DEBUG] *** Tab ile string bazlı öneri kabul ediliyor: {_currentSuggestion} ***");
-
-                // Önizleme açık kalsın - işlem mesajı göster
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    SafeSetPreviewText("🔄 Öneri uygulanıyor...");
-                });
-
-                await ApplySuggestionTextAsync(_currentSuggestion);
-                _currentSuggestion = "";
+                Console.WriteLine($"[ERROR] ProcessTabForTextCompletion hatası: {ex.Message}");
+                WriteToLogFile($"[ERROR] ProcessTabForTextCompletion hatası: {ex.Message}");
             }
-            else
-            {
-                Console.WriteLine("[DEBUG] Tab basıldı ama aktif bir öneri yok");
-                WriteToLogFile("[DEBUG] Tab basıldı ama aktif bir öneri yok");
-                return;
-            }
-
-            // Uygulama tamamlandıktan sonra arayüz ve durum temizliği
-            // Önizleme açık kalsın - sadece önerileri temizle
-            _currentSmartSuggestions.Clear();
-            _currentSuggestion = string.Empty;
-
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                // Önizlemeyi gizle
-                HidePreview();
-                SmartSuggestions.Clear();
-            });
         }
 
         private async void OnSpacePressed(string currentBuffer)
@@ -1583,7 +1634,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         // Test metni göster
-                        var testText = "⌨️ Yazıyorsunuz...";
+                        var testText = "";
                         SafeSetPreviewText(testText);
                         SmartSuggestions.Clear();
                     });
@@ -1685,6 +1736,41 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
+        private async Task SendTabCharacterToActiveWindow()
+        {
+            try
+            {
+                Console.WriteLine($"[DEBUG] SendTabCharacterToActiveWindow başlıyor");
+                WriteToLogFile($"[DEBUG] SendTabCharacterToActiveWindow başlıyor");
+
+                // AdvancedInputService kullanarak Tab tuşunu simüle et
+                const ushort VK_TAB = 0x09;
+                bool success = await _advancedInputService.SimulateKeyPressAsync(VK_TAB);
+
+                if (success)
+                {
+                    Console.WriteLine($"[DEBUG] Tab karakteri başarıyla gönderildi");
+                    WriteToLogFile($"[DEBUG] Tab karakteri başarıyla gönderildi");
+                }
+                else
+                {
+                    Console.WriteLine($"[ERROR] Tab karakteri gönderilemedi");
+                    WriteToLogFile($"[ERROR] Tab karakteri gönderilemedi");
+
+                    // Fallback: SendKeys kullan
+                    await Task.Run(() =>
+                    {
+                        System.Windows.Forms.SendKeys.SendWait("{TAB}");
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] SendTabCharacterToActiveWindow hatası: {ex.Message}");
+                WriteToLogFile($"[ERROR] SendTabCharacterToActiveWindow hatası: {ex.Message}");
+            }
+        }
+
         private async Task AcceptSmartSuggestion()
         {
             try
@@ -1761,6 +1847,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                     UpdateStats();
                     UpdateAnalytics();
+                    UpdateShortcutPreviewPanel();
 
                     Console.WriteLine("[DEBUG] AddShortcut completed successfully");
                 }
@@ -1829,6 +1916,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                     UpdateStats();
                     UpdateAnalytics();
+                    UpdateShortcutPreviewPanel();
 
                     Console.WriteLine("[DEBUG] EditShortcut completed successfully");
                 }
@@ -1863,6 +1951,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                 UpdateStats();
                 UpdateAnalytics();
+                UpdateShortcutPreviewPanel();
             }
         }
 
@@ -1883,6 +1972,11 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             await _shortcutService.LoadShortcutsAsync();
             FilterShortcuts();
+
+            // Kısayol önizleme panelini güncelle
+            UpdateShortcutPreviewPanel();
+
+            Console.WriteLine($"[DEBUG] Kısayollar yüklendi: {Shortcuts.Count} adet");
         }
 
 
@@ -3330,11 +3424,86 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
+        #region Kısayol Önizleme Paneli Yönetimi
 
+        public void ToggleShortcutPreviewPanel()
+        {
+            if (IsShortcutPreviewPanelVisible)
+            {
+                HideShortcutPreviewPanel();
+            }
+            else
+            {
+                ShowShortcutPreviewPanel();
+            }
+        }
 
+        public void ShowShortcutPreviewPanel()
+        {
+            try
+            {
+                if (_shortcutPreviewWindow == null)
+                {
+                    _shortcutPreviewWindow = new Views.ShortcutPreviewWindow(_settingsService);
+                    _shortcutPreviewWindow.CloseRequested += (s, e) => HideShortcutPreviewPanel();
+                    _shortcutPreviewWindow.Closed += (s, e) => _shortcutPreviewWindow = null;
+                }
 
+                // Kısayolları güncelle - her zaman en güncel listeyi göster
+                Console.WriteLine($"[DEBUG] Kısayol önizleme paneline {Shortcuts.Count} kısayol gönderiliyor");
+                _shortcutPreviewWindow.UpdateShortcuts(Shortcuts);
+                _shortcutPreviewWindow.Show();
 
+                // Ayarlarda görünürlüğü true yap
+                var settings = _settingsService.GetCopy();
+                settings.ShortcutPreviewPanelVisible = true;
+                _settingsService.UpdateSettings(settings);
+                _ = _settingsService.SaveSettingsAsync();
 
+                // UI güncellemesi için property changed event'i tetikle
+                OnPropertyChanged(nameof(IsShortcutPreviewPanelVisible));
+                OnPropertyChanged(nameof(ShortcutPreviewPanelStatusText));
+                OnPropertyChanged(nameof(ShortcutPreviewPanelStatusColor));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Kısayol önizleme paneli gösterilirken hata: {ex.Message}");
+            }
+        }
+
+        public void HideShortcutPreviewPanel()
+        {
+            try
+            {
+                _shortcutPreviewWindow?.Close();
+                _shortcutPreviewWindow = null;
+
+                // Ayarlarda görünürlüğü false yap
+                var settings = _settingsService.GetCopy();
+                settings.ShortcutPreviewPanelVisible = false;
+                _settingsService.UpdateSettings(settings);
+                _ = _settingsService.SaveSettingsAsync();
+
+                // UI güncellemesi için property changed event'i tetikle
+                OnPropertyChanged(nameof(IsShortcutPreviewPanelVisible));
+                OnPropertyChanged(nameof(ShortcutPreviewPanelStatusText));
+                OnPropertyChanged(nameof(ShortcutPreviewPanelStatusColor));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Kısayol önizleme paneli gizlenirken hata: {ex.Message}");
+            }
+        }
+
+        public void UpdateShortcutPreviewPanel()
+        {
+            if (_shortcutPreviewWindow != null && IsShortcutPreviewPanelVisible)
+            {
+                _shortcutPreviewWindow.UpdateShortcuts(Shortcuts);
+            }
+        }
+
+        #endregion
 
         public void Dispose()
         {
@@ -3361,6 +3530,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
 
             _previewOverlay?.Close();
+            _shortcutPreviewWindow?.Close();
 
             // Timer'ı temizle
             if (_hidePreviewTimer != null)
@@ -3377,5 +3547,56 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        #region Tour Methods
+
+        private void CheckAndStartFirstRunTour()
+        {
+            try
+            {
+                // UI tamamen yüklendikten sonra tur kontrolü yap
+                Application.Current.Dispatcher.BeginInvoke(async () =>
+                {
+                    await Task.Delay(2000); // UI'nin tamamen yüklenmesini bekle
+
+                    if (_tourService.IsFirstRun)
+                    {
+                        Console.WriteLine("[TOUR] İlk çalıştırma algılandı - tur başlatılıyor");
+                        await StartTourAsync();
+                    }
+                }, DispatcherPriority.Background);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] İlk çalıştırma tur kontrolü hatası: {ex.Message}");
+            }
+        }
+
+        private void StartTour()
+        {
+            _ = StartTourAsync();
+        }
+
+        private async Task StartTourAsync()
+        {
+            try
+            {
+                Console.WriteLine("[TOUR] Tur başlatılıyor...");
+
+                // Tur overlay'ini oluştur ve göster
+                var tourOverlay = new Views.TourOverlay(_tourService);
+                tourOverlay.Show();
+
+                // Tur servisini başlat
+                await _tourService.StartTourAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Tur başlatılırken hata: {ex.Message}");
+            }
+        }
+
+        #endregion
+
     }
 }

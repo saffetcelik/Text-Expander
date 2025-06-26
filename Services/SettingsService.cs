@@ -75,6 +75,14 @@ namespace OtomatikMetinGenisletici.Services
             // Önizleme Ayarları
             _settings.PreviewAlwaysVisible = newSettings.PreviewAlwaysVisible;
 
+            // Kısayol Önizleme Paneli Ayarları
+            _settings.ShortcutPreviewPanelVisible = newSettings.ShortcutPreviewPanelVisible;
+            _settings.ShortcutPreviewPanelOpacity = newSettings.ShortcutPreviewPanelOpacity;
+            _settings.ShortcutPreviewPanelWidth = newSettings.ShortcutPreviewPanelWidth;
+            _settings.ShortcutPreviewPanelHeight = newSettings.ShortcutPreviewPanelHeight;
+            _settings.ShortcutPreviewPanelLeft = newSettings.ShortcutPreviewPanelLeft;
+            _settings.ShortcutPreviewPanelTop = newSettings.ShortcutPreviewPanelTop;
+
             // Pencere Filtreleme Ayarları
             _settings.WindowFilteringEnabled = newSettings.WindowFilteringEnabled;
             _settings.WindowFilterMode = newSettings.WindowFilterMode;
@@ -109,6 +117,14 @@ namespace OtomatikMetinGenisletici.Services
 
                 // Önizleme Ayarları
                 PreviewAlwaysVisible = _settings.PreviewAlwaysVisible,
+
+                // Kısayol Önizleme Paneli Ayarları
+                ShortcutPreviewPanelVisible = _settings.ShortcutPreviewPanelVisible,
+                ShortcutPreviewPanelOpacity = _settings.ShortcutPreviewPanelOpacity,
+                ShortcutPreviewPanelWidth = _settings.ShortcutPreviewPanelWidth,
+                ShortcutPreviewPanelHeight = _settings.ShortcutPreviewPanelHeight,
+                ShortcutPreviewPanelLeft = _settings.ShortcutPreviewPanelLeft,
+                ShortcutPreviewPanelTop = _settings.ShortcutPreviewPanelTop,
 
                 // Pencere Filtreleme Ayarları
                 WindowFilteringEnabled = _settings.WindowFilteringEnabled,

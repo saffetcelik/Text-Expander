@@ -32,7 +32,7 @@ namespace OtomatikMetinGenisletici.Models
             }
         }
 
-        // Tabloda gösterilecek kısaltılmış metin (50 karakter)
+        // Tabloda gösterilecek kısaltılmış metin (30 karakter - 1 satıra sığacak kadar)
         public string ShortExpansion
         {
             get
@@ -40,10 +40,10 @@ namespace OtomatikMetinGenisletici.Models
                 if (string.IsNullOrEmpty(_expansion))
                     return string.Empty;
 
-                if (_expansion.Length <= 50)
+                if (_expansion.Length <= 60)
                     return _expansion;
 
-                return _expansion.Substring(0, 47) + "...";
+                return _expansion.Substring(0, 27) + "...";
             }
         }
 

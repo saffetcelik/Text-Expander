@@ -27,6 +27,14 @@ namespace OtomatikMetinGenisletici.Models
         // Önizleme Ayarları
         private bool _previewAlwaysVisible = false; // Varsayılan: sadece yazı yazarken görünür
 
+        // Kısayol Önizleme Paneli Ayarları
+        private bool _shortcutPreviewPanelVisible = true; // Varsayılan: açılışta açık
+        private double _shortcutPreviewPanelOpacity = 0.9;
+        private double _shortcutPreviewPanelWidth = 290;
+        private double _shortcutPreviewPanelHeight = 481;
+        private double _shortcutPreviewPanelLeft = -1; // -1 = otomatik pozisyon
+        private double _shortcutPreviewPanelTop = -1;
+
         // Pencere Filtreleme Ayarları
         private ObservableCollection<WindowFilter> _windowFilters = new();
         private bool _windowFilteringEnabled = false; // Varsayılan: tüm pencerelerde çalış
@@ -194,6 +202,66 @@ namespace OtomatikMetinGenisletici.Models
             set
             {
                 _previewAlwaysVisible = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool ShortcutPreviewPanelVisible
+        {
+            get => _shortcutPreviewPanelVisible;
+            set
+            {
+                _shortcutPreviewPanelVisible = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public double ShortcutPreviewPanelOpacity
+        {
+            get => _shortcutPreviewPanelOpacity;
+            set
+            {
+                _shortcutPreviewPanelOpacity = Math.Max(0.1, Math.Min(1.0, value));
+                OnPropertyChanged();
+            }
+        }
+
+        public double ShortcutPreviewPanelWidth
+        {
+            get => _shortcutPreviewPanelWidth;
+            set
+            {
+                _shortcutPreviewPanelWidth = Math.Max(200, Math.Min(500, value));
+                OnPropertyChanged();
+            }
+        }
+
+        public double ShortcutPreviewPanelHeight
+        {
+            get => _shortcutPreviewPanelHeight;
+            set
+            {
+                _shortcutPreviewPanelHeight = Math.Max(300, Math.Min(1200, value));
+                OnPropertyChanged();
+            }
+        }
+
+        public double ShortcutPreviewPanelLeft
+        {
+            get => _shortcutPreviewPanelLeft;
+            set
+            {
+                _shortcutPreviewPanelLeft = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public double ShortcutPreviewPanelTop
+        {
+            get => _shortcutPreviewPanelTop;
+            set
+            {
+                _shortcutPreviewPanelTop = value;
                 OnPropertyChanged();
             }
         }

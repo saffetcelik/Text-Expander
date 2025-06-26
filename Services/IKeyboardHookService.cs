@@ -6,7 +6,7 @@ namespace OtomatikMetinGenisletici.Services
         event Action<string>? WordCompleted;
         event Action<string>? SentenceCompleted;
         event Action? CtrlSpacePressed;
-        event Action? TabPressed;
+        event Func<bool>? TabPressed; // Func<bool> - true döndürürse Tab engellenir
         event Action<string>? SpacePressed;
 
         void StartListening();

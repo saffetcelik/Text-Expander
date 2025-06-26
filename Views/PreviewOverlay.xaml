@@ -21,12 +21,12 @@
 
         <!-- Minimal Background -->
         <Border.Background>
-            <SolidColorBrush Color="#2D2D30"/>
+            <SolidColorBrush Color="#F5F5F5"/>
         </Border.Background>
 
         <!-- Subtle Border -->
         <Border.BorderBrush>
-            <SolidColorBrush Color="#007ACC"/>
+            <SolidColorBrush Color="#CCCCCC"/>
         </Border.BorderBrush>
         <Border.BorderThickness>1</Border.BorderThickness>
 
@@ -47,7 +47,7 @@
                        FontFamily="Segoe UI"
                        FontSize="14"
                        FontWeight="Normal"
-                       Foreground="#F0F0F0"
+                       Foreground="#333333"
                        TextWrapping="Wrap"
                        MaxWidth="400"
                        LineHeight="20"
