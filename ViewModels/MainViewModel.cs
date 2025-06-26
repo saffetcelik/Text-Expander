@@ -20,6 +20,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         private readonly IKeyboardHookService _keyboardHookService;
         private readonly IAdvancedInputService _advancedInputService;
         private PreviewOverlay? _previewOverlay;
+        private Views.ShortcutPreviewWindow? _shortcutPreviewWindow;
 
         private string _shortcutFilter = string.Empty;
 
@@ -71,6 +72,15 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         public string PreviewVisibilityStatusText => IsPreviewAlwaysVisible ? "🟢 Sürekli Açık" : "🔴 Yazarken Görünür";
         public string PreviewVisibilityStatusColor => IsPreviewAlwaysVisible ? "Green" : "Orange";
+
+        // Kısayol Önizleme Paneli Özellikleri
+        public bool IsShortcutPreviewPanelVisible
+        {
+            get => _settingsService?.Settings?.ShortcutPreviewPanelVisible ?? false;
+        }
+
+        public string ShortcutPreviewPanelStatusText => IsShortcutPreviewPanelVisible ? "🟢 Görünür" : "🔴 Gizli";
+        public string ShortcutPreviewPanelStatusColor => IsShortcutPreviewPanelVisible ? "Green" : "Red";
 
         // Pencere Filtreleme Özellikleri
         public bool IsWindowFilteringEnabled
@@ -359,6 +369,13 @@ namespace OtomatikMetinGenisletici.ViewModels
                 TestPreviewOverlay();
 
                 Console.WriteLine("[DEBUG] Pencere değişikliği algılama hazır (OnKeyPressed içinde kontrol edilecek)");
+
+                // Kısayol önizleme paneli ayarlarda açıksa göster
+                if (IsShortcutPreviewPanelVisible)
+                {
+                    Console.WriteLine("[DEBUG] Kısayol önizleme paneli ayarlarda açık, gösteriliyor...");
+                    ShowShortcutPreviewPanel();
+                }
 
                 Console.WriteLine("[DEBUG] InitializeServices tamamlandı.");
             }
@@ -1063,8 +1080,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                     }
                     else
                     {
-                        // Tahmin yok - test metni göster
-                        previewText = $"📝 '{buffer.Trim()}' yazıyorsunuz...";
+                        // Tahmin yok - önizlemeyi gizle
+                        Console.WriteLine("[PREVIEW] Tahmin yok, önizleme gizleniyor");
+                        WriteToLogFile("[PREVIEW] Tahmin yok, önizleme gizleniyor");
+                        HidePreview();
+                        return;
                     }
 
                     SafeSetPreviewText(previewText);
@@ -1302,11 +1322,9 @@ namespace OtomatikMetinGenisletici.ViewModels
                     {
                         SmartSuggestions.Clear();
 
-                        // ÖNEMLİ: Önizlemeyi ASLA gizleme!
-                        // Öneri yok - test metni göster
-                        var testText = $"📝 '{buffer.Trim()}' yazıyorsunuz...";
-                        SafeSetPreviewText(testText);
-                        Console.WriteLine($"[SMART SUGGESTIONS] Öneri yok, test metni gösteriliyor: {testText}");
+                        // Öneri yok - önizlemeyi gizle
+                        Console.WriteLine($"[SMART SUGGESTIONS] Öneri yok, önizleme gizleniyor");
+                        HidePreview();
                     });
                 }
             }
@@ -1583,7 +1601,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         // Test metni göster
-                        var testText = "⌨️ Yazıyorsunuz...";
+                        var testText = "";
                         SafeSetPreviewText(testText);
                         SmartSuggestions.Clear();
                     });
@@ -1761,6 +1779,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                     UpdateStats();
                     UpdateAnalytics();
+                    UpdateShortcutPreviewPanel();
 
                     Console.WriteLine("[DEBUG] AddShortcut completed successfully");
                 }
@@ -1829,6 +1848,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                     UpdateStats();
                     UpdateAnalytics();
+                    UpdateShortcutPreviewPanel();
 
                     Console.WriteLine("[DEBUG] EditShortcut completed successfully");
                 }
@@ -1863,6 +1883,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                 UpdateStats();
                 UpdateAnalytics();
+                UpdateShortcutPreviewPanel();
             }
         }
 
@@ -3330,11 +3351,84 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
+        #region Kısayol Önizleme Paneli Yönetimi
 
+        public void ToggleShortcutPreviewPanel()
+        {
+            if (IsShortcutPreviewPanelVisible)
+            {
+                HideShortcutPreviewPanel();
+            }
+            else
+            {
+                ShowShortcutPreviewPanel();
+            }
+        }
 
+        public void ShowShortcutPreviewPanel()
+        {
+            try
+            {
+                if (_shortcutPreviewWindow == null)
+                {
+                    _shortcutPreviewWindow = new Views.ShortcutPreviewWindow(_settingsService);
+                    _shortcutPreviewWindow.CloseRequested += (s, e) => HideShortcutPreviewPanel();
+                    _shortcutPreviewWindow.Closed += (s, e) => _shortcutPreviewWindow = null;
+                }
 
+                _shortcutPreviewWindow.UpdateShortcuts(Shortcuts);
+                _shortcutPreviewWindow.Show();
 
+                // Ayarlarda görünürlüğü true yap
+                var settings = _settingsService.GetCopy();
+                settings.ShortcutPreviewPanelVisible = true;
+                _settingsService.UpdateSettings(settings);
+                _ = _settingsService.SaveSettingsAsync();
 
+                // UI güncellemesi için property changed event'i tetikle
+                OnPropertyChanged(nameof(IsShortcutPreviewPanelVisible));
+                OnPropertyChanged(nameof(ShortcutPreviewPanelStatusText));
+                OnPropertyChanged(nameof(ShortcutPreviewPanelStatusColor));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Kısayol önizleme paneli gösterilirken hata: {ex.Message}");
+            }
+        }
+
+        public void HideShortcutPreviewPanel()
+        {
+            try
+            {
+                _shortcutPreviewWindow?.Close();
+                _shortcutPreviewWindow = null;
+
+                // Ayarlarda görünürlüğü false yap
+                var settings = _settingsService.GetCopy();
+                settings.ShortcutPreviewPanelVisible = false;
+                _settingsService.UpdateSettings(settings);
+                _ = _settingsService.SaveSettingsAsync();
+
+                // UI güncellemesi için property changed event'i tetikle
+                OnPropertyChanged(nameof(IsShortcutPreviewPanelVisible));
+                OnPropertyChanged(nameof(ShortcutPreviewPanelStatusText));
+                OnPropertyChanged(nameof(ShortcutPreviewPanelStatusColor));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Kısayol önizleme paneli gizlenirken hata: {ex.Message}");
+            }
+        }
+
+        public void UpdateShortcutPreviewPanel()
+        {
+            if (_shortcutPreviewWindow != null && IsShortcutPreviewPanelVisible)
+            {
+                _shortcutPreviewWindow.UpdateShortcuts(Shortcuts);
+            }
+        }
+
+        #endregion
 
         public void Dispose()
         {
@@ -3361,6 +3455,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
 
             _previewOverlay?.Close();
+            _shortcutPreviewWindow?.Close();
 
             // Timer'ı temizle
             if (_hidePreviewTimer != null)

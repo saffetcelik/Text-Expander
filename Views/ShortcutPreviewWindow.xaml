@@ -1,0 +1,66 @@
+<Window x:Class="OtomatikMetinGenisletici.Views.ShortcutPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:OtomatikMetinGenisletici.Views"
+        mc:Ignorable="d"
+        Title="Kısayol Önizlemesi"
+        Width="290" Height="481"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        LocationChanged="Window_LocationChanged"
+        SizeChanged="Window_SizeChanged"
+        MinWidth="200"
+        MinHeight="300"
+        MaxWidth="500"
+        MaxHeight="1200">
+
+    <Window.Resources>
+        <!-- Custom Resize Grip Style -->
+        <Style x:Key="CustomResizeGripStyle" TargetType="Grid">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Bottom"/>
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Cursor" Value="SizeNWSE"/>
+        </Style>
+
+        <Style x:Key="ResizeGripLineStyle" TargetType="Rectangle">
+            <Setter Property="Fill" Value="#BBBBBB"/>
+            <Setter Property="Width" Value="2"/>
+            <Setter Property="Height" Value="10"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Fill" Value="#666666"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <!-- Main Content -->
+        <local:ShortcutPreviewPanel x:Name="PreviewPanel"
+                                    CloseRequested="PreviewPanel_CloseRequested"
+                                    OpacityChanged="PreviewPanel_OpacityChanged"/>
+
+        <!-- Custom Resize Grip -->
+        <Grid Style="{StaticResource CustomResizeGripStyle}"
+              MouseLeftButtonDown="ResizeGrip_MouseLeftButtonDown">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,4,4">
+                <Rectangle Style="{StaticResource ResizeGripLineStyle}" Margin="0,0,1,0"/>
+                <Rectangle Style="{StaticResource ResizeGripLineStyle}" Margin="0,0,1,0"/>
+                <Rectangle Style="{StaticResource ResizeGripLineStyle}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

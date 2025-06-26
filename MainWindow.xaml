@@ -83,6 +83,14 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="🔗 Kısayol Önizlemesi"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Background="Transparent"
+                            BorderThickness="1"
+                            BorderBrush="White"
+                            Click="ToggleShortcutPreview_Click"
+                            Margin="8,0"
+                            ToolTip="Kısayol önizleme panelini göster/gizle"/>
                     <Button Content="⚙️ Ayarlar"
                             Style="{StaticResource ModernButtonStyle}"
                             Background="Transparent"

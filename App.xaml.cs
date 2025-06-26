@@ -137,6 +137,8 @@ public partial class App : Application
                     services.AddTransient<SettingsWindow>();
                     services.AddTransient<AboutWindow>();
                     services.AddTransient<ShortcutDialog>();
+                    services.AddTransient<Views.ShortcutPreviewWindow>();
+                    services.AddTransient<Views.ShortcutPreviewPanel>();
 
                     // Register Background Services
                     // services.AddHostedService<KeyboardListenerService>(); // DEVRE DIŞI - MainViewModel kullanıyor

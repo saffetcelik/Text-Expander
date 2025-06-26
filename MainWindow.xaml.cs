@@ -507,6 +507,11 @@ public partial class MainWindow : Window
             MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private void ToggleShortcutPreview_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.ToggleShortcutPreviewPanel();
+    }
+
     private async void NGramCountSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_viewModel != null)

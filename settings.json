@@ -15,7 +15,36 @@
   "LearningEnabled": true,
   "LearningWeight": 1.0,
   "PreviewAlwaysVisible": true,
-  "WindowFilters": [],
+  "ShortcutPreviewPanelVisible": false,
+  "ShortcutPreviewPanelOpacity": 1.0,
+  "ShortcutPreviewPanelWidth": 200.0,
+  "ShortcutPreviewPanelHeight": 477.0,
+  "ShortcutPreviewPanelLeft": 1317.0,
+  "ShortcutPreviewPanelTop": 84.0,
+  "WindowFilters": [
+    {
+      "Name": "notepad (Process)",
+      "TitlePattern": "",
+      "ProcessName": "notepad",
+      "IsEnabled": true,
+      "FilterType": 2,
+      "IsRegex": false,
+      "FilterTypeDisplayName": "Process Eşittir",
+      "StatusText": "🟢 Aktif",
+      "StatusColor": "Green"
+    },
+    {
+      "Name": "notepad - Untitled - Notepad",
+      "TitlePattern": "Untitled - Notepad",
+      "ProcessName": "",
+      "IsEnabled": true,
+      "FilterType": 1,
+      "IsRegex": false,
+      "FilterTypeDisplayName": "Başlık Eşittir",
+      "StatusText": "🟢 Aktif",
+      "StatusColor": "Green"
+    }
+  ],
   "WindowFilteringEnabled": true,
-  "WindowFilterMode": 1
+  "WindowFilterMode": 0
 }
