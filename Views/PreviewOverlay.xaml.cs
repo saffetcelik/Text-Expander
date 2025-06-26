@@ -16,21 +16,12 @@ namespace OtomatikMetinGenisletici.Views
         {
             try
             {
-                Console.WriteLine("[PREVIEW] Basit PreviewOverlay başlatılıyor");
+                Console.WriteLine("[PREVIEW] Hızlı PreviewOverlay başlatılıyor");
 
+                // Hızlı initialization - minimum gereksinimler
                 InitializeComponent();
 
-                // Debounce timer
-                _debounceTimer = new DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMilliseconds(DEBOUNCE_DELAY_MS)
-                };
-                _debounceTimer.Tick += OnDebounceTimerTick;
-
-                // ESC ile kapatma
-                KeyDown += PreviewOverlay_KeyDown;
-
-                // Basit pencere ayarları - karmaşık API yok
+                // Basit pencere ayarları - performans odaklı
                 WindowStyle = WindowStyle.None;
                 AllowsTransparency = true;
                 Background = System.Windows.Media.Brushes.Transparent;
@@ -41,16 +32,41 @@ namespace OtomatikMetinGenisletici.Views
                 IsHitTestVisible = false;
                 IsTabStop = false;
 
-                // Gizli başlat
+                // Gizli başlat - hızlı
                 Visibility = Visibility.Hidden;
 
-                Console.WriteLine("[PREVIEW] Basit PreviewOverlay hazır");
+                // Timer'ı lazy initialize et
+                InitializeTimerLazy();
+
+                // Event handler'ları lazy initialize et
+                InitializeEventHandlersLazy();
+
+                Console.WriteLine("[PREVIEW] Hızlı PreviewOverlay hazır");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] PreviewOverlay hatası: {ex.Message}");
                 throw;
             }
+        }
+
+        private void InitializeTimerLazy()
+        {
+            // Timer'ı ilk kullanımda oluştur
+            if (_debounceTimer == null)
+            {
+                _debounceTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(DEBOUNCE_DELAY_MS)
+                };
+                _debounceTimer.Tick += OnDebounceTimerTick;
+            }
+        }
+
+        private void InitializeEventHandlersLazy()
+        {
+            // Event handler'ları ilk kullanımda ekle
+            KeyDown += PreviewOverlay_KeyDown;
         }
 
         private void OnDebounceTimerTick(object? sender, EventArgs e)
@@ -151,6 +167,10 @@ namespace OtomatikMetinGenisletici.Views
             try
             {
                 _pendingText = text ?? "";
+
+                // Timer'ı lazy initialize et
+                InitializeTimerLazy();
+
                 _debounceTimer?.Stop();
                 _debounceTimer?.Start();
             }

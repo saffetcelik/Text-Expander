@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using System.IO;
 using OtomatikMetinGenisletici.Models;
 using OtomatikMetinGenisletici.Services;
@@ -259,12 +260,12 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                 Console.WriteLine("[DEBUG] Servisler atandı, PreviewOverlay oluşturuluyor...");
 
-                // PreviewOverlay'i UI thread'de oluştur
-                Application.Current.Dispatcher.Invoke(() =>
+                // PreviewOverlay'i UI thread'de asenkron oluştur - donmayı önle
+                Application.Current.Dispatcher.BeginInvoke(() =>
                 {
                     try
                     {
-                        Console.WriteLine("[DEBUG] PreviewOverlay oluşturuluyor...");
+                        Console.WriteLine("[DEBUG] PreviewOverlay asenkron oluşturuluyor...");
                         _previewOverlay = new PreviewOverlay();
                         Console.WriteLine("[DEBUG] PreviewOverlay başarıyla oluşturuldu");
                     }
@@ -274,7 +275,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                         Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
                         _previewOverlay = null;
                     }
-                });
+                }, DispatcherPriority.Background);
 
                 Console.WriteLine("[DEBUG] Command'lar oluşturuluyor...");
                 AddShortcutCommand = new RelayCommand(AddShortcut);
@@ -372,13 +373,14 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                Application.Current.Dispatcher.BeginInvoke(() =>
                 {
                     try
                     {
+                        // PreviewOverlay constructor'da oluşturulmuş olmalı
                         if (_previewOverlay == null)
                         {
-                            Console.WriteLine("[DEBUG] PreviewOverlay null, oluşturuluyor...");
+                            Console.WriteLine("[WARNING] PreviewOverlay henüz hazır değil, lazy loading yapılıyor...");
                             _previewOverlay = new PreviewOverlay();
                         }
 
@@ -394,7 +396,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     {
                         Console.WriteLine($"[ERROR] SafeSetPreviewText UI thread hatası: {ex.Message}");
                     }
-                });
+                }, DispatcherPriority.Background);
             }
             catch (Exception ex)
             {
@@ -1001,11 +1003,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Console.WriteLine($"[PREVIEW] Mevcut akıllı öneri var: {_currentSuggestion}");
 
                 // Akıllı öneriyi preview'da göster
-                var previewText = $"💡 {_currentSuggestion} (Tab)";
+                var previewText = $"💡 {_currentSuggestion}";
                 if (_currentSmartSuggestions.Count > 0)
                 {
-                    var confidence = _currentSmartSuggestions[0].Confidence;
-                    previewText = $"💡 {_currentSuggestion} ({confidence:P0})";
+                    // Confidence bilgisini kaldırdık - sadece temiz öneri
+                    previewText = $"💡 {_currentSuggestion}";
                 }
 
                 SafeSetPreviewText(previewText);
@@ -1045,18 +1047,18 @@ namespace OtomatikMetinGenisletici.ViewModels
                             if (_currentSuggestion.StartsWith(lastWord, StringComparison.OrdinalIgnoreCase))
                             {
                                 // Kelime tamamlama - sadece tamamlanmış halini göster
-                                previewText = $"🔤 {_currentSuggestion} (Tab: tamamla)";
+                                previewText = $"🔤 {_currentSuggestion}";
                             }
                             else
                             {
                                 // Sonraki kelime tahmini - sadece tahmini göster
-                                previewText = $"🔮 {_currentSuggestion} (Tab: ekle)";
+                                previewText = $"🔮 {_currentSuggestion}";
                             }
                         }
                         else
                         {
                             // Boşluk sonrası - sadece sonraki kelime tahmini
-                            previewText = $"🔮 {_currentSuggestion} (Tab: ekle)";
+                            previewText = $"🔮 {_currentSuggestion}";
                         }
                     }
                     else
@@ -1266,7 +1268,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _currentSuggestion = suggestion.Text;
 
                     // Preview'da akıllı öneriyi göster
-                    var previewText = $"💡 {suggestion.Text} ({suggestion.Confidence:P0})";
+                    var previewText = $"💡 {suggestion.Text}";
                     Console.WriteLine($"[SMART SUGGESTIONS] Preview gösteriliyor: {previewText}");
 
                     // Preview overlay'de göster - UI thread'de çalıştır
@@ -1493,7 +1495,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                             Console.WriteLine($"[DEBUG] *** Sonraki kelime önerisi: '{_currentSuggestion}' ***");
 
                             // Preview'da göster
-                            var previewText = $"💡 {_currentSuggestion} ({suggestions.First().Confidence:P0})";
+                            var previewText = $"💡 {_currentSuggestion}";
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 SafeSetPreviewText(previewText);
@@ -1527,7 +1529,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                             Console.WriteLine($"[DEBUG] *** Tek kelime önerisi: '{_currentSuggestion}' ***");
 
-                            var previewText = $"💡 {_currentSuggestion} ({suggestions.First().Confidence:P0})";
+                            var previewText = $"💡 {_currentSuggestion}";
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 SafeSetPreviewText(previewText);
@@ -1560,7 +1562,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                             Console.WriteLine($"[DEBUG] Öğrendiği verilerden tahmin bulundu: '{_currentSuggestion}'");
 
-                            var previewText = $"🔮 {_currentSuggestion} (Tab: ekle)";
+                            var previewText = $"🔮 {_currentSuggestion}";
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 SafeSetPreviewText(previewText);
@@ -2477,7 +2479,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
                                         var words = newContext.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                                        var previewText = $"🔮{_currentSuggestion}' (Tab: ekle)";
+                                        var previewText = $"🔮 {_currentSuggestion}";
                                         SafeSetPreviewText(previewText);
                                         Console.WriteLine($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
                                         WriteToLogFile($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
@@ -2644,7 +2646,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
                                         var words = newContext.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                                        var previewText = $"🔮'{_currentSuggestion}' (Tab: ekle)";
+                                        var previewText = $"🔮 {_currentSuggestion}";
                                         SafeSetPreviewText(previewText);
                                         Console.WriteLine($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
                                         WriteToLogFile($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
