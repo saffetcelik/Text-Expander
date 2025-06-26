@@ -126,35 +126,31 @@
                                       Content="📚 Öğrenmeyi etkinleştir"
                                       Margin="0,8"/>
 
-                            <CheckBox Grid.Row="2" Grid.ColumnSpan="2"
-                                      Name="PreviewAlwaysVisibleCheckBox"
-                                      Content="👁️ Metin önizlemesini sürekli açık tut"
-                                      Margin="0,8"
-                                      ToolTip="Açık: Önizleme sürekli görünür kalır&#x0a;Kapalı: Önizleme sadece yazı yazarken görünür (1 saniye sonra gizlenir)"/>
 
-                            <TextBlock Grid.Row="3" Grid.Column="0"
+
+                            <TextBlock Grid.Row="2" Grid.Column="0"
                                        Text="📊 Maks. akıllı öneri sayısı:"
                                        VerticalAlignment="Center"
                                        Margin="0,8"/>
-                            <TextBox Grid.Row="3" Grid.Column="1"
+                            <TextBox Grid.Row="2" Grid.Column="1"
                                      Name="MaxSmartSuggestionsTextBox"
                                      Margin="8"
                                      Padding="8"/>
 
-                            <TextBlock Grid.Row="4" Grid.Column="0"
+                            <TextBlock Grid.Row="3" Grid.Column="0"
                                        Text="📏 Min. kelime uzunluğu:"
                                        VerticalAlignment="Center"
                                        Margin="0,8"/>
-                            <TextBox Grid.Row="4" Grid.Column="1"
+                            <TextBox Grid.Row="3" Grid.Column="1"
                                      Name="MinWordLengthTextBox"
                                      Margin="8"
                                      Padding="8"/>
 
-                            <TextBlock Grid.Row="5" Grid.Column="0"
+                            <TextBlock Grid.Row="4" Grid.Column="0"
                                        Text="🎯 Öğrenme ağırlığı (%):"
                                        VerticalAlignment="Center"
                                        Margin="0,8"/>
-                            <StackPanel Grid.Row="5" Grid.Column="1" Margin="8">
+                            <StackPanel Grid.Row="4" Grid.Column="1" Margin="8">
                                 <Slider Name="LearningWeightSlider"
                                         Minimum="0" Maximum="100"
                                         Value="80"

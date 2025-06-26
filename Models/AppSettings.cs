@@ -24,8 +24,7 @@ namespace OtomatikMetinGenisletici.Models
         private bool _learningEnabled = true;
         private double _learningWeight = 0.8;
 
-        // Önizleme Ayarları
-        private bool _previewAlwaysVisible = false; // Varsayılan: sadece yazı yazarken görünür
+
 
         // Kısayol Önizleme Paneli Ayarları
         private bool _shortcutPreviewPanelVisible = true; // Varsayılan: açılışta açık
@@ -196,15 +195,7 @@ namespace OtomatikMetinGenisletici.Models
             }
         }
 
-        public bool PreviewAlwaysVisible
-        {
-            get => _previewAlwaysVisible;
-            set
-            {
-                _previewAlwaysVisible = value;
-                OnPropertyChanged();
-            }
-        }
+
 
         public bool ShortcutPreviewPanelVisible
         {

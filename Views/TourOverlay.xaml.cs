@@ -9,6 +9,7 @@ namespace OtomatikMetinGenisletici.Views
     {
         private readonly ITourService _tourService;
         private Storyboard? _arrowPulseAnimation;
+        private Storyboard? _arrowBounceAnimation;
         private Storyboard? _sparkleAnimation;
         private Storyboard? _fadeInAnimation;
 
@@ -24,6 +25,7 @@ namespace OtomatikMetinGenisletici.Views
             
             // Animations
             _arrowPulseAnimation = (Storyboard)FindResource("ArrowPulseAnimation");
+            _arrowBounceAnimation = (Storyboard)FindResource("ArrowBounceAnimation");
             _sparkleAnimation = (Storyboard)FindResource("SparkleAnimation");
             _fadeInAnimation = (Storyboard)FindResource("FadeInAnimation");
             
@@ -56,11 +58,11 @@ namespace OtomatikMetinGenisletici.Views
             TitleText.Text = step.Title;
             DescriptionText.Text = step.Description;
             StepCounter.Text = $"{_tourService.CurrentStepIndex + 1} / {_tourService.TotalSteps}";
-            
+
             // Button states
             PreviousButton.IsEnabled = _tourService.CurrentStepIndex > 0;
             SkipButton.Visibility = step.IsSkippable ? Visibility.Visible : Visibility.Collapsed;
-            
+
             // Next button text
             if (_tourService.CurrentStepIndex == _tourService.TotalSteps - 1)
             {
@@ -71,9 +73,9 @@ namespace OtomatikMetinGenisletici.Views
                 NextButton.Content = !string.IsNullOrEmpty(step.ActionText) ? step.ActionText + " ▶" : "Devam ▶";
             }
 
-            // Position the card
+            // Position the card intelligently based on target element
             PositionTourCard(step);
-            
+
             // Restart fade in animation
             if (_fadeInAnimation != null)
             {
@@ -88,6 +90,22 @@ namespace OtomatikMetinGenisletici.Views
             TourCard.VerticalAlignment = VerticalAlignment.Center;
             TourCard.Margin = new Thickness(20);
 
+            // If this step has a target element, position card intelligently relative to it
+            if (step.Type == TourStepType.Highlight && !string.IsNullOrEmpty(step.TargetElement))
+            {
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow != null)
+                {
+                    var targetElement = mainWindow.FindName(step.TargetElement) as FrameworkElement;
+                    if (targetElement != null)
+                    {
+                        PositionCardRelativeToTarget(targetElement);
+                        return;
+                    }
+                }
+            }
+
+            // Fallback to manual positioning
             switch (step.Position)
             {
                 case TourStepPosition.Top:
@@ -137,6 +155,83 @@ namespace OtomatikMetinGenisletici.Views
             }
         }
 
+        private void PositionCardRelativeToTarget(FrameworkElement targetElement)
+        {
+            try
+            {
+                // Get target element position relative to screen
+                var elementPosition = targetElement.PointToScreen(new Point(0, 0));
+                var elementSize = new Size(targetElement.ActualWidth, targetElement.ActualHeight);
+
+                // Get screen dimensions
+                var screenWidth = SystemParameters.PrimaryScreenWidth;
+                var screenHeight = SystemParameters.PrimaryScreenHeight;
+
+                // Calculate element center
+                var elementCenterX = elementPosition.X + elementSize.Width / 2;
+                var elementCenterY = elementPosition.Y + elementSize.Height / 2;
+
+                // Estimated tour card size (will be adjusted by WPF)
+                var cardWidth = 400.0;
+                var cardHeight = 300.0;
+
+                // Determine best position for tour card
+                var cardX = 0.0;
+                var cardY = 0.0;
+
+                // Try to position card in the most visible area
+                if (elementCenterX < screenWidth / 2)
+                {
+                    // Element is on left side, place card on right
+                    cardX = elementPosition.X + elementSize.Width + 50;
+                    if (cardX + cardWidth > screenWidth - 50)
+                    {
+                        // Not enough space on right, place below
+                        cardX = Math.Max(50, elementCenterX - cardWidth / 2);
+                        cardY = elementPosition.Y + elementSize.Height + 50;
+                    }
+                    else
+                    {
+                        cardY = Math.Max(50, elementCenterY - cardHeight / 2);
+                    }
+                }
+                else
+                {
+                    // Element is on right side, place card on left
+                    cardX = elementPosition.X - cardWidth - 50;
+                    if (cardX < 50)
+                    {
+                        // Not enough space on left, place below
+                        cardX = Math.Max(50, elementCenterX - cardWidth / 2);
+                        cardY = elementPosition.Y + elementSize.Height + 50;
+                    }
+                    else
+                    {
+                        cardY = Math.Max(50, elementCenterY - cardHeight / 2);
+                    }
+                }
+
+                // Ensure card doesn't go off screen
+                cardX = Math.Max(20, Math.Min(cardX, screenWidth - cardWidth - 20));
+                cardY = Math.Max(20, Math.Min(cardY, screenHeight - cardHeight - 20));
+
+                // Position the tour card
+                TourCard.HorizontalAlignment = HorizontalAlignment.Left;
+                TourCard.VerticalAlignment = VerticalAlignment.Top;
+                TourCard.Margin = new Thickness(cardX, cardY, 0, 0);
+
+                Console.WriteLine($"[TOUR] Kart konumlandırıldı: Element({elementPosition.X}, {elementPosition.Y}) -> Kart({cardX}, {cardY})");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Tur kartı konumlandırılırken hata: {ex.Message}");
+                // Fallback to center
+                TourCard.HorizontalAlignment = HorizontalAlignment.Center;
+                TourCard.VerticalAlignment = VerticalAlignment.Center;
+                TourCard.Margin = new Thickness(20);
+            }
+        }
+
         private void UpdateHighlight(TourStep step)
         {
             if (step.Type == TourStepType.Highlight && !string.IsNullOrEmpty(step.TargetElement))
@@ -174,9 +269,10 @@ namespace OtomatikMetinGenisletici.Views
                 ArrowCanvas.HorizontalAlignment = HorizontalAlignment.Left;
                 ArrowCanvas.VerticalAlignment = VerticalAlignment.Top;
 
-                // Set arrow rotation
+                // Set arrow rotation for all arrow elements
                 ArrowRotate.Angle = arrowRotation;
                 ArrowShadowRotate.Angle = arrowRotation;
+                ArrowHighlightRotate.Angle = arrowRotation;
 
                 ArrowCanvas.Visibility = Visibility.Visible;
 
@@ -184,6 +280,11 @@ namespace OtomatikMetinGenisletici.Views
                 if (_arrowPulseAnimation != null)
                 {
                     _arrowPulseAnimation.Begin(ArrowPath);
+                }
+
+                if (_arrowBounceAnimation != null)
+                {
+                    _arrowBounceAnimation.Begin(ArrowPath);
                 }
 
                 if (_sparkleAnimation != null)
@@ -207,29 +308,58 @@ namespace OtomatikMetinGenisletici.Views
             var elementCenterX = elementPosition.X + elementSize.Width / 2;
             var elementCenterY = elementPosition.Y + elementSize.Height / 2;
 
-            // Default: point from top-left
-            var arrowX = elementPosition.X - 60;
-            var arrowY = elementPosition.Y - 40;
+            // Arrow distance from element (increased for better visibility)
+            var arrowDistance = 80;
+            var arrowX = 0.0;
+            var arrowY = 0.0;
 
-            // Adjust if too close to screen edges
-            if (arrowX < 20)
+            // Determine best arrow position based on element location and available space
+            if (elementCenterX < screenWidth / 3)
             {
-                // Point from right
-                arrowX = elementPosition.X + elementSize.Width + 20;
-                arrowY = elementPosition.Y + elementSize.Height / 2 - 15;
+                // Element is on left side - place arrow on left, pointing right
+                arrowX = elementPosition.X - arrowDistance;
+                arrowY = elementCenterY - 25; // Center arrow vertically with element
+
+                if (arrowX < 20)
+                {
+                    // Not enough space on left, place below
+                    arrowX = elementCenterX - 30;
+                    arrowY = elementPosition.Y + elementSize.Height + 30;
+                }
             }
-            else if (arrowY < 20)
+            else if (elementCenterX > screenWidth * 2 / 3)
             {
-                // Point from bottom
-                arrowX = elementPosition.X + elementSize.Width / 2 - 15;
-                arrowY = elementPosition.Y + elementSize.Height + 20;
+                // Element is on right side - place arrow on right, pointing left
+                arrowX = elementPosition.X + elementSize.Width + 30;
+                arrowY = elementCenterY - 25;
+
+                if (arrowX + 80 > screenWidth - 20)
+                {
+                    // Not enough space on right, place below
+                    arrowX = elementCenterX - 30;
+                    arrowY = elementPosition.Y + elementSize.Height + 30;
+                }
             }
-            else if (elementCenterX > screenWidth * 0.7)
+            else
             {
-                // Point from left
-                arrowX = elementPosition.X - 60;
-                arrowY = elementPosition.Y + elementSize.Height / 2 - 15;
+                // Element is in center - place arrow above or below based on vertical position
+                if (elementCenterY < screenHeight / 2)
+                {
+                    // Element is in upper half, place arrow above
+                    arrowX = elementCenterX - 30;
+                    arrowY = elementPosition.Y - 60;
+                }
+                else
+                {
+                    // Element is in lower half, place arrow below
+                    arrowX = elementCenterX - 30;
+                    arrowY = elementPosition.Y + elementSize.Height + 30;
+                }
             }
+
+            // Ensure arrow stays within screen bounds
+            arrowX = Math.Max(20, Math.Min(arrowX, screenWidth - 100));
+            arrowY = Math.Max(20, Math.Min(arrowY, screenHeight - 80));
 
             return new Point(arrowX, arrowY);
         }
@@ -253,9 +383,15 @@ namespace OtomatikMetinGenisletici.Views
         {
             ArrowCanvas.Visibility = Visibility.Collapsed;
 
+            // Stop all animations
             if (_arrowPulseAnimation != null)
             {
                 _arrowPulseAnimation.Stop(ArrowPath);
+            }
+
+            if (_arrowBounceAnimation != null)
+            {
+                _arrowBounceAnimation.Stop(ArrowPath);
             }
 
             if (_sparkleAnimation != null)

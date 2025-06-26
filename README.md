@@ -134,7 +134,6 @@ Text Expander, 20+ parametre ile tamamen özelleştirilebilir bir yapılandırma
 #### 🎨 Arayüz Ayarları
 | Parametre | Tip | Açıklama | Varsayılan | UI Etkisi |
 |-----------|-----|----------|------------|-----------|
-| `PreviewAlwaysVisible` | `bool` | Önizleme sürekli görünür | `true` | Visibility |
 | `MinWordLength` | `int` | Minimum kelime uzunluğu | `2` | Filtering |
 | `MaxSuggestions` | `int` | Maksimum genel öneri | `20` | Performance |
 
@@ -148,8 +147,7 @@ Text Expander, 20+ parametre ile tamamen özelleştirilebilir bir yapılandırma
   "SmartSuggestionsEnabled": true,
   "LearningEnabled": true,
   "ContextWeight": 0.7,
-  "LearningWeight": 1.0,
-  "PreviewAlwaysVisible": true
+  "LearningWeight": 1.0
 }
 ```
 

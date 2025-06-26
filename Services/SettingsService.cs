@@ -26,7 +26,6 @@ namespace OtomatikMetinGenisletici.Services
                     {
                         _settings = settings;
                         Console.WriteLine("Ayarlar başarıyla yüklendi.");
-                        Console.WriteLine($"[DEBUG] PreviewAlwaysVisible yüklendi: {_settings.PreviewAlwaysVisible}");
                         Console.WriteLine($"[DEBUG] SmartSuggestionsEnabled yüklendi: {_settings.SmartSuggestionsEnabled}");
                     }
                 }
@@ -72,9 +71,6 @@ namespace OtomatikMetinGenisletici.Services
             _settings.LearningEnabled = newSettings.LearningEnabled;
             _settings.LearningWeight = newSettings.LearningWeight;
 
-            // Önizleme Ayarları
-            _settings.PreviewAlwaysVisible = newSettings.PreviewAlwaysVisible;
-
             // Kısayol Önizleme Paneli Ayarları
             _settings.ShortcutPreviewPanelVisible = newSettings.ShortcutPreviewPanelVisible;
             _settings.ShortcutPreviewPanelOpacity = newSettings.ShortcutPreviewPanelOpacity;
@@ -114,9 +110,6 @@ namespace OtomatikMetinGenisletici.Services
                 MinWordLength = _settings.MinWordLength,
                 LearningEnabled = _settings.LearningEnabled,
                 LearningWeight = _settings.LearningWeight,
-
-                // Önizleme Ayarları
-                PreviewAlwaysVisible = _settings.PreviewAlwaysVisible,
 
                 // Kısayol Önizleme Paneli Ayarları
                 ShortcutPreviewPanelVisible = _settings.ShortcutPreviewPanelVisible,

@@ -54,7 +54,6 @@ namespace OtomatikMetinGenisletici.Views
             // Smart Suggestions Settings
             SmartSuggestionsEnabledCheckBox.IsChecked = _settings.SmartSuggestionsEnabled;
             LearningEnabledCheckBox.IsChecked = _settings.LearningEnabled;
-            PreviewAlwaysVisibleCheckBox.IsChecked = _settings.PreviewAlwaysVisible;
             MaxSmartSuggestionsTextBox.Text = _settings.MaxSmartSuggestions.ToString();
             MinWordLengthTextBox.Text = _settings.MinWordLength.ToString();
             LearningWeightSlider.Value = _settings.LearningWeight * 100;
@@ -131,7 +130,6 @@ namespace OtomatikMetinGenisletici.Views
                 // Smart Suggestions Settings
                 _settings.SmartSuggestionsEnabled = SmartSuggestionsEnabledCheckBox.IsChecked ?? false;
                 _settings.LearningEnabled = LearningEnabledCheckBox.IsChecked ?? true;
-                _settings.PreviewAlwaysVisible = PreviewAlwaysVisibleCheckBox.IsChecked ?? true;
 
                 if (int.TryParse(MaxSmartSuggestionsTextBox.Text, out int maxSmartSuggestions))
                     _settings.MaxSmartSuggestions = Math.Max(1, Math.Min(10, maxSmartSuggestions));

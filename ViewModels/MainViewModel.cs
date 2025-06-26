@@ -59,20 +59,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         public string SmartSuggestionsStatusText => IsSmartSuggestionsEnabled ? "🟢 Aktif" : "🔴 Pasif";
         public string SmartSuggestionsStatusColor => IsSmartSuggestionsEnabled ? "Green" : "Red";
 
-        // YENİ: Önizleme sürekli açık kalma ayarı
-        public bool IsPreviewAlwaysVisible
-        {
-            get
-            {
-                // Artık ayardan değeri al - sadece yazı yazarken görünmesi için false
-                var value = _settingsService?.Settings?.PreviewAlwaysVisible ?? false;
-                Console.WriteLine($"[DEBUG] IsPreviewAlwaysVisible çağrıldı: {value}");
-                return value;
-            }
-        }
 
-        public string PreviewVisibilityStatusText => IsPreviewAlwaysVisible ? "🟢 Sürekli Açık" : "🔴 Yazarken Görünür";
-        public string PreviewVisibilityStatusColor => IsPreviewAlwaysVisible ? "Green" : "Orange";
 
         // Kısayol Önizleme Paneli Özellikleri
         public bool IsShortcutPreviewPanelVisible
@@ -462,9 +449,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 WriteToLogFile("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
 
                 // AYAR DEBUG - Başlangıçta ayarları kontrol et
-                Console.WriteLine($"[AYAR DEBUG] Constructor'da PreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
                 Console.WriteLine($"[AYAR DEBUG] Constructor'da SmartSuggestionsEnabled: {IsSmartSuggestionsEnabled}");
-                WriteToLogFile($"[AYAR DEBUG] Constructor'da PreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
                 WriteToLogFile($"[AYAR DEBUG] Constructor'da SmartSuggestionsEnabled: {IsSmartSuggestionsEnabled}");
 
                 // Akıllı öneriler durumunu test et
@@ -518,19 +503,12 @@ namespace OtomatikMetinGenisletici.ViewModels
             {
                 Console.WriteLine("[TIMER] Önizleme gizleme timer'ı tetiklendi (1 saniye sonra)");
 
-                // Eğer ayar sürekli açık değilse önizlemeyi gizle
-                if (!IsPreviewAlwaysVisible)
+                // Önizlemeyi gizle (1 saniye boyunca yazı yazılmadı)
+                Console.WriteLine("[TIMER] Önizleme gizleniyor (1 saniye boyunca yazı yazılmadı)");
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    Console.WriteLine("[TIMER] Önizleme gizleniyor (1 saniye boyunca yazı yazılmadı)");
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        HidePreview();
-                    });
-                }
-                else
-                {
-                    Console.WriteLine("[TIMER] Önizleme gizlenmedi (sürekli açık ayarı aktif)");
-                }
+                    HidePreview();
+                });
             }
             catch (Exception ex)
             {
@@ -542,11 +520,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                // Eğer sürekli açık ayarı aktifse timer'ı çalıştırma
-                if (IsPreviewAlwaysVisible)
-                {
-                    return;
-                }
+                // Timer'ı her zaman çalıştır (önizleme artık sadece yazı yazarken görünür)
 
                 // Mevcut timer'ı durdur
                 _hidePreviewTimer?.Stop();
@@ -648,17 +622,14 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Console.WriteLine($"[FOCUS] Pencere değişti: '{_lastActiveWindow}' -> '{currentActiveWindow}'");
                 WriteToLogFile($"[FOCUS] Pencere değişti: '{_lastActiveWindow}' -> '{currentActiveWindow}'");
 
-                // Eğer "sürekli açık" ayarı kapalıysa ön izleme penceresini kapat
-                if (!IsPreviewAlwaysVisible)
-                {
-                    Console.WriteLine("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
-                    WriteToLogFile("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
+                // Pencere değiştiğinde ön izleme penceresini kapat
+                Console.WriteLine("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
+                WriteToLogFile("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
 
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        HidePreview();
-                    });
-                }
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    HidePreview();
+                });
             }
             _lastActiveWindow = currentActiveWindow;
 
@@ -929,10 +900,10 @@ namespace OtomatikMetinGenisletici.ViewModels
                     return;
                 }
 
-                // Eğer sürekli açık ayarı kapalıysa ve buffer boşsa önizlemeyi gizle
-                if (!IsPreviewAlwaysVisible && string.IsNullOrEmpty(buffer?.Trim()))
+                // Buffer boşsa önizlemeyi gizle
+                if (string.IsNullOrEmpty(buffer?.Trim()))
                 {
-                    Console.WriteLine("[PREVIEW] Buffer boş ve sürekli açık ayarı kapalı, önizleme gizleniyor");
+                    Console.WriteLine("[PREVIEW] Buffer boş, önizleme gizleniyor");
                     HidePreview();
                     return;
                 }
@@ -1985,9 +1956,9 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                // Önizleme sürekli açık kalma ayarı kontrol et
-                Console.WriteLine($"[DEBUG] HidePreview çağrıldı. IsPreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
-                WriteToLogFile($"[DEBUG] HidePreview çağrıldı. IsPreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
+                // Önizleme gizleme işlemi
+                Console.WriteLine("[DEBUG] HidePreview çağrıldı");
+                WriteToLogFile("[DEBUG] HidePreview çağrıldı");
 
                 // Thread safety check
                 if (!Application.Current.Dispatcher.CheckAccess())
@@ -1996,24 +1967,16 @@ namespace OtomatikMetinGenisletici.ViewModels
                     return;
                 }
 
-                if (!IsPreviewAlwaysVisible)
+                // Null check
+                if (_previewOverlay == null)
                 {
-                    // Null check
-                    if (_previewOverlay == null)
-                    {
-                        Console.WriteLine("[PREVIEW] PreviewOverlay null, gizleme işlemi atlanıyor");
-                        return;
-                    }
+                    Console.WriteLine("[PREVIEW] PreviewOverlay null, gizleme işlemi atlanıyor");
+                    return;
+                }
 
-                    _previewOverlay.HidePreview();
-                    Console.WriteLine("[PREVIEW] Önizleme gizlendi (ayar: otomatik gizle)");
-                    WriteToLogFile("[PREVIEW] Önizleme gizlendi (ayar: otomatik gizle)");
-                }
-                else
-                {
-                    Console.WriteLine("[PREVIEW] Önizleme gizlenmedi (ayar: sürekli açık)");
-                    WriteToLogFile("[PREVIEW] Önizleme gizlenmedi (ayar: sürekli açık)");
-                }
+                _previewOverlay.HidePreview();
+                Console.WriteLine("[PREVIEW] Önizleme gizlendi");
+                WriteToLogFile("[PREVIEW] Önizleme gizlendi");
             }
             catch (Exception ex)
             {
@@ -2417,10 +2380,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             OnPropertyChanged(nameof(SmartSuggestionsStatusText));
             OnPropertyChanged(nameof(SmartSuggestionsStatusColor));
 
-            // Önizleme ayarları değiştiğinde UI'ı güncelle
-            OnPropertyChanged(nameof(IsPreviewAlwaysVisible));
-            OnPropertyChanged(nameof(PreviewVisibilityStatusText));
-            OnPropertyChanged(nameof(PreviewVisibilityStatusColor));
+
 
             // Pencere filtreleme ayarları değiştiğinde UI'ı güncelle
             OnPropertyChanged(nameof(IsWindowFilteringEnabled));
