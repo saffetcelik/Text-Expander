@@ -125,6 +125,9 @@ public partial class App : Application
                     services.AddSingleton<ISmartSuggestionsService, SmartSuggestionsService>();
                     services.AddSingleton<ISettingsService, SettingsService>();
                     services.AddSingleton<INotificationService, NotificationService>();
+                    services.AddSingleton<IImageRecognitionService, ImageRecognitionService>();
+                    services.AddSingleton<IWindowBehaviorService, WindowBehaviorService>();
+                    services.AddSingleton<IAdvancedInputService, AdvancedInputService>();
 
                     // Register ViewModels
                     services.AddTransient<MainViewModel>();

@@ -1,83 +1,93 @@
-using System.Runtime.InteropServices;
+using System;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using OtomatikMetinGenisletici.Helpers;
 
 namespace OtomatikMetinGenisletici.Views
 {
     public partial class PreviewOverlay : Window
     {
-        [DllImport("user32.dll")]
-        private static extern bool GetCursorPos(out POINT lpPoint);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int X;
-            public int Y;
-        }
+        private DispatcherTimer? _debounceTimer;
+        private string _pendingText = "";
+        private const int DEBOUNCE_DELAY_MS = 100;
 
         public PreviewOverlay()
         {
             try
             {
-                Console.WriteLine("[PREVIEW] PreviewOverlay constructor başlıyor...");
+                Console.WriteLine("[PREVIEW] Basit PreviewOverlay başlatılıyor");
+
                 InitializeComponent();
 
-                // ESC tuşu ile kapatma özelliği
+                // Debounce timer
+                _debounceTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(DEBOUNCE_DELAY_MS)
+                };
+                _debounceTimer.Tick += OnDebounceTimerTick;
+
+                // ESC ile kapatma
                 KeyDown += PreviewOverlay_KeyDown;
 
-                Hide();
-                Console.WriteLine("[PREVIEW] PreviewOverlay constructor tamamlandı");
+                // Basit pencere ayarları - karmaşık API yok
+                WindowStyle = WindowStyle.None;
+                AllowsTransparency = true;
+                Background = System.Windows.Media.Brushes.Transparent;
+                ResizeMode = ResizeMode.NoResize;
+                ShowInTaskbar = false;
+                Topmost = true;
+                Focusable = false;
+                IsHitTestVisible = false;
+                IsTabStop = false;
+
+                // Gizli başlat
+                Visibility = Visibility.Hidden;
+
+                Console.WriteLine("[PREVIEW] Basit PreviewOverlay hazır");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] PreviewOverlay constructor hatası: {ex.Message}");
-                Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
+                Console.WriteLine($"[ERROR] PreviewOverlay hatası: {ex.Message}");
                 throw;
             }
         }
 
-        public void SetText(string text)
+        private void OnDebounceTimerTick(object? sender, EventArgs e)
+        {
+            _debounceTimer?.Stop();
+            ProcessTextUpdate(_pendingText);
+        }
+
+        private void ProcessTextUpdate(string text)
         {
             try
             {
-                Console.WriteLine($"[PREVIEW] SetText çağrıldı: '{text}'");
+                Console.WriteLine($"[PREVIEW] Metin işleniyor: '{text}'");
 
-                // Pencere kapalı mı kontrol et - sadece ilk açılışta
-                if (!IsLoaded)
+                if (string.IsNullOrEmpty(text?.Trim()))
                 {
-                    Console.WriteLine("[PREVIEW] Pencere henüz yüklenmemiş, yükleniyor...");
-                    Show();
-                    PositionNearCursor();
-                    Topmost = true;
-                    Opacity = 0.95; // Sabit opacity
+                    Console.WriteLine("[PREVIEW] Boş metin - pencere gizleniyor");
+                    Visibility = Visibility.Hidden;
+                    return;
                 }
 
-                // Eski format kontrolü ve yeni formata çevirme
+                // Metni göster
                 ParseAndDisplayText(text);
 
-                // Pencere her zaman görünür ve cursor pozisyonunda kalıyor
+                // Pencereyi göster
                 if (Visibility != Visibility.Visible)
                 {
-                    Show();
-                    PositionNearCursor();
-                    Topmost = true;
-                    Opacity = 0.95;
+                    ShowPreview();
                 }
                 else
                 {
-                    // Pencere zaten açıksa sadece pozisyonu güncelle
-                    PositionNearCursor();
+                    UpdatePosition();
                 }
-
-                Console.WriteLine($"[PREVIEW] Pencere pozisyonu: Left={Left}, Top={Top}, Width={Width}, Height={Height}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] SetText hatası: {ex.Message}");
+                Console.WriteLine($"[ERROR] ProcessTextUpdate hatası: {ex.Message}");
             }
         }
 
@@ -85,206 +95,68 @@ namespace OtomatikMetinGenisletici.Views
         {
             try
             {
-                if (string.IsNullOrEmpty(text))
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    Console.WriteLine("[PREVIEW] Metin boş, gizleniyor");
-                    PreviewTextBlock.Text = "";
-                    return;
-                }
-
-                // Sadece ana metni al, tüm bilgi yazılarını kaldır
-                string mainText = "";
-
-                // Farklı formatları kontrol et ve sadece ana metni çıkar
-                if (text.Contains("(Tab") || text.Contains("(Ctrl+Space"))
-                {
-                    // Format: "💡 öneri metni (Tab - %80)"
-                    var parts = text.Split('(');
-                    if (parts.Length >= 2)
+                    if (FindName("PreviewTextBlock") is System.Windows.Controls.TextBlock textBlock)
                     {
-                        mainText = parts[0].Trim();
+                        textBlock.Text = text;
+                        Console.WriteLine($"[PREVIEW] Metin güncellendi: '{text}'");
                     }
-                }
-                else
-                {
-                    // Basit metin
-                    mainText = text;
-                }
-
-                // Tüm emoji'leri ve gereksiz karakterleri temizle
-                mainText = mainText.Replace("💡", "").Replace("🔤", "").Replace("🔮", "").Replace("→", "")
-                                  .Replace("Önerilen:", "").Replace("|", "").Replace("Kelime:", "")
-                                  .Replace("Karakter:", "").Trim();
-
-                // Sadece temiz metni göster
-                PreviewTextBlock.Text = mainText;
-
-                Console.WriteLine($"[PREVIEW] Minimal format - Sadece metin: '{mainText}'");
+                });
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] ParseAndDisplayText hatası: {ex.Message}");
-                PreviewTextBlock.Text = text; // Fallback
             }
         }
 
-        private void ShowWithAnimation()
+        private void ShowPreview()
         {
-            Console.WriteLine($"[PREVIEW] ShowWithAnimation çağrıldı, Visibility: {Visibility}");
-
-            if (Visibility != Visibility.Visible)
+            try
             {
                 Console.WriteLine("[PREVIEW] Pencere gösteriliyor");
 
-                // Önce pozisyonu ayarla
-                PositionNearCursor();
-                Show();
+                // Pozisyonu ayarla
+                UpdatePosition();
 
-                // Yukarıdan aşağıya kayma animasyonu
-                var slideAnimation = new DoubleAnimation
-                {
-                    From = Top - 30, // Mevcut pozisyondan 30 pixel yukarıdan başla
-                    To = Top,
-                    Duration = TimeSpan.FromMilliseconds(300),
-                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
-                };
-
-                // Fade in animasyonu
-                var fadeAnimation = new DoubleAnimation
-                {
-                    From = 0,
-                    To = 0.95,
-                    Duration = TimeSpan.FromMilliseconds(300)
-                };
-
-                BeginAnimation(TopProperty, slideAnimation);
-                BeginAnimation(OpacityProperty, fadeAnimation);
-
-                Console.WriteLine("[PREVIEW] Animasyonlar başlatıldı");
+                // Göster
+                Visibility = Visibility.Visible;
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("[PREVIEW] Pencere zaten görünür");
-                // Pencere zaten açıksa sadece pozisyonu güncelle
-                PositionNearCursor();
+                Console.WriteLine($"[ERROR] ShowPreview hatası: {ex.Message}");
             }
         }
 
-        private void HideWithAnimation()
-        {
-            if (Visibility == Visibility.Visible)
-            {
-                // Fade out animasyonu
-                var fadeAnimation = new DoubleAnimation
-                {
-                    From = 0.95,
-                    To = 0,
-                    Duration = TimeSpan.FromMilliseconds(250)
-                };
-
-                fadeAnimation.Completed += (s, e) => Hide();
-                BeginAnimation(OpacityProperty, fadeAnimation);
-            }
-        }
-
-        private void PositionNearCursor()
+        private void UpdatePosition()
         {
             try
             {
-                // Cursor pozisyonunu al
                 var caretPos = WindowHelper.GetCaretPosition();
-
                 if (caretPos.HasValue)
                 {
-                    Console.WriteLine($"[PREVIEW] Cursor pozisyonu bulundu: X={caretPos.Value.X}, Y={caretPos.Value.Y}");
-
-                    // Pencere boyutunu hesapla
-                    Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    var desiredSize = DesiredSize;
-
-                    double windowWidth = desiredSize.Width > 0 ? desiredSize.Width : 450;
-                    double windowHeight = desiredSize.Height > 0 ? desiredSize.Height : 140;
-
-                    // Cursor'un tam sağ altına yerleştir
-                    double targetLeft = caretPos.Value.X + 10; // Cursor'un 10 pixel sağında
-                    double targetTop = caretPos.Value.Y + 20; // Cursor'un 20 pixel altında
-
-                    // Ekran sınırlarını kontrol et
-                    var primaryScreen = System.Windows.Forms.Screen.PrimaryScreen;
-                    if (primaryScreen?.WorkingArea != null)
-                    {
-                        // Sol sınır kontrolü
-                        if (targetLeft < primaryScreen.WorkingArea.Left)
-                            targetLeft = primaryScreen.WorkingArea.Left + 10;
-
-                        // Sağ sınır kontrolü
-                        if (targetLeft + windowWidth > primaryScreen.WorkingArea.Right)
-                            targetLeft = primaryScreen.WorkingArea.Right - windowWidth - 10;
-
-                        // Alt sınır kontrolü - eğer cursor çok aşağıdaysa üste taşı
-                        if (targetTop + windowHeight > primaryScreen.WorkingArea.Bottom)
-                            targetTop = caretPos.Value.Y - windowHeight - 10; // Cursor'un üstüne
-
-                        // Üst sınır kontrolü
-                        if (targetTop < primaryScreen.WorkingArea.Top)
-                            targetTop = primaryScreen.WorkingArea.Top + 10;
-                    }
-
-                    Left = targetLeft;
-                    Top = targetTop;
-
-                    Console.WriteLine($"[PREVIEW] Cursor yakını pozisyon: Left={Left}, Top={Top}");
-                }
-                else
-                {
-                    Console.WriteLine("[PREVIEW] Cursor pozisyonu alınamadı, fallback pozisyon kullanılıyor");
-                    PositionAtTopCenter();
+                    Left = caretPos.Value.X + 10;
+                    Top = caretPos.Value.Y + 25;
+                    Console.WriteLine($"[PREVIEW] Pozisyon: {Left}, {Top}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] PositionNearCursor hatası: {ex.Message}");
-                PositionAtTopCenter();
+                Console.WriteLine($"[ERROR] UpdatePosition hatası: {ex.Message}");
             }
         }
 
-        private void PositionAtTopCenter()
+        public void SetText(string text)
         {
             try
             {
-                // Birincil ekranı al
-                var primaryScreen = System.Windows.Forms.Screen.PrimaryScreen;
-                if (primaryScreen?.WorkingArea != null)
-                {
-                    // Pencere boyutunu hesapla
-                    Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    var desiredSize = DesiredSize;
-
-                    double windowWidth = desiredSize.Width > 0 ? desiredSize.Width : 450; // Varsayılan genişlik artırıldı
-                    double windowHeight = desiredSize.Height > 0 ? desiredSize.Height : 140; // Varsayılan yükseklik artırıldı
-
-                    // Ekranın üst ortasına yerleştir - biraz daha aşağıda
-                    Left = (primaryScreen.WorkingArea.Width - windowWidth) / 2;
-                    Top = 120; // Ekranın üstünden 120 pixel aşağıda (daha fazla boşluk)
-
-                    Console.WriteLine($"[PREVIEW] Ekran boyutu: {primaryScreen.WorkingArea.Width}x{primaryScreen.WorkingArea.Height}");
-                    Console.WriteLine($"[PREVIEW] Pencere boyutu: {windowWidth}x{windowHeight}");
-                    Console.WriteLine($"[PREVIEW] Hesaplanan pozisyon: Left={Left}, Top={Top}");
-                }
-                else
-                {
-                    // Fallback pozisyon - daha merkezi
-                    Left = 300;
-                    Top = 120;
-                    Console.WriteLine("[PREVIEW] Fallback pozisyon kullanıldı");
-                }
+                _pendingText = text ?? "";
+                _debounceTimer?.Stop();
+                _debounceTimer?.Start();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] PositionAtTopCenter hatası: {ex.Message}");
-                // Fallback pozisyon
-                Left = 300;
-                Top = 120;
+                Console.WriteLine($"[ERROR] SetText hatası: {ex.Message}");
             }
         }
 
@@ -292,8 +164,8 @@ namespace OtomatikMetinGenisletici.Views
         {
             try
             {
-                Console.WriteLine("[PREVIEW] HidePreview çağrıldı - pencere gizleniyor");
-                HideWithAnimation();
+                Console.WriteLine("[PREVIEW] Pencere gizleniyor");
+                Visibility = Visibility.Hidden;
             }
             catch (Exception ex)
             {
@@ -301,50 +173,11 @@ namespace OtomatikMetinGenisletici.Views
             }
         }
 
-        private void HideButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                Console.WriteLine("[PREVIEW] Gizle butonu tıklandı - kullanıcı tarafından gizleniyor");
-                HideWithAnimation();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] HideButton_Click hatası: {ex.Message}");
-            }
-        }
-
-        // Sürükleme özelliği için event handler
-        private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            try
-            {
-                if (e.ButtonState == MouseButtonState.Pressed)
-                {
-                    Console.WriteLine("[PREVIEW] Sürükleme başlatıldı");
-                    this.DragMove();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Border_MouseLeftButtonDown hatası: {ex.Message}");
-            }
-        }
-
-        // ESC tuşu ile kapatma
         private void PreviewOverlay_KeyDown(object sender, KeyEventArgs e)
         {
-            try
+            if (e.Key == Key.Escape)
             {
-                if (e.Key == Key.Escape)
-                {
-                    Console.WriteLine("[PREVIEW] ESC tuşu basıldı - önizleme gizleniyor");
-                    HideWithAnimation();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] PreviewOverlay_KeyDown hatası: {ex.Message}");
+                HidePreview();
             }
         }
     }
