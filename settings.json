@@ -14,7 +14,7 @@
   "MinWordLength": 2,
   "LearningEnabled": true,
   "LearningWeight": 0.8,
-  "ShortcutPreviewPanelVisible": true,
+  "ShortcutPreviewPanelVisible": false,
   "ShortcutPreviewPanelOpacity": 1.0,
   "ShortcutPreviewPanelWidth": 290.0,
   "ShortcutPreviewPanelHeight": 481.0,

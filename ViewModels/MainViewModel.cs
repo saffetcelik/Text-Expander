@@ -485,8 +485,11 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                // Timer sistemini basitleştiriyoruz - test projesindeki gibi sadece öneri varken göster
-                Console.WriteLine("[DEBUG] Preview timer sistemi basitleştirildi");
+                // 3 saniye sonra preview'ı otomatik kapatan timer
+                _previewAutoHideTimer = new System.Timers.Timer(3000); // 3 saniye
+                _previewAutoHideTimer.Elapsed += OnPreviewAutoHideTimerElapsed;
+                _previewAutoHideTimer.AutoReset = false; // Sadece bir kez çalışsın
+                Console.WriteLine("[DEBUG] Preview otomatik kapanma timer'ı başlatıldı (3 saniye)");
             }
             catch (Exception ex)
             {
@@ -494,7 +497,42 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        // Timer metodlarını kaldırıyoruz - test projesindeki gibi basit yaklaşım
+        private void OnPreviewAutoHideTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            try
+            {
+                Console.WriteLine("[TIMER] Preview otomatik kapanma timer'ı tetiklendi (3 saniye sonra)");
+
+                // Preview'ı gizle (3 saniye boyunca yazı yazılmadı)
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    HidePreview();
+                    Console.WriteLine("[TIMER] Preview 3 saniye sonra otomatik kapandı");
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] OnPreviewAutoHideTimerElapsed hatası: {ex.Message}");
+            }
+        }
+
+        private void RestartPreviewAutoHideTimer()
+        {
+            try
+            {
+                // Mevcut timer'ı durdur
+                _previewAutoHideTimer?.Stop();
+
+                // Timer'ı yeniden başlat (3 saniye)
+                _previewAutoHideTimer?.Start();
+
+                Console.WriteLine("[TIMER] Preview otomatik kapanma timer'ı yeniden başlatıldı (3 saniye)");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] RestartPreviewAutoHideTimer hatası: {ex.Message}");
+            }
+        }
 
         private async void TestSmartSuggestions()
         {
@@ -572,7 +610,8 @@ namespace OtomatikMetinGenisletici.ViewModels
             // Yazı yazma zamanını güncelle
             _lastKeyPressTime = DateTime.Now;
 
-            // Timer sistemini kaldırdık - test projesindeki gibi direkt preview göster
+            // Preview otomatik kapanma timer'ını yeniden başlat
+            RestartPreviewAutoHideTimer();
 
             // Aktif pencere değişikliği kontrolü
             string currentActiveWindow = WindowHelper.GetActiveWindowTitle();
@@ -3451,7 +3490,13 @@ namespace OtomatikMetinGenisletici.ViewModels
             _previewOverlay?.Close();
             _shortcutPreviewWindow?.Close();
 
-            // Timer sistemini kaldırdık - artık temizlenecek timer yok
+            // Preview otomatik kapanma timer'ını temizle
+            if (_previewAutoHideTimer != null)
+            {
+                _previewAutoHideTimer.Stop();
+                _previewAutoHideTimer.Dispose();
+                _previewAutoHideTimer = null;
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
