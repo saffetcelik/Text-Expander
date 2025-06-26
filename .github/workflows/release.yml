@@ -1,4 +1,4 @@
-name: 🚀 Release Build
+name: 🚀 ModernMetinGenisletici Release
 
 on:
   push:
@@ -10,6 +10,11 @@ on:
         description: 'Release version (e.g., v1.0.0)'
         required: true
         default: 'v1.0.0'
+      create_release:
+        description: 'Create GitHub Release'
+        required: true
+        default: true
+        type: boolean
 
 env:
   DOTNET_VERSION: '8.0.x'
