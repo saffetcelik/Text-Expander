@@ -73,17 +73,52 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Arrow Pulse Animation -->
+        <!-- Modern Arrow Pulse Animation -->
         <Storyboard x:Key="ArrowPulseAnimation" RepeatBehavior="Forever">
+            <!-- Opacity pulse -->
             <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                           From="0.6" To="1.0" Duration="0:0:1"
-                           AutoReverse="True"/>
+                           From="0.7" To="1.0" Duration="0:0:0.8"
+                           AutoReverse="True">
+                <DoubleAnimation.EasingFunction>
+                    <SineEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+
+            <!-- Scale pulse -->
             <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(ScaleTransform.ScaleX)"
-                           From="1.0" To="1.1" Duration="0:0:1"
-                           AutoReverse="True"/>
+                           From="1.0" To="1.15" Duration="0:0:0.8"
+                           AutoReverse="True">
+                <DoubleAnimation.EasingFunction>
+                    <ElasticEase EasingMode="EaseOut" Oscillations="1" Springiness="3"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(ScaleTransform.ScaleY)"
-                           From="1.0" To="1.1" Duration="0:0:1"
-                           AutoReverse="True"/>
+                           From="1.0" To="1.15" Duration="0:0:0.8"
+                           AutoReverse="True">
+                <DoubleAnimation.EasingFunction>
+                    <ElasticEase EasingMode="EaseOut" Oscillations="1" Springiness="3"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+
+            <!-- Glow effect -->
+            <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                           From="8" To="20" Duration="0:0:0.8"
+                           AutoReverse="True">
+                <DoubleAnimation.EasingFunction>
+                    <SineEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+
+        <!-- Arrow Bounce Animation -->
+        <Storyboard x:Key="ArrowBounceAnimation" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.X)"
+                           From="0" To="10" Duration="0:0:1.2"
+                           AutoReverse="True">
+                <DoubleAnimation.EasingFunction>
+                    <BounceEase EasingMode="EaseOut" Bounces="2" Bounciness="3"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
         </Storyboard>
 
         <!-- Sparkle Animation -->
@@ -153,53 +188,98 @@
         
         <!-- Modern Arrow Pointer for target elements -->
         <Canvas x:Name="ArrowCanvas" Visibility="Collapsed">
+            <!-- Arrow Glow Background -->
+            <Ellipse x:Name="ArrowGlow"
+                     Fill="#4D2196F3"
+                     Width="120" Height="120"
+                     Canvas.Left="-25" Canvas.Top="-25">
+                <Ellipse.Effect>
+                    <BlurEffect Radius="20"/>
+                </Ellipse.Effect>
+            </Ellipse>
+
             <!-- Arrow Shadow -->
             <Path x:Name="ArrowShadow"
-                  Fill="#33000000"
-                  Margin="2,2,0,0">
+                  Fill="#55000000"
+                  Margin="4,4,0,0">
                 <Path.Data>
                     <PathGeometry>
-                        <PathFigure StartPoint="0,12">
-                            <LineSegment Point="35,12"/>
-                            <LineSegment Point="50,20"/>
-                            <LineSegment Point="35,28"/>
-                            <LineSegment Point="0,28"/>
-                            <LineSegment Point="0,22"/>
-                            <LineSegment Point="8,20"/>
-                            <LineSegment Point="0,18"/>
+                        <PathFigure StartPoint="8,20">
+                            <LineSegment Point="55,20"/>
+                            <LineSegment Point="80,35"/>
+                            <LineSegment Point="55,50"/>
+                            <LineSegment Point="8,50"/>
+                            <LineSegment Point="8,40"/>
+                            <LineSegment Point="20,35"/>
+                            <LineSegment Point="8,30"/>
                         </PathFigure>
                     </PathGeometry>
                 </Path.Data>
                 <Path.RenderTransform>
                     <TransformGroup>
-                        <RotateTransform x:Name="ArrowShadowRotate"/>
-                        <ScaleTransform x:Name="ArrowShadowScale"/>
+                        <TranslateTransform x:Name="ArrowShadowTranslate"/>
+                        <RotateTransform x:Name="ArrowShadowRotate" CenterX="44" CenterY="35"/>
+                        <ScaleTransform x:Name="ArrowShadowScale" CenterX="44" CenterY="35"/>
                     </TransformGroup>
                 </Path.RenderTransform>
             </Path>
 
-            <!-- Main Arrow Path -->
+            <!-- Main Arrow Path with Gradient -->
             <Path x:Name="ArrowPath"
-                  Fill="#2196F3"
-                  Stroke="#1976D2"
-                  StrokeThickness="1">
+                  Stroke="#1565C0"
+                  StrokeThickness="3">
+                <Path.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#42A5F5" Offset="0"/>
+                        <GradientStop Color="#2196F3" Offset="0.5"/>
+                        <GradientStop Color="#1976D2" Offset="1"/>
+                    </LinearGradientBrush>
+                </Path.Fill>
                 <Path.Data>
                     <PathGeometry>
-                        <PathFigure StartPoint="0,12">
-                            <LineSegment Point="35,12"/>
-                            <LineSegment Point="50,20"/>
-                            <LineSegment Point="35,28"/>
-                            <LineSegment Point="0,28"/>
-                            <LineSegment Point="0,22"/>
-                            <LineSegment Point="8,20"/>
-                            <LineSegment Point="0,18"/>
+                        <PathFigure StartPoint="8,20">
+                            <LineSegment Point="55,20"/>
+                            <LineSegment Point="80,35"/>
+                            <LineSegment Point="55,50"/>
+                            <LineSegment Point="8,50"/>
+                            <LineSegment Point="8,40"/>
+                            <LineSegment Point="20,35"/>
+                            <LineSegment Point="8,30"/>
+                        </PathFigure>
+                    </PathGeometry>
+                </Path.Data>
+                <Path.Effect>
+                    <DropShadowEffect Color="#2196F3" Direction="0" ShadowDepth="0"
+                                      BlurRadius="12" Opacity="0.8"/>
+                </Path.Effect>
+                <Path.RenderTransform>
+                    <TransformGroup>
+                        <TranslateTransform x:Name="ArrowTranslate"/>
+                        <RotateTransform x:Name="ArrowRotate" CenterX="44" CenterY="35"/>
+                        <ScaleTransform x:Name="ArrowScale" CenterX="44" CenterY="35"/>
+                    </TransformGroup>
+                </Path.RenderTransform>
+            </Path>
+
+            <!-- Arrow Highlight -->
+            <Path x:Name="ArrowHighlight"
+                  Fill="#80FFFFFF"
+                  Opacity="0.8">
+                <Path.Data>
+                    <PathGeometry>
+                        <PathFigure StartPoint="12,25">
+                            <LineSegment Point="50,25"/>
+                            <LineSegment Point="70,35"/>
+                            <LineSegment Point="50,32"/>
+                            <LineSegment Point="12,32"/>
                         </PathFigure>
                     </PathGeometry>
                 </Path.Data>
                 <Path.RenderTransform>
                     <TransformGroup>
-                        <RotateTransform x:Name="ArrowRotate"/>
-                        <ScaleTransform x:Name="ArrowScale"/>
+                        <TranslateTransform x:Name="ArrowHighlightTranslate"/>
+                        <RotateTransform x:Name="ArrowHighlightRotate" CenterX="44" CenterY="35"/>
+                        <ScaleTransform x:Name="ArrowHighlightScale" CenterX="44" CenterY="35"/>
                     </TransformGroup>
                 </Path.RenderTransform>
             </Path>

@@ -1,0 +1,21 @@
+namespace TypingAssistant
+{
+    internal static class Program
+    {
+        /// <summary>
+        ///  The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            // To customize application configuration such as set high DPI settings or default font,
+            // see https://aka.ms/applicationconfiguration.
+            ApplicationConfiguration.Initialize();
+
+            // Formun başlangıçta gizli kalmasını sağlıyoruz.
+            // Formun kendisi Load event'inde zaten gerekli ayarlamaları yapıyor.
+            Form1 form = new Form1();
+            Application.Run(form);
+        }
+    }
+}

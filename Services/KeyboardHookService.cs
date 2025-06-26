@@ -120,10 +120,10 @@ namespace OtomatikMetinGenisletici.Services
                 return;
             }
 
-            // Ctrl+Space kombinasyonunu kontrol et
+            // Space kombinasyonunu kontrol et
             if ((Control.ModifierKeys & Keys.Control) == Keys.Control && e.KeyCode == Keys.Space)
             {
-                Console.WriteLine($"[DEBUG] Ctrl+Space detected");
+                Console.WriteLine($"[DEBUG] Space detected");
                 CtrlSpacePressed?.Invoke();
                 return;
             }

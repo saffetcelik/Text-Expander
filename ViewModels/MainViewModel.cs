@@ -59,20 +59,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         public string SmartSuggestionsStatusText => IsSmartSuggestionsEnabled ? "🟢 Aktif" : "🔴 Pasif";
         public string SmartSuggestionsStatusColor => IsSmartSuggestionsEnabled ? "Green" : "Red";
 
-        // YENİ: Önizleme sürekli açık kalma ayarı
-        public bool IsPreviewAlwaysVisible
-        {
-            get
-            {
-                // Artık ayardan değeri al - sadece yazı yazarken görünmesi için false
-                var value = _settingsService?.Settings?.PreviewAlwaysVisible ?? false;
-                Console.WriteLine($"[DEBUG] IsPreviewAlwaysVisible çağrıldı: {value}");
-                return value;
-            }
-        }
 
-        public string PreviewVisibilityStatusText => IsPreviewAlwaysVisible ? "🟢 Sürekli Açık" : "🔴 Yazarken Görünür";
-        public string PreviewVisibilityStatusColor => IsPreviewAlwaysVisible ? "Green" : "Orange";
 
         // Kısayol Önizleme Paneli Özellikleri
         public bool IsShortcutPreviewPanelVisible
@@ -462,9 +449,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 WriteToLogFile("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
 
                 // AYAR DEBUG - Başlangıçta ayarları kontrol et
-                Console.WriteLine($"[AYAR DEBUG] Constructor'da PreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
                 Console.WriteLine($"[AYAR DEBUG] Constructor'da SmartSuggestionsEnabled: {IsSmartSuggestionsEnabled}");
-                WriteToLogFile($"[AYAR DEBUG] Constructor'da PreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
                 WriteToLogFile($"[AYAR DEBUG] Constructor'da SmartSuggestionsEnabled: {IsSmartSuggestionsEnabled}");
 
                 // Akıllı öneriler durumunu test et
@@ -500,11 +485,11 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                // 1 saniye sonra önizlemeyi gizleyecek timer (kullanıcının tercihi)
-                _hidePreviewTimer = new System.Timers.Timer(2000); // 2 saniye
-                _hidePreviewTimer.Elapsed += OnHidePreviewTimerElapsed;
-                _hidePreviewTimer.AutoReset = false; // Sadece bir kez çalışsın
-                Console.WriteLine("[DEBUG] Preview timer başlatıldı (1 saniye)");
+                // 3 saniye sonra preview'ı otomatik kapatan timer
+                _previewAutoHideTimer = new System.Timers.Timer(3000); // 3 saniye
+                _previewAutoHideTimer.Elapsed += OnPreviewAutoHideTimerElapsed;
+                _previewAutoHideTimer.AutoReset = false; // Sadece bir kez çalışsın
+                Console.WriteLine("[DEBUG] Preview otomatik kapanma timer'ı başlatıldı (3 saniye)");
             }
             catch (Exception ex)
             {
@@ -512,53 +497,40 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        private void OnHidePreviewTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        private void OnPreviewAutoHideTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             try
             {
-                Console.WriteLine("[TIMER] Önizleme gizleme timer'ı tetiklendi (1 saniye sonra)");
+                Console.WriteLine("[TIMER] Preview otomatik kapanma timer'ı tetiklendi (3 saniye sonra)");
 
-                // Eğer ayar sürekli açık değilse önizlemeyi gizle
-                if (!IsPreviewAlwaysVisible)
+                // Preview'ı gizle (3 saniye boyunca yazı yazılmadı)
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    Console.WriteLine("[TIMER] Önizleme gizleniyor (1 saniye boyunca yazı yazılmadı)");
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        HidePreview();
-                    });
-                }
-                else
-                {
-                    Console.WriteLine("[TIMER] Önizleme gizlenmedi (sürekli açık ayarı aktif)");
-                }
+                    HidePreview();
+                    Console.WriteLine("[TIMER] Preview 3 saniye sonra otomatik kapandı");
+                });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] OnHidePreviewTimerElapsed hatası: {ex.Message}");
+                Console.WriteLine($"[ERROR] OnPreviewAutoHideTimerElapsed hatası: {ex.Message}");
             }
         }
 
-        private void RestartHidePreviewTimer()
+        private void RestartPreviewAutoHideTimer()
         {
             try
             {
-                // Eğer sürekli açık ayarı aktifse timer'ı çalıştırma
-                if (IsPreviewAlwaysVisible)
-                {
-                    return;
-                }
-
                 // Mevcut timer'ı durdur
-                _hidePreviewTimer?.Stop();
+                _previewAutoHideTimer?.Stop();
 
-                // Timer'ı yeniden başlat
-                _hidePreviewTimer?.Start();
+                // Timer'ı yeniden başlat (3 saniye)
+                _previewAutoHideTimer?.Start();
 
-                Console.WriteLine("[TIMER] Preview gizleme timer'ı yeniden başlatıldı (1 saniye)");
+                Console.WriteLine("[TIMER] Preview otomatik kapanma timer'ı yeniden başlatıldı (3 saniye)");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] RestartHidePreviewTimer hatası: {ex.Message}");
+                Console.WriteLine($"[ERROR] RestartPreviewAutoHideTimer hatası: {ex.Message}");
             }
         }
 
@@ -638,8 +610,8 @@ namespace OtomatikMetinGenisletici.ViewModels
             // Yazı yazma zamanını güncelle
             _lastKeyPressTime = DateTime.Now;
 
-            // Timer'ı yeniden başlat (önceki timer'ı durdur ve yenisini başlat)
-            RestartHidePreviewTimer();
+            // Preview otomatik kapanma timer'ını yeniden başlat
+            RestartPreviewAutoHideTimer();
 
             // Aktif pencere değişikliği kontrolü
             string currentActiveWindow = WindowHelper.GetActiveWindowTitle();
@@ -648,17 +620,14 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Console.WriteLine($"[FOCUS] Pencere değişti: '{_lastActiveWindow}' -> '{currentActiveWindow}'");
                 WriteToLogFile($"[FOCUS] Pencere değişti: '{_lastActiveWindow}' -> '{currentActiveWindow}'");
 
-                // Eğer "sürekli açık" ayarı kapalıysa ön izleme penceresini kapat
-                if (!IsPreviewAlwaysVisible)
-                {
-                    Console.WriteLine("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
-                    WriteToLogFile("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
+                // Pencere değiştiğinde ön izleme penceresini kapat
+                Console.WriteLine("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
+                WriteToLogFile("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
 
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        HidePreview();
-                    });
-                }
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    HidePreview();
+                });
             }
             _lastActiveWindow = currentActiveWindow;
 
@@ -929,10 +898,10 @@ namespace OtomatikMetinGenisletici.ViewModels
                     return;
                 }
 
-                // Eğer sürekli açık ayarı kapalıysa ve buffer boşsa önizlemeyi gizle
-                if (!IsPreviewAlwaysVisible && string.IsNullOrEmpty(buffer?.Trim()))
+                // Buffer boşsa önizlemeyi gizle
+                if (string.IsNullOrEmpty(buffer?.Trim()))
                 {
-                    Console.WriteLine("[PREVIEW] Buffer boş ve sürekli açık ayarı kapalı, önizleme gizleniyor");
+                    Console.WriteLine("[PREVIEW] Buffer boş, önizleme gizleniyor");
                     HidePreview();
                     return;
                 }
@@ -1445,7 +1414,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         // Önizleme açık kalsın - sadece önerileri temizle
-                        SafeSetPreviewText("🔄 Yeni tahmin hazırlanıyor...");
                         SmartSuggestions.Clear();
                     });
 
@@ -1985,9 +1953,9 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                // Önizleme sürekli açık kalma ayarı kontrol et
-                Console.WriteLine($"[DEBUG] HidePreview çağrıldı. IsPreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
-                WriteToLogFile($"[DEBUG] HidePreview çağrıldı. IsPreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
+                // Önizleme gizleme işlemi
+                Console.WriteLine("[DEBUG] HidePreview çağrıldı");
+                WriteToLogFile("[DEBUG] HidePreview çağrıldı");
 
                 // Thread safety check
                 if (!Application.Current.Dispatcher.CheckAccess())
@@ -1996,24 +1964,16 @@ namespace OtomatikMetinGenisletici.ViewModels
                     return;
                 }
 
-                if (!IsPreviewAlwaysVisible)
+                // Null check
+                if (_previewOverlay == null)
                 {
-                    // Null check
-                    if (_previewOverlay == null)
-                    {
-                        Console.WriteLine("[PREVIEW] PreviewOverlay null, gizleme işlemi atlanıyor");
-                        return;
-                    }
+                    Console.WriteLine("[PREVIEW] PreviewOverlay null, gizleme işlemi atlanıyor");
+                    return;
+                }
 
-                    _previewOverlay.HidePreview();
-                    Console.WriteLine("[PREVIEW] Önizleme gizlendi (ayar: otomatik gizle)");
-                    WriteToLogFile("[PREVIEW] Önizleme gizlendi (ayar: otomatik gizle)");
-                }
-                else
-                {
-                    Console.WriteLine("[PREVIEW] Önizleme gizlenmedi (ayar: sürekli açık)");
-                    WriteToLogFile("[PREVIEW] Önizleme gizlenmedi (ayar: sürekli açık)");
-                }
+                _previewOverlay.HidePreview();
+                Console.WriteLine("[PREVIEW] Önizleme gizlendi");
+                WriteToLogFile("[PREVIEW] Önizleme gizlendi");
             }
             catch (Exception ex)
             {
@@ -2027,7 +1987,8 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         // Yazı yazma durumu takibi için
         private DateTime _lastKeyPressTime = DateTime.MinValue;
-        private System.Timers.Timer? _hidePreviewTimer;
+        // Preview otomatik kapanma timer'ı (3 saniye)
+        private System.Timers.Timer? _previewAutoHideTimer;
 
         private async Task UpdateWordCompletionAsync(string partialWord, string fullContext)
         {
@@ -2417,10 +2378,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             OnPropertyChanged(nameof(SmartSuggestionsStatusText));
             OnPropertyChanged(nameof(SmartSuggestionsStatusColor));
 
-            // Önizleme ayarları değiştiğinde UI'ı güncelle
-            OnPropertyChanged(nameof(IsPreviewAlwaysVisible));
-            OnPropertyChanged(nameof(PreviewVisibilityStatusText));
-            OnPropertyChanged(nameof(PreviewVisibilityStatusColor));
+
 
             // Pencere filtreleme ayarları değiştiğinde UI'ı güncelle
             OnPropertyChanged(nameof(IsWindowFilteringEnabled));
@@ -3532,12 +3490,12 @@ namespace OtomatikMetinGenisletici.ViewModels
             _previewOverlay?.Close();
             _shortcutPreviewWindow?.Close();
 
-            // Timer'ı temizle
-            if (_hidePreviewTimer != null)
+            // Preview otomatik kapanma timer'ını temizle
+            if (_previewAutoHideTimer != null)
             {
-                _hidePreviewTimer.Stop();
-                _hidePreviewTimer.Dispose();
-                _hidePreviewTimer = null;
+                _previewAutoHideTimer.Stop();
+                _previewAutoHideTimer.Dispose();
+                _previewAutoHideTimer = null;
             }
         }
 

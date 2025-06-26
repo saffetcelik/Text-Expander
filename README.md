@@ -50,7 +50,7 @@
 - **🔔 Akıllı Bildirimler**: Önemli olaylar için minimal ve zarif bildirimler
 - **📱 Sistem Tepsisi Entegrasyonu**: Arka planda çalışarak sistem kaynaklarını korur
 - **🔒 Yerel Veri Depolama**: İnternet bağlantısı gerektirmeden tamamen offline çalışır
-- **🎛️ Hotkey Desteği**: Ctrl+Space ile manuel öneri tetikleme
+- **🎛️ Hotkey Desteği**: Space ile manuel öneri tetikleme
 - **📋 Akıllı Clipboard Yönetimi**: Güvenli metin değiştirme ve geri alma
 - **🔍 Pencere Filtreleme**: Belirli uygulamalarda çalışma/çalışmama kontrolü
 - **📈 Kullanım İstatistikleri**: Kısayol kullanım sıklığı ve performans metrikleri
@@ -134,7 +134,6 @@ Text Expander, 20+ parametre ile tamamen özelleştirilebilir bir yapılandırma
 #### 🎨 Arayüz Ayarları
 | Parametre | Tip | Açıklama | Varsayılan | UI Etkisi |
 |-----------|-----|----------|------------|-----------|
-| `PreviewAlwaysVisible` | `bool` | Önizleme sürekli görünür | `true` | Visibility |
 | `MinWordLength` | `int` | Minimum kelime uzunluğu | `2` | Filtering |
 | `MaxSuggestions` | `int` | Maksimum genel öneri | `20` | Performance |
 
@@ -148,8 +147,7 @@ Text Expander, 20+ parametre ile tamamen özelleştirilebilir bir yapılandırma
   "SmartSuggestionsEnabled": true,
   "LearningEnabled": true,
   "ContextWeight": 0.7,
-  "LearningWeight": 1.0,
-  "PreviewAlwaysVisible": true
+  "LearningWeight": 1.0
 }
 ```
 

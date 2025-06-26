@@ -14,14 +14,13 @@
   "MinWordLength": 2,
   "LearningEnabled": true,
   "LearningWeight": 0.8,
-  "PreviewAlwaysVisible": false,
   "ShortcutPreviewPanelVisible": false,
-  "ShortcutPreviewPanelOpacity": 0.9,
+  "ShortcutPreviewPanelOpacity": 1.0,
   "ShortcutPreviewPanelWidth": 290.0,
   "ShortcutPreviewPanelHeight": 481.0,
-  "ShortcutPreviewPanelLeft": -1.0,
-  "ShortcutPreviewPanelTop": -1.0,
+  "ShortcutPreviewPanelLeft": 1568.0,
+  "ShortcutPreviewPanelTop": 217.0,
   "WindowFilters": [],
-  "WindowFilteringEnabled": false,
+  "WindowFilteringEnabled": true,
   "WindowFilterMode": 0
 }
