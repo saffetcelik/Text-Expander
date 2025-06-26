@@ -96,6 +96,31 @@ public partial class MainWindow : Window
                 Console.WriteLine($"[ERROR] Global hotkey kaydetme hatası: {ex.Message}");
             }
 
+            Console.WriteLine("[DEBUG] Kısayol önizleme paneli kontrol ediliyor...");
+            // Kısayol önizleme panelini ayarlara göre göster
+            try
+            {
+                // Loaded event'inde göster (UI tamamen yüklendikten sonra)
+                Loaded += async (s, e) =>
+                {
+                    if (_viewModel.IsShortcutPreviewPanelVisible)
+                    {
+                        Console.WriteLine("[DEBUG] Kısayol önizleme paneli açılışta gösteriliyor");
+
+                        // Kısayolların yüklenmesini bekle
+                        await Task.Delay(500); // UI'nin tamamen yüklenmesini bekle
+
+                        // Kısayolları yükle ve paneli göster
+                        await _viewModel.LoadShortcutsAsync();
+                        _viewModel.ShowShortcutPreviewPanel();
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Kısayol önizleme paneli başlatma hatası: {ex.Message}");
+            }
+
             Console.WriteLine("[DEBUG] MainWindow constructor tamamlandı.");
         }
         catch (Exception ex)

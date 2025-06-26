@@ -130,7 +130,7 @@
                                       Name="PreviewAlwaysVisibleCheckBox"
                                       Content="👁️ Metin önizlemesini sürekli açık tut"
                                       Margin="0,8"
-                                      ToolTip="Açık: Önizleme sürekli görünür kalır&#x0a;Kapalı: Önizleme sadece yazı yazarken görünür (3 saniye sonra gizlenir)"/>
+                                      ToolTip="Açık: Önizleme sürekli görünür kalır&#x0a;Kapalı: Önizleme sadece yazı yazarken görünür (1 saniye sonra gizlenir)"/>
 
                             <TextBlock Grid.Row="3" Grid.Column="0"
                                        Text="📊 Maks. akıllı öneri sayısı:"

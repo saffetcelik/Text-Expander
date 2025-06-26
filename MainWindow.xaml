@@ -83,7 +83,8 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="🔗 Kısayol Önizlemesi"
+                    <Button x:Name="ShortcutPreviewButton"
+                            Content="🔗 Kısayol Önizlemesi"
                             Style="{StaticResource ModernButtonStyle}"
                             Background="Transparent"
                             BorderThickness="1"
@@ -91,12 +92,20 @@
                             Click="ToggleShortcutPreview_Click"
                             Margin="8,0"
                             ToolTip="Kısayol önizleme panelini göster/gizle"/>
-                    <Button Content="⚙️ Ayarlar"
+                    <Button x:Name="SettingsButton"
+                            Content="⚙️ Ayarlar"
                             Style="{StaticResource ModernButtonStyle}"
                             Background="Transparent"
                             BorderThickness="1"
                             BorderBrush="White"
                             Click="ShowSettings_Click"
+                            Margin="8,0"/>
+                    <Button Content="🎓 Turu Başlat"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Background="Transparent"
+                            BorderThickness="1"
+                            BorderBrush="White"
+                            Command="{Binding StartTourCommand}"
                             Margin="8,0"/>
                     <Button Content="ℹ️ Hakkında"
                             Style="{StaticResource ModernButtonStyle}"
@@ -189,7 +198,8 @@
                                     Orientation="Horizontal"
                                     HorizontalAlignment="Left"
                                     Margin="0,0,0,16">
-                            <Button Content="➕ Ekle"
+                            <Button x:Name="AddShortcutButton"
+                                    Content="➕ Ekle"
                                     Style="{StaticResource SuccessButtonStyle}"
                                     Command="{Binding AddShortcutCommand}"/>
                             <Button Content="✏️ Düzenle"

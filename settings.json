@@ -21,41 +21,7 @@
   "ShortcutPreviewPanelHeight": 481.0,
   "ShortcutPreviewPanelLeft": -1.0,
   "ShortcutPreviewPanelTop": -1.0,
-  "WindowFilters": [
-    {
-      "Name": "notepad (Process)",
-      "TitlePattern": "",
-      "ProcessName": "notepad",
-      "IsEnabled": true,
-      "FilterType": 2,
-      "IsRegex": false,
-      "FilterTypeDisplayName": "Process Eşittir",
-      "StatusText": "🟢 Aktif",
-      "StatusColor": "Green"
-    },
-    {
-      "Name": "notepad - *Untitled - Notepad",
-      "TitlePattern": "*Untitled - Notepad",
-      "ProcessName": "",
-      "IsEnabled": true,
-      "FilterType": 1,
-      "IsRegex": false,
-      "FilterTypeDisplayName": "Başlık Eşittir",
-      "StatusText": "🟢 Aktif",
-      "StatusColor": "Green"
-    },
-    {
-      "Name": "notepad - Untitled - Notepad",
-      "TitlePattern": "Untitled - Notepad",
-      "ProcessName": "",
-      "IsEnabled": true,
-      "FilterType": 1,
-      "IsRegex": false,
-      "FilterTypeDisplayName": "Başlık Eşittir",
-      "StatusText": "🟢 Aktif",
-      "StatusColor": "Green"
-    }
-  ],
+  "WindowFilters": [],
   "WindowFilteringEnabled": false,
   "WindowFilterMode": 0
 }

@@ -45,7 +45,7 @@ namespace OtomatikMetinGenisletici.Services
         public event Action<string>? WordCompleted;
         public event Action<string>? SentenceCompleted;
         public event Action? CtrlSpacePressed;
-        public event Action? TabPressed;
+        public event Func<bool>? TabPressed; // Func<bool> - true döndürürse Tab engellenir
         public event Action<string>? SpacePressed;
         public bool IsListening => _globalHook != null;
 
@@ -134,13 +134,30 @@ namespace OtomatikMetinGenisletici.Services
                 Console.WriteLine($"[DEBUG] *** TAB TUŞU ALGILANDI ***");
                 WriteToLogFile($"[DEBUG] *** TAB TUŞU ALGILANDI ***");
 
-                // Önce Tab event'ini tetikle
-                TabPressed?.Invoke();
+                // Alt+Tab kombinasyonunu kontrol et (pencere geçişi)
+                if ((Control.ModifierKeys & Keys.Alt) == Keys.Alt)
+                {
+                    Console.WriteLine($"[DEBUG] Alt+Tab algılandı - pencere geçişine izin veriliyor");
+                    WriteToLogFile($"[DEBUG] Alt+Tab algılandı - pencere geçişine izin veriliyor");
+                    return; // Alt+Tab'ın normal işlevini engelleme
+                }
 
-                // Tab tuşunun varsayılan işlevini engelle (boşluk eklemesin)
-                e.Handled = true;
-                Console.WriteLine($"[DEBUG] *** TAB TUŞU VARSAYILAN İŞLEVİ ENGELLENDİ ***");
-                WriteToLogFile($"[DEBUG] *** TAB TUŞU VARSAYILAN İŞLEVİ ENGELLENDİ ***");
+                // Tab event'ini tetikle ve sonucunu kontrol et
+                bool shouldHandleTab = TabPressed?.Invoke() ?? false;
+
+                if (shouldHandleTab)
+                {
+                    // Metin tamamlama önerisi var - Tab'ı engelle
+                    e.Handled = true;
+                    Console.WriteLine($"[DEBUG] *** TAB TUŞU METIN TAMAMLAMA İÇİN ENGELLENDİ ***");
+                    WriteToLogFile($"[DEBUG] *** TAB TUŞU METIN TAMAMLAMA İÇİN ENGELLENDİ ***");
+                }
+                else
+                {
+                    // Metin tamamlama önerisi yok - Tab'ın normal işlevine izin ver
+                    Console.WriteLine($"[DEBUG] *** TAB TUŞU NORMAL İŞLEVİNE İZİN VERİLDİ ***");
+                    WriteToLogFile($"[DEBUG] *** TAB TUŞU NORMAL İŞLEVİNE İZİN VERİLDİ ***");
+                }
                 return;
             }
 

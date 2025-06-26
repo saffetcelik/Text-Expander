@@ -28,7 +28,7 @@ namespace OtomatikMetinGenisletici.Models
         private bool _previewAlwaysVisible = false; // Varsayılan: sadece yazı yazarken görünür
 
         // Kısayol Önizleme Paneli Ayarları
-        private bool _shortcutPreviewPanelVisible = false;
+        private bool _shortcutPreviewPanelVisible = true; // Varsayılan: açılışta açık
         private double _shortcutPreviewPanelOpacity = 0.9;
         private double _shortcutPreviewPanelWidth = 290;
         private double _shortcutPreviewPanelHeight = 481;

@@ -128,6 +128,7 @@ public partial class App : Application
                     services.AddSingleton<IImageRecognitionService, ImageRecognitionService>();
                     services.AddSingleton<IWindowBehaviorService, WindowBehaviorService>();
                     services.AddSingleton<IAdvancedInputService, AdvancedInputService>();
+                    services.AddSingleton<ITourService, TourService>();
 
                     // Register ViewModels
                     services.AddTransient<MainViewModel>();
