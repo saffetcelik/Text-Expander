@@ -14,7 +14,16 @@
     <PackageReference Include="ModernWpfUI" Version="0.9.6" />
     <PackageReference Include="MouseKeyHook" Version="5.7.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.9.0.20240103" />
+    <PackageReference Include="OpenCvSharp4.Windows" Version="4.9.0.20240103" />
     <PackageReference Include="System.Windows.Forms" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- imlec.png dosyasının derleme çıktısına kopyalanmasını sağlar -->
+    <Content Include="imlec.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

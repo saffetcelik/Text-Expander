@@ -17,6 +17,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         private readonly ISmartSuggestionsService _smartSuggestionsService;
         private readonly ISettingsService _settingsService;
         private readonly IKeyboardHookService _keyboardHookService;
+        private readonly IAdvancedInputService _advancedInputService;
         private PreviewOverlay? _previewOverlay;
 
         private string _shortcutFilter = string.Empty;
@@ -24,6 +25,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         private string _contextBuffer = string.Empty;
         private Shortcut? _selectedShortcut;
         private List<SmartSuggestion> _currentSmartSuggestions = new();
+        private string _lastActiveWindow = string.Empty;
 
 
 
@@ -241,7 +243,8 @@ namespace OtomatikMetinGenisletici.ViewModels
             IShortcutService shortcutService,
             ISmartSuggestionsService smartSuggestionsService,
             ISettingsService settingsService,
-            IKeyboardHookService keyboardHookService)
+            IKeyboardHookService keyboardHookService,
+            IAdvancedInputService advancedInputService)
         {
             try
             {
@@ -252,6 +255,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 _smartSuggestionsService = smartSuggestionsService ?? throw new ArgumentNullException(nameof(smartSuggestionsService));
                 _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
                 _keyboardHookService = keyboardHookService ?? throw new ArgumentNullException(nameof(keyboardHookService));
+                _advancedInputService = advancedInputService ?? throw new ArgumentNullException(nameof(advancedInputService));
 
                 Console.WriteLine("[DEBUG] Servisler atandı, PreviewOverlay oluşturuluyor...");
 
@@ -353,6 +357,8 @@ namespace OtomatikMetinGenisletici.ViewModels
                 // PreviewOverlay'i test et
                 TestPreviewOverlay();
 
+                Console.WriteLine("[DEBUG] Pencere değişikliği algılama hazır (OnKeyPressed içinde kontrol edilecek)");
+
                 Console.WriteLine("[DEBUG] InitializeServices tamamlandı.");
             }
             catch (Exception ex)
@@ -424,18 +430,9 @@ namespace OtomatikMetinGenisletici.ViewModels
                 WriteToLogFile($"[DEBUG] IsSmartSuggestionsEnabled: {smartEnabled}");
 
                 // İlk açılışta önizlemeyi gizle (sadece yazı yazarken görünecek)
-                if (!IsPreviewAlwaysVisible)
-                {
-                    HidePreview();
-                    Console.WriteLine("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
-                    WriteToLogFile("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
-                }
-                else
-                {
-                    SafeSetPreviewText("✏️ Yazmaya başlayın...");
-                    Console.WriteLine("[DEBUG] İlk açılış preview'ı ayarlandı (sürekli açık modu)");
-                    WriteToLogFile("[DEBUG] İlk açılış preview'ı ayarlandı (sürekli açık modu)");
-                }
+                HidePreview();
+                Console.WriteLine("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
+                WriteToLogFile("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
 
                 // AYAR DEBUG - Başlangıçta ayarları kontrol et
                 Console.WriteLine($"[AYAR DEBUG] Constructor'da PreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
@@ -477,7 +474,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 // 3 saniye sonra önizlemeyi gizleyecek timer
-                _hidePreviewTimer = new System.Timers.Timer(3000); // 3 saniye
+                _hidePreviewTimer = new System.Timers.Timer(1000); // 3 saniye
                 _hidePreviewTimer.Elapsed += OnHidePreviewTimerElapsed;
                 _hidePreviewTimer.AutoReset = false; // Sadece bir kez çalışsın
                 Console.WriteLine("[DEBUG] Preview timer başlatıldı");
@@ -613,6 +610,27 @@ namespace OtomatikMetinGenisletici.ViewModels
 
             // Timer'ı yeniden başlat (önceki timer'ı durdur ve yenisini başlat)
             RestartHidePreviewTimer();
+
+            // Aktif pencere değişikliği kontrolü
+            string currentActiveWindow = WindowHelper.GetActiveWindowTitle();
+            if (!string.IsNullOrEmpty(_lastActiveWindow) && _lastActiveWindow != currentActiveWindow)
+            {
+                Console.WriteLine($"[FOCUS] Pencere değişti: '{_lastActiveWindow}' -> '{currentActiveWindow}'");
+                WriteToLogFile($"[FOCUS] Pencere değişti: '{_lastActiveWindow}' -> '{currentActiveWindow}'");
+
+                // Eğer "sürekli açık" ayarı kapalıysa ön izleme penceresini kapat
+                if (!IsPreviewAlwaysVisible)
+                {
+                    Console.WriteLine("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
+                    WriteToLogFile("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        HidePreview();
+                    });
+                }
+            }
+            _lastActiveWindow = currentActiveWindow;
 
             // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
             bool shouldBeActive = WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled, WindowFilterMode);
@@ -869,22 +887,38 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         private void ShowPreview(string buffer)
         {
-            Console.WriteLine($"[PREVIEW] *** ShowPreview çağrıldı, buffer: '{buffer}' ***");
-            WriteToLogFile($"[PREVIEW] *** ShowPreview çağrıldı, buffer: '{buffer}' ***");
-
-            // Eğer sürekli açık ayarı kapalıysa ve buffer boşsa önizlemeyi gizle
-            if (!IsPreviewAlwaysVisible && string.IsNullOrEmpty(buffer?.Trim()))
+            try
             {
-                Console.WriteLine("[PREVIEW] Buffer boş ve sürekli açık ayarı kapalı, önizleme gizleniyor");
-                HidePreview();
-                return;
+                Console.WriteLine($"[PREVIEW] *** ShowPreview çağrıldı, buffer: '{buffer}' ***");
+                WriteToLogFile($"[PREVIEW] *** ShowPreview çağrıldı, buffer: '{buffer}' ***");
+
+                // Thread safety check
+                if (!Application.Current.Dispatcher.CheckAccess())
+                {
+                    Application.Current.Dispatcher.Invoke(() => ShowPreview(buffer));
+                    return;
+                }
+
+                // Eğer sürekli açık ayarı kapalıysa ve buffer boşsa önizlemeyi gizle
+                if (!IsPreviewAlwaysVisible && string.IsNullOrEmpty(buffer?.Trim()))
+                {
+                    Console.WriteLine("[PREVIEW] Buffer boş ve sürekli açık ayarı kapalı, önizleme gizleniyor");
+                    HidePreview();
+                    return;
+                }
+
+                // PreviewOverlay null kontrolü
+                if (_previewOverlay == null)
+                {
+                    Console.WriteLine("[ERROR] _previewOverlay null, preview gösterilemiyor");
+                    WriteToLogFile("[ERROR] _previewOverlay null, preview gösterilemiyor");
+                    return;
+                }
             }
-
-            // PreviewOverlay null kontrolü
-            if (_previewOverlay == null)
+            catch (Exception ex)
             {
-                Console.WriteLine("[ERROR] _previewOverlay null, preview gösterilemiyor");
-                WriteToLogFile("[ERROR] _previewOverlay null, preview gösterilemiyor");
+                Console.WriteLine($"[ERROR] ShowPreview başlangıç hatası: {ex.Message}");
+                WriteToLogFile($"[ERROR] ShowPreview başlangıç hatası: {ex.Message}");
                 return;
             }
 
@@ -897,15 +931,16 @@ namespace OtomatikMetinGenisletici.ViewModels
             {
                 Console.WriteLine("[PREVIEW] Pencere filtreleri nedeniyle metin genişletme duraklatıldı");
                 WriteToLogFile("[PREVIEW] Pencere filtreleri nedeniyle metin genişletme duraklatıldı");
-                SafeSetPreviewText("⏸️ Bu pencerede metin genişletme devre dışı");
+                // Uyarı mesajı gösterme, sadece önizlemeyi gizle
+                HidePreview();
                 return;
             }
 
             if (string.IsNullOrEmpty(buffer))
             {
-                Console.WriteLine("[PREVIEW] Buffer boş, ama preview açık kalıyor");
-                WriteToLogFile("[PREVIEW] Buffer boş, ama preview açık kalıyor");
-                SafeSetPreviewText("✏️ Yazmaya başlayın...");
+                Console.WriteLine("[PREVIEW] Buffer boş, önizleme gizleniyor");
+                WriteToLogFile("[PREVIEW] Buffer boş, önizleme gizleniyor");
+                HidePreview();
                 return;
             }
 
@@ -970,7 +1005,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 if (_currentSmartSuggestions.Count > 0)
                 {
                     var confidence = _currentSmartSuggestions[0].Confidence;
-                    previewText = $"💡 {_currentSuggestion} (Tab - {confidence:P0})";
+                    previewText = $"💡 {_currentSuggestion} ({confidence:P0})";
                 }
 
                 SafeSetPreviewText(previewText);
@@ -1026,8 +1061,8 @@ namespace OtomatikMetinGenisletici.ViewModels
                     }
                     else
                     {
-                        // Tahmin yok - sessiz kal
-                        previewText = "";
+                        // Tahmin yok - test metni göster
+                        previewText = $"📝 '{buffer.Trim()}' yazıyorsunuz...";
                     }
 
                     SafeSetPreviewText(previewText);
@@ -1037,10 +1072,10 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
             else
             {
-                // Buffer boş - ama önizleme açık kalsın
-                Console.WriteLine("[PREVIEW] Buffer boş, ama önizleme açık kalıyor");
-                WriteToLogFile("[PREVIEW] Buffer boş, ama önizleme açık kalıyor");
-                SafeSetPreviewText("✏️ Yazmaya başlayın...");
+                // Buffer boş - önizlemeyi gizle
+                Console.WriteLine("[PREVIEW] Buffer boş, önizleme gizleniyor");
+                WriteToLogFile("[PREVIEW] Buffer boş, önizleme gizleniyor");
+                HidePreview();
                 _currentSmartSuggestions.Clear();
 
                 Application.Current.Dispatcher.Invoke(() =>
@@ -1231,7 +1266,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _currentSuggestion = suggestion.Text;
 
                     // Preview'da akıllı öneriyi göster
-                    var previewText = $"💡 {suggestion.Text} (Tab - {suggestion.Confidence:P0})";
+                    var previewText = $"💡 {suggestion.Text} ({suggestion.Confidence:P0})";
                     Console.WriteLine($"[SMART SUGGESTIONS] Preview gösteriliyor: {previewText}");
 
                     // Preview overlay'de göster - UI thread'de çalıştır
@@ -1266,9 +1301,10 @@ namespace OtomatikMetinGenisletici.ViewModels
                         SmartSuggestions.Clear();
 
                         // ÖNEMLİ: Önizlemeyi ASLA gizleme!
-                        // Öneri yok - sessiz kal
-                        SafeSetPreviewText("");
-                        Console.WriteLine($"[SMART SUGGESTIONS] Öneri yok, ama önizleme açık kalıyor");
+                        // Öneri yok - test metni göster
+                        var testText = $"📝 '{buffer.Trim()}' yazıyorsunuz...";
+                        SafeSetPreviewText(testText);
+                        Console.WriteLine($"[SMART SUGGESTIONS] Öneri yok, test metni gösteriliyor: {testText}");
                     });
                 }
             }
@@ -1411,8 +1447,8 @@ namespace OtomatikMetinGenisletici.ViewModels
 
             Application.Current.Dispatcher.Invoke(() =>
             {
-                // Önizleme açık kalsın - hazır mesajı göster
-                SafeSetPreviewText("✏️ Yazmaya devam edin...");
+                // Önizlemeyi gizle
+                HidePreview();
                 SmartSuggestions.Clear();
             });
         }
@@ -1457,7 +1493,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                             Console.WriteLine($"[DEBUG] *** Sonraki kelime önerisi: '{_currentSuggestion}' ***");
 
                             // Preview'da göster
-                            var previewText = $"💡 {_currentSuggestion} (Tab - {suggestions.First().Confidence:P0})";
+                            var previewText = $"💡 {_currentSuggestion} ({suggestions.First().Confidence:P0})";
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 SafeSetPreviewText(previewText);
@@ -1491,7 +1527,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                             Console.WriteLine($"[DEBUG] *** Tek kelime önerisi: '{_currentSuggestion}' ***");
 
-                            var previewText = $"💡 {_currentSuggestion} (Tab - {suggestions.First().Confidence:P0})";
+                            var previewText = $"💡 {_currentSuggestion} ({suggestions.First().Confidence:P0})";
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 SafeSetPreviewText(previewText);
@@ -1538,14 +1574,15 @@ namespace OtomatikMetinGenisletici.ViewModels
                         }
                     }
 
-                    // Hiç tahmin bulunamadı - önizleme açık kalsın
-                    Console.WriteLine("[DEBUG] Hiç tahmin bulunamadı - önizleme açık kalıyor");
+                    // Hiç tahmin bulunamadı - test metni göster
+                    Console.WriteLine("[DEBUG] Hiç tahmin bulunamadı - test metni gösteriliyor");
                     _currentSuggestion = "";
                     _currentSmartSuggestions.Clear();
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        // Tahmin yok ama önizleme açık kalsın - boş string gönderme!
-                        SafeSetPreviewText("✏️ Yazmaya devam edin...");
+                        // Test metni göster
+                        var testText = "⌨️ Yazıyorsunuz...";
+                        SafeSetPreviewText(testText);
                         SmartSuggestions.Clear();
                     });
                 }
@@ -1560,9 +1597,48 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                Console.WriteLine($"[DEBUG] SendTextToActiveWindow: '{text}'");
+                Console.WriteLine($"[DEBUG] SendTextToActiveWindow (Advanced): '{text}'");
 
-                // Clipboard kullanarak metin gönder
+                // AdvancedInputService kullanarak metin gönder
+                bool success = await _advancedInputService.SendTextAsync(text);
+
+                if (success)
+                {
+                    Console.WriteLine($"[DEBUG] Metin başarıyla gönderildi: '{text}'");
+                }
+                else
+                {
+                    Console.WriteLine($"[ERROR] Metin gönderilemedi: '{text}'");
+
+                    // Fallback: eski yöntem
+                    Console.WriteLine("[DEBUG] Fallback yöntemi deneniyor...");
+                    await SendTextToActiveWindowFallback(text);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] SendTextToActiveWindow hatası: {ex.Message}");
+
+                // Fallback: eski yöntem
+                try
+                {
+                    Console.WriteLine("[DEBUG] Exception fallback yöntemi deneniyor...");
+                    await SendTextToActiveWindowFallback(text);
+                }
+                catch (Exception fallbackEx)
+                {
+                    Console.WriteLine($"[ERROR] Fallback yöntemi de başarısız: {fallbackEx.Message}");
+                }
+            }
+        }
+
+        private async Task SendTextToActiveWindowFallback(string text)
+        {
+            try
+            {
+                Console.WriteLine($"[DEBUG] SendTextToActiveWindowFallback: '{text}'");
+
+                // Eski clipboard yöntemi
                 await Task.Run(() =>
                 {
                     // Mevcut clipboard içeriğini kaydet
@@ -1599,11 +1675,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                     }
                 });
 
-                Console.WriteLine($"[DEBUG] Metin gönderildi: '{text}'");
+                Console.WriteLine($"[DEBUG] Fallback metin gönderildi: '{text}'");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] SendTextToActiveWindow hatası: {ex.Message}");
+                Console.WriteLine($"[ERROR] SendTextToActiveWindowFallback hatası: {ex.Message}");
             }
         }
 
@@ -1811,20 +1887,42 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         public void HidePreview()
         {
-            // Önizleme sürekli açık kalma ayarı kontrol et
-            Console.WriteLine($"[DEBUG] HidePreview çağrıldı. IsPreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
-            WriteToLogFile($"[DEBUG] HidePreview çağrıldı. IsPreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
+            try
+            {
+                // Önizleme sürekli açık kalma ayarı kontrol et
+                Console.WriteLine($"[DEBUG] HidePreview çağrıldı. IsPreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
+                WriteToLogFile($"[DEBUG] HidePreview çağrıldı. IsPreviewAlwaysVisible: {IsPreviewAlwaysVisible}");
 
-            if (!IsPreviewAlwaysVisible)
-            {
-                _previewOverlay?.HidePreview();
-                Console.WriteLine("[PREVIEW] Önizleme gizlendi (ayar: otomatik gizle)");
-                WriteToLogFile("[PREVIEW] Önizleme gizlendi (ayar: otomatik gizle)");
+                // Thread safety check
+                if (!Application.Current.Dispatcher.CheckAccess())
+                {
+                    Application.Current.Dispatcher.Invoke(() => HidePreview());
+                    return;
+                }
+
+                if (!IsPreviewAlwaysVisible)
+                {
+                    // Null check
+                    if (_previewOverlay == null)
+                    {
+                        Console.WriteLine("[PREVIEW] PreviewOverlay null, gizleme işlemi atlanıyor");
+                        return;
+                    }
+
+                    _previewOverlay.HidePreview();
+                    Console.WriteLine("[PREVIEW] Önizleme gizlendi (ayar: otomatik gizle)");
+                    WriteToLogFile("[PREVIEW] Önizleme gizlendi (ayar: otomatik gizle)");
+                }
+                else
+                {
+                    Console.WriteLine("[PREVIEW] Önizleme gizlenmedi (ayar: sürekli açık)");
+                    WriteToLogFile("[PREVIEW] Önizleme gizlenmedi (ayar: sürekli açık)");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("[PREVIEW] Önizleme gizlenmedi (ayar: sürekli açık)");
-                WriteToLogFile("[PREVIEW] Önizleme gizlenmedi (ayar: sürekli açık)");
+                Console.WriteLine($"[ERROR] HidePreview hatası: {ex.Message}");
+                WriteToLogFile($"[ERROR] HidePreview hatası: {ex.Message}");
             }
         }
 
@@ -3028,7 +3126,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 else
                 {
                     Console.WriteLine("[DEBUG] Öğrenme logu dosyası bulunamadı, varsayılan değerler kullanılıyor");
-                    LearningLog = "Henüz öğrenilen cümle yok. Yazmaya başlayın!\n";
+                    LearningLog = "Henüz öğrenilen cümle yok.\n";
                 }
             }
             catch (Exception ex)

@@ -10,6 +10,7 @@ using OtomatikMetinGenisletici.ViewModels;
 using OtomatikMetinGenisletici.Services;
 using OtomatikMetinGenisletici.Views;
 using OtomatikMetinGenisletici.Models;
+using OtomatikMetinGenisletici.Helpers;
 
 namespace OtomatikMetinGenisletici;
 
@@ -66,6 +67,15 @@ public partial class MainWindow : Window
             // NotificationService'e bu MainWindow referansını ver
             _notificationService.SetMainWindow(this);
 
+            Console.WriteLine("[DEBUG] ImageRecognitionService ayarlanıyor...");
+            // ImageRecognitionService'i WindowHelper'a bağla
+            var imageRecognitionService = ServiceProviderExtensions.Services.GetService<IImageRecognitionService>();
+            if (imageRecognitionService != null)
+            {
+                WindowHelper.SetImageRecognitionService(imageRecognitionService);
+                Console.WriteLine("[DEBUG] ImageRecognitionService WindowHelper'a bağlandı");
+            }
+
             Console.WriteLine("[DEBUG] Tray icon başlatılıyor...");
             // Initialize tray icon
             _notificationService.ShowTrayIcon();
@@ -109,9 +119,6 @@ public partial class MainWindow : Window
                 Dispatcher.BeginInvoke(() =>
                 {
                     Hide();
-                    _notificationService.ShowTrayNotification(
-                        "Otomatik Metin Genişletici",
-                        "Uygulama sistem tepsisinde çalışmaya devam ediyor.");
                 });
             }
         }

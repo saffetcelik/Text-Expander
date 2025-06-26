@@ -6,11 +6,19 @@ using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
 using OtomatikMetinGenisletici.Models;
+using OtomatikMetinGenisletici.Services;
 
 namespace OtomatikMetinGenisletici.Helpers
 {
     public static class WindowHelper
     {
+        private static IImageRecognitionService? _imageRecognitionService;
+
+        public static void SetImageRecognitionService(IImageRecognitionService service)
+        {
+            _imageRecognitionService = service;
+        }
+
         [DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
 
@@ -27,6 +35,9 @@ namespace OtomatikMetinGenisletici.Helpers
         private static extern bool GetCaretPos(out POINT lpPoint);
 
         [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
         private static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
 
         [DllImport("user32.dll")]
@@ -37,6 +48,28 @@ namespace OtomatikMetinGenisletici.Helpers
 
         [DllImport("kernel32.dll")]
         private static extern uint GetCurrentThreadId();
+
+        // Window focus change detection APIs
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+
+        [DllImport("user32.dll")]
+        private static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+
+        // Win event constants
+        private const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+        private const uint WINEVENT_OUTOFCONTEXT = 0x0000;
+
+        // Delegate for window event hook
+        private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+
+        // Static fields for window focus monitoring
+        private static IntPtr _winEventHook = IntPtr.Zero;
+        private static WinEventDelegate? _winEventDelegate;
+        private static string _lastActiveWindow = "";
+
+        // Event for window focus change
+        public static event Action<string, string>? WindowFocusChanged; // (newWindowTitle, newProcessName)
 
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
@@ -212,11 +245,24 @@ namespace OtomatikMetinGenisletici.Helpers
 
         /// <summary>
         /// Aktif penceredeki cursor pozisyonunu ekran koordinatlarında alır
+        /// Önce görsel tanıma, sonra standart yöntem dener
         /// </summary>
         public static POINT? GetCaretPosition()
         {
             try
             {
+                // Önce görsel tanıma ile dene
+                if (_imageRecognitionService != null && _imageRecognitionService.IsEnabled)
+                {
+                    var imageCaretPos = _imageRecognitionService.FindCaretByImageRecognition();
+                    if (imageCaretPos.HasValue)
+                    {
+                        Console.WriteLine($"[CARET] Görsel tanıma ile bulundu: {imageCaretPos.Value.X},{imageCaretPos.Value.Y}");
+                        return new POINT { X = imageCaretPos.Value.X, Y = imageCaretPos.Value.Y };
+                    }
+                }
+
+                // Standart yöntem
                 IntPtr foregroundWindow = GetForegroundWindow();
                 if (foregroundWindow == IntPtr.Zero)
                     return null;
@@ -242,6 +288,7 @@ namespace OtomatikMetinGenisletici.Helpers
                         // Client koordinatlarını ekran koordinatlarına çevir
                         if (ClientToScreen(focusedWindow, ref caretPos))
                         {
+                            Console.WriteLine($"[CARET] Standart yöntem ile bulundu: {caretPos.X},{caretPos.Y}");
                             return caretPos;
                         }
                     }
@@ -255,10 +302,21 @@ namespace OtomatikMetinGenisletici.Helpers
                     }
                 }
 
+                Console.WriteLine($"[CARET] Standart yöntemle bulunamadı, mouse pozisyonu kullanılıyor");
+
+                // Fallback: Mouse pozisyonunu kullan
+                if (GetCursorPos(out POINT mousePos))
+                {
+                    Console.WriteLine($"[CARET] Mouse pozisyonu kullanıldı: {mousePos.X},{mousePos.Y}");
+                    return mousePos;
+                }
+
+                Console.WriteLine($"[CARET] Hiçbir yöntemle bulunamadı");
                 return null;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[ERROR] GetCaretPosition hatası: {ex.Message}");
                 return null;
             }
         }
@@ -475,6 +533,92 @@ namespace OtomatikMetinGenisletici.Helpers
             catch
             {
                 return ("", "", "");
+            }
+        }
+
+        /// <summary>
+        /// Pencere odak değişikliği algılamayı başlatır
+        /// </summary>
+        public static void StartWindowFocusMonitoring()
+        {
+            try
+            {
+                if (_winEventHook != IntPtr.Zero)
+                {
+                    Console.WriteLine("[FOCUS] Window focus monitoring already started");
+                    return;
+                }
+
+                _winEventDelegate = new WinEventDelegate(WinEventProc);
+                _winEventHook = SetWinEventHook(
+                    EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
+                    IntPtr.Zero, _winEventDelegate,
+                    0, 0, WINEVENT_OUTOFCONTEXT);
+
+                if (_winEventHook != IntPtr.Zero)
+                {
+                    Console.WriteLine("[FOCUS] Window focus monitoring started successfully");
+                    _lastActiveWindow = GetActiveWindowTitle();
+                }
+                else
+                {
+                    Console.WriteLine("[FOCUS] Failed to start window focus monitoring");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] StartWindowFocusMonitoring hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Pencere odak değişikliği algılamayı durdurur
+        /// </summary>
+        public static void StopWindowFocusMonitoring()
+        {
+            try
+            {
+                if (_winEventHook != IntPtr.Zero)
+                {
+                    UnhookWinEvent(_winEventHook);
+                    _winEventHook = IntPtr.Zero;
+                    _winEventDelegate = null;
+                    Console.WriteLine("[FOCUS] Window focus monitoring stopped");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] StopWindowFocusMonitoring hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Windows event callback - pencere odak değişikliği algılandığında çağrılır
+        /// </summary>
+        private static void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+        {
+            try
+            {
+                if (eventType == EVENT_SYSTEM_FOREGROUND)
+                {
+                    string newWindowTitle = GetActiveWindowTitle();
+                    string newProcessName = GetActiveWindowProcessName();
+
+                    // Pencere değişti mi kontrol et
+                    if (newWindowTitle != _lastActiveWindow)
+                    {
+                        Console.WriteLine($"[FOCUS] Window focus changed: '{_lastActiveWindow}' -> '{newWindowTitle}' (Process: {newProcessName})");
+
+                        _lastActiveWindow = newWindowTitle;
+
+                        // Event'i fire et
+                        WindowFocusChanged?.Invoke(newWindowTitle, newProcessName);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] WinEventProc hatası: {ex.Message}");
             }
         }
     }
