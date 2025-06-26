@@ -485,11 +485,8 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                // 1 saniye sonra önizlemeyi gizleyecek timer (kullanıcının tercihi)
-                _hidePreviewTimer = new System.Timers.Timer(2000); // 2 saniye
-                _hidePreviewTimer.Elapsed += OnHidePreviewTimerElapsed;
-                _hidePreviewTimer.AutoReset = false; // Sadece bir kez çalışsın
-                Console.WriteLine("[DEBUG] Preview timer başlatıldı (1 saniye)");
+                // Timer sistemini basitleştiriyoruz - test projesindeki gibi sadece öneri varken göster
+                Console.WriteLine("[DEBUG] Preview timer sistemi basitleştirildi");
             }
             catch (Exception ex)
             {
@@ -497,44 +494,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        private void OnHidePreviewTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
-        {
-            try
-            {
-                Console.WriteLine("[TIMER] Önizleme gizleme timer'ı tetiklendi (1 saniye sonra)");
-
-                // Önizlemeyi gizle (1 saniye boyunca yazı yazılmadı)
-                Console.WriteLine("[TIMER] Önizleme gizleniyor (1 saniye boyunca yazı yazılmadı)");
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    HidePreview();
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] OnHidePreviewTimerElapsed hatası: {ex.Message}");
-            }
-        }
-
-        private void RestartHidePreviewTimer()
-        {
-            try
-            {
-                // Timer'ı her zaman çalıştır (önizleme artık sadece yazı yazarken görünür)
-
-                // Mevcut timer'ı durdur
-                _hidePreviewTimer?.Stop();
-
-                // Timer'ı yeniden başlat
-                _hidePreviewTimer?.Start();
-
-                Console.WriteLine("[TIMER] Preview gizleme timer'ı yeniden başlatıldı (1 saniye)");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] RestartHidePreviewTimer hatası: {ex.Message}");
-            }
-        }
+        // Timer metodlarını kaldırıyoruz - test projesindeki gibi basit yaklaşım
 
         private async void TestSmartSuggestions()
         {
@@ -612,8 +572,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             // Yazı yazma zamanını güncelle
             _lastKeyPressTime = DateTime.Now;
 
-            // Timer'ı yeniden başlat (önceki timer'ı durdur ve yenisini başlat)
-            RestartHidePreviewTimer();
+            // Timer sistemini kaldırdık - test projesindeki gibi direkt preview göster
 
             // Aktif pencere değişikliği kontrolü
             string currentActiveWindow = WindowHelper.GetActiveWindowTitle();
@@ -1416,7 +1375,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         // Önizleme açık kalsın - sadece önerileri temizle
-                        SafeSetPreviewText("🔄 Yeni tahmin hazırlanıyor...");
                         SmartSuggestions.Clear();
                     });
 
@@ -1990,7 +1948,8 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         // Yazı yazma durumu takibi için
         private DateTime _lastKeyPressTime = DateTime.MinValue;
-        private System.Timers.Timer? _hidePreviewTimer;
+        // Preview otomatik kapanma timer'ı (3 saniye)
+        private System.Timers.Timer? _previewAutoHideTimer;
 
         private async Task UpdateWordCompletionAsync(string partialWord, string fullContext)
         {
@@ -3492,13 +3451,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             _previewOverlay?.Close();
             _shortcutPreviewWindow?.Close();
 
-            // Timer'ı temizle
-            if (_hidePreviewTimer != null)
-            {
-                _hidePreviewTimer.Stop();
-                _hidePreviewTimer.Dispose();
-                _hidePreviewTimer = null;
-            }
+            // Timer sistemini kaldırdık - artık temizlenecek timer yok
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

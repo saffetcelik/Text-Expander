@@ -50,7 +50,7 @@
 - **🔔 Akıllı Bildirimler**: Önemli olaylar için minimal ve zarif bildirimler
 - **📱 Sistem Tepsisi Entegrasyonu**: Arka planda çalışarak sistem kaynaklarını korur
 - **🔒 Yerel Veri Depolama**: İnternet bağlantısı gerektirmeden tamamen offline çalışır
-- **🎛️ Hotkey Desteği**: Ctrl+Space ile manuel öneri tetikleme
+- **🎛️ Hotkey Desteği**: Space ile manuel öneri tetikleme
 - **📋 Akıllı Clipboard Yönetimi**: Güvenli metin değiştirme ve geri alma
 - **🔍 Pencere Filtreleme**: Belirli uygulamalarda çalışma/çalışmama kontrolü
 - **📈 Kullanım İstatistikleri**: Kısayol kullanım sıklığı ve performans metrikleri

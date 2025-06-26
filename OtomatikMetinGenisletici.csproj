@@ -26,4 +26,11 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Test klasörünü exclude et -->
+    <Compile Remove="test\**" />
+    <EmbeddedResource Remove="test\**" />
+    <None Remove="test\**" />
+  </ItemGroup>
+
 </Project>

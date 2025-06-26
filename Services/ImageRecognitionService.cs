@@ -62,10 +62,10 @@ namespace OtomatikMetinGenisletici.Services
 
                 Console.WriteLine($"[IMAGE RECOGNITION] Aktif pencere: '{title}'");
 
-                // Sadece "Editörü" içeren pencereler için çalış (örnek projeden)
-                if (!title.Contains("Editörü"))
+                // .UDF içeren pencereler için çalış (kullanıcının isteği)
+                if (!title.Contains(".UDF"))
                 {
-                    Console.WriteLine($"[IMAGE RECOGNITION] Pencere 'Editörü' içermiyor, atlanıyor");
+                    Console.WriteLine($"[IMAGE RECOGNITION] Pencere '.UDF' içermiyor, atlanıyor");
                     return null;
                 }
 

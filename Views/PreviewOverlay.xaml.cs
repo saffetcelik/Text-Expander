@@ -1,16 +1,74 @@
 using System;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using OtomatikMetinGenisletici.Helpers;
+using OtomatikMetinGenisletici.Services;
 
 namespace OtomatikMetinGenisletici.Views
 {
     public partial class PreviewOverlay : Window
     {
+        // Win32 API constants for window behavior
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_NOACTIVATE = 0x08000000;
+        private const int WS_EX_TOOLWINDOW = 0x00000080;
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        // Test projesindeki gibi gelişmiş caret pozisyon bulma için ek API'ler
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr processId);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO lpgui);
+
+        [DllImport("user32.dll")]
+        private static extern bool ClientToScreen(IntPtr hWnd, ref System.Drawing.Point lpPoint);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct GUITHREADINFO
+        {
+            public uint cbSize;
+            public uint flags;
+            public IntPtr hwndActive;
+            public IntPtr hwndFocus;
+            public IntPtr hwndCapture;
+            public IntPtr hwndMenuOwner;
+            public IntPtr hwndMoveSize;
+            public IntPtr hwndCaret;
+            public RECT rcCaret;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
         private DispatcherTimer? _debounceTimer;
         private string _pendingText = "";
-        private const int DEBOUNCE_DELAY_MS = 100;
+        private const int DEBOUNCE_DELAY_MS = 50; // Daha hızlı response için azaltıldı
+        private IImageRecognitionService? _imageRecognitionService;
 
         public PreviewOverlay()
         {
@@ -41,12 +99,36 @@ namespace OtomatikMetinGenisletici.Views
                 // Event handler'ları lazy initialize et
                 InitializeEventHandlersLazy();
 
+                // SourceInitialized event'ini dinle - Win32 API ayarları için
+                SourceInitialized += PreviewOverlay_SourceInitialized;
+
+                // ImageRecognitionService'i başlat
+                _imageRecognitionService = new ImageRecognitionService();
+                Console.WriteLine("[PREVIEW] ImageRecognitionService başlatıldı");
+
                 Console.WriteLine("[PREVIEW] Hızlı PreviewOverlay hazır");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] PreviewOverlay hatası: {ex.Message}");
                 throw;
+            }
+        }
+
+        private void PreviewOverlay_SourceInitialized(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Win32 API ile pencere davranışını ayarla (test projesindeki gibi)
+                var hwnd = new WindowInteropHelper(this).Handle;
+                var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+                SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+
+                Console.WriteLine("[PREVIEW] Win32 API ayarları uygulandı - pencere artık aktif olmayacak");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Win32 API ayarları hatası: {ex.Message}");
             }
         }
 
@@ -135,8 +217,12 @@ namespace OtomatikMetinGenisletici.Views
                 // Pozisyonu ayarla
                 UpdatePosition();
 
-                // Göster
-                Visibility = Visibility.Visible;
+                // Göster - test projesindeki gibi basit Show() kullan
+                if (Visibility != Visibility.Visible)
+                {
+                    Show(); // Visibility yerine Show() kullan
+                    Console.WriteLine("[PREVIEW] Pencere Show() ile gösterildi");
+                }
             }
             catch (Exception ex)
             {
@@ -148,12 +234,42 @@ namespace OtomatikMetinGenisletici.Views
         {
             try
             {
-                var caretPos = WindowHelper.GetCaretPosition();
+                // Test projesindeki gibi daha güvenilir pozisyonlama sistemi
+                var caretPos = GetCaretPositionImproved();
                 if (caretPos.HasValue)
                 {
-                    Left = caretPos.Value.X + 10;
-                    Top = caretPos.Value.Y + 25;
-                    Console.WriteLine($"[PREVIEW] Pozisyon: {Left}, {Top}");
+                    // Ekran sınırlarını kontrol et
+                    var screenWidth = SystemParameters.PrimaryScreenWidth;
+                    var screenHeight = SystemParameters.PrimaryScreenHeight;
+
+                    double newLeft = caretPos.Value.X + 10;
+                    double newTop = caretPos.Value.Y + 25;
+
+                    // Sağ kenara taşma kontrolü
+                    if (newLeft + Width > screenWidth)
+                    {
+                        newLeft = caretPos.Value.X - Width - 10;
+                    }
+
+                    // Alt kenara taşma kontrolü
+                    if (newTop + Height > screenHeight)
+                    {
+                        newTop = caretPos.Value.Y - Height - 10;
+                    }
+
+                    // Negatif değerleri düzelt
+                    newLeft = Math.Max(0, newLeft);
+                    newTop = Math.Max(0, newTop);
+
+                    Left = newLeft;
+                    Top = newTop;
+
+                    Console.WriteLine($"[PREVIEW] Pozisyon güncellendi: {Left}, {Top} (Caret: {caretPos.Value.X}, {caretPos.Value.Y})");
+                }
+                else
+                {
+                    Console.WriteLine($"[PREVIEW] Caret pozisyonu bulunamadı, pencere gizleniyor");
+                    Hide();
                 }
             }
             catch (Exception ex)
@@ -166,13 +282,8 @@ namespace OtomatikMetinGenisletici.Views
         {
             try
             {
-                _pendingText = text ?? "";
-
-                // Timer'ı lazy initialize et
-                InitializeTimerLazy();
-
-                _debounceTimer?.Stop();
-                _debounceTimer?.Start();
+                // Debounce timer'ı kaldırıp direkt işleme geçiyoruz (test projesindeki gibi)
+                ProcessTextUpdate(text ?? "");
             }
             catch (Exception ex)
             {
@@ -185,7 +296,12 @@ namespace OtomatikMetinGenisletici.Views
             try
             {
                 Console.WriteLine("[PREVIEW] Pencere gizleniyor");
-                Visibility = Visibility.Hidden;
+                // Test projesindeki gibi basit Hide() kullan
+                if (Visibility == Visibility.Visible)
+                {
+                    Hide(); // Visibility yerine Hide() kullan
+                    Console.WriteLine("[PREVIEW] Pencere Hide() ile gizlendi");
+                }
             }
             catch (Exception ex)
             {
@@ -199,6 +315,91 @@ namespace OtomatikMetinGenisletici.Views
             {
                 HidePreview();
             }
+        }
+
+        // Test projesindeki gibi gelişmiş caret pozisyon bulma metodu
+        private System.Drawing.Point? GetCaretPositionImproved()
+        {
+            try
+            {
+                IntPtr hwnd = GetForegroundWindow();
+                if (hwnd == IntPtr.Zero) return null;
+
+                // Pencere başlığını kontrol et
+                StringBuilder windowText = new StringBuilder(256);
+                GetWindowText(hwnd, windowText, 256);
+                string title = windowText.ToString();
+
+                Console.WriteLine($"[CARET] Aktif pencere: '{title}'");
+
+                // .UDF pencereleri için önce ImageRecognitionService'i dene
+                if (title.Contains(".UDF") && _imageRecognitionService != null && _imageRecognitionService.IsEnabled)
+                {
+                    var imageCaretPos = _imageRecognitionService.FindCaretByImageRecognition();
+                    if (imageCaretPos.HasValue)
+                    {
+                        Console.WriteLine($"[CARET] .UDF penceresi - imlec.png ile bulundu: {imageCaretPos.Value.X}, {imageCaretPos.Value.Y}");
+                        return imageCaretPos.Value;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[CARET] .UDF penceresi - imlec.png ile bulunamadı");
+                    }
+                }
+
+                // GUITHREADINFO ile caret pozisyonunu bul
+                GUITHREADINFO guiThreadInfo = new GUITHREADINFO();
+                guiThreadInfo.cbSize = (uint)Marshal.SizeOf(guiThreadInfo);
+                uint threadId = GetWindowThreadProcessId(hwnd, IntPtr.Zero);
+
+                if (threadId != 0 && GetGUIThreadInfo(threadId, ref guiThreadInfo))
+                {
+                    // Caret bilgisi var mı kontrol et
+                    if (!(guiThreadInfo.rcCaret.Left == 0 && guiThreadInfo.rcCaret.Right == 0))
+                    {
+                        System.Drawing.Point caretPos = new System.Drawing.Point(
+                            guiThreadInfo.rcCaret.Left,
+                            guiThreadInfo.rcCaret.Bottom
+                        );
+
+                        // Client koordinatlarını ekran koordinatlarına çevir
+                        if (ClientToScreen(guiThreadInfo.hwndCaret, ref caretPos))
+                        {
+                            Console.WriteLine($"[CARET] GUITHREADINFO ile bulundu: {caretPos.X}, {caretPos.Y}");
+                            return caretPos;
+                        }
+                    }
+                }
+
+                Console.WriteLine($"[CARET] GUITHREADINFO ile bulunamadı");
+
+                // Fallback: Mouse pozisyonunu kullan
+                var mousePos = System.Windows.Forms.Cursor.Position;
+                Console.WriteLine($"[CARET] Mouse pozisyonu kullanıldı: {mousePos.X}, {mousePos.Y}");
+                return mousePos;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] GetCaretPositionImproved hatası: {ex.Message}");
+                return null;
+            }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            try
+            {
+                // ImageRecognitionService'i temizle
+                _imageRecognitionService?.Dispose();
+                _imageRecognitionService = null;
+                Console.WriteLine("[PREVIEW] ImageRecognitionService temizlendi");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] OnClosed hatası: {ex.Message}");
+            }
+
+            base.OnClosed(e);
         }
     }
 }

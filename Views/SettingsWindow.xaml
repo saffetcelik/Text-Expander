@@ -163,7 +163,7 @@
                             </StackPanel>
 
                             <TextBlock Grid.Row="6" Grid.ColumnSpan="2"
-                                       Text="💡 İpucu: Ctrl+Space ile ilk öneriyi hızlıca uygulayabilirsiniz"
+                                       Text="💡 İpucu: Space ile ilk öneriyi hızlıca uygulayabilirsiniz"
                                        FontSize="12"
                                        Foreground="Gray"
                                        FontStyle="Italic"
