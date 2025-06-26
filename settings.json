@@ -1,26 +1,26 @@
 {
   "AutoStart": false,
   "ShowNotifications": true,
-  "ExpansionDelay": 1,
+  "ExpansionDelay": 0,
   "FontFamily": "Arial",
   "FontSize": 12,
   "MinPhraseLength": 3,
   "MaxPhraseLength": 15,
   "MinFrequency": 2,
   "MaxSuggestions": 20,
-  "ContextWeight": 1.0,
+  "ContextWeight": 0.7,
   "SmartSuggestionsEnabled": true,
   "MaxSmartSuggestions": 5,
   "MinWordLength": 2,
   "LearningEnabled": true,
-  "LearningWeight": 1.0,
-  "PreviewAlwaysVisible": true,
+  "LearningWeight": 0.8,
+  "PreviewAlwaysVisible": false,
   "ShortcutPreviewPanelVisible": false,
-  "ShortcutPreviewPanelOpacity": 1.0,
-  "ShortcutPreviewPanelWidth": 200.0,
-  "ShortcutPreviewPanelHeight": 477.0,
-  "ShortcutPreviewPanelLeft": 1317.0,
-  "ShortcutPreviewPanelTop": 84.0,
+  "ShortcutPreviewPanelOpacity": 0.9,
+  "ShortcutPreviewPanelWidth": 290.0,
+  "ShortcutPreviewPanelHeight": 481.0,
+  "ShortcutPreviewPanelLeft": -1.0,
+  "ShortcutPreviewPanelTop": -1.0,
   "WindowFilters": [
     {
       "Name": "notepad (Process)",
@@ -30,6 +30,17 @@
       "FilterType": 2,
       "IsRegex": false,
       "FilterTypeDisplayName": "Process Eşittir",
+      "StatusText": "🟢 Aktif",
+      "StatusColor": "Green"
+    },
+    {
+      "Name": "notepad - *Untitled - Notepad",
+      "TitlePattern": "*Untitled - Notepad",
+      "ProcessName": "",
+      "IsEnabled": true,
+      "FilterType": 1,
+      "IsRegex": false,
+      "FilterTypeDisplayName": "Başlık Eşittir",
       "StatusText": "🟢 Aktif",
       "StatusColor": "Green"
     },
@@ -45,6 +56,6 @@
       "StatusColor": "Green"
     }
   ],
-  "WindowFilteringEnabled": true,
+  "WindowFilteringEnabled": false,
   "WindowFilterMode": 0
 }

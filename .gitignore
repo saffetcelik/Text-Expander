@@ -61,3 +61,11 @@ appsettings.*.json
 smart_suggestions_data.json
 settings.json
 kisayollar.json
+
+# Temporary WPF files
+*_wpftmp.csproj
+*_wpftmp/
+
+# Application specific temp files
+*.tmp
+*.temp
