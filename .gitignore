@@ -69,3 +69,10 @@ kisayollar.json
 # Application specific temp files
 *.tmp
 *.temp
+
+# Publish output
+publish/
+*.zip
+
+# Tour settings (user-specific)
+tour_settings.json

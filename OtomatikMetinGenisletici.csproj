@@ -6,6 +6,26 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+
+    <!-- Application Icon -->
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+
+    <!-- Assembly Information -->
+    <AssemblyTitle>Otomatik Metin Genişletici</AssemblyTitle>
+    <AssemblyDescription>Akıllı metin genişletme ve kısayol yönetim uygulaması</AssemblyDescription>
+    <AssemblyCompany>Text Expander</AssemblyCompany>
+    <AssemblyProduct>Text Expander</AssemblyProduct>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.0.0</Version>
+
+    <!-- Self-contained deployment settings -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +40,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Icon dosyası -->
+    <Content Include="icon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+
     <!-- imlec.png dosyasının derleme çıktısına kopyalanmasını sağlar -->
     <Content Include="imlec.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
