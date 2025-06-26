@@ -1,0 +1,40 @@
+🚀 ModernMetinGenisletici v1.0.0 - İlk Kararlı Sürüm
+
+Windows için tam özellikli, .NET SDK gerektirmeyen akıllı metin genişletme uygulaması.
+
+## 📦 İndirme
+- **Windows 64-bit**: ModernMetinGenisletici-v1.0.0-win-x64.zip (~112 MB)
+- **SHA256**: 88EE2D21A184BD48570331B4E81AB2BC9BDA245B37F27010960E47356A9DD054
+
+## ⚡ Hızlı Başlangıç
+1. Zip dosyasını indirin ve çıkarın
+2. `OtomatikMetinGenisletici.exe` dosyasını **Yönetici olarak** çalıştırın
+3. İlk kısayolunuzu oluşturun ve yazmaya başlayın!
+
+## ✨ Temel Özellikler
+- 🔤 **Akıllı Metin Genişletme**: Sınırsız özel kısayollar
+- 🧠 **AI Destekli Öneriler**: Yazma alışkanlıklarınızı öğrenen yapay zeka
+- 🎨 **Modern Arayüz**: Fluent Design ile şık WPF arayüzü
+- ⚙️ **Gelişmiş Yapılandırma**: 20+ özelleştirilebilir parametre
+- 🛡️ **%100 Yerel İşlem**: İnternet bağlantısı gerektirmez
+
+## 📋 Sistem Gereksinimleri
+- Windows 10 (1903+) veya Windows 11 (64-bit)
+- 512MB RAM minimum
+- 150MB boş disk alanı
+- Yönetici hakları
+
+## ⚠️ Önemli Not
+Windows Defender klavye kancası nedeniyle uyarı verebilir. Bu normal bir durumdur - uygulamayı güvenlik yazılımınızın beyaz listesine ekleyin.
+
+## 🚀 Performans
+- Başlatma: <2 saniye
+- Bellek: <50MB RAM
+- Yanıt: <100ms genişletme
+
+**🎉 ModernMetinGenisletici ile yazma hızınızı artırın!**
+
+---
+📚 **Detaylı Dokümantasyon**: [README.md](https://github.com/saffetcelik/Text-Expander/blob/main/README.md)
+🐛 **Hata Bildirimi**: [Issues](https://github.com/saffetcelik/Text-Expander/issues)
+⭐ **Yıldız**: Projeyi beğendiyseniz yıldız vermeyi unutmayın!

@@ -15,7 +15,7 @@
   "LearningEnabled": true,
   "LearningWeight": 0.8,
   "PreviewAlwaysVisible": false,
-  "ShortcutPreviewPanelVisible": true,
+  "ShortcutPreviewPanelVisible": false,
   "ShortcutPreviewPanelOpacity": 0.9,
   "ShortcutPreviewPanelWidth": 290.0,
   "ShortcutPreviewPanelHeight": 481.0,
