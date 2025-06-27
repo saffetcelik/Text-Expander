@@ -42,10 +42,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Icon dosyası -->
+    <!-- Icon dosyası - hem content hem de embedded resource olarak -->
     <Content Include="icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <EmbeddedResource Include="icon.ico" />
 
     <!-- imlec.png dosyasının derleme çıktısına kopyalanmasını sağlar -->
     <Content Include="imlec.png">

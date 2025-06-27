@@ -11,6 +11,8 @@ namespace OtomatikMetinGenisletici.Views
         private readonly ISettingsService _settingsService;
         private bool _isDragging = false;
         private Point _clickPosition;
+        private double _normalHeight;
+        private double _minimizedHeight = 35; // Çok ince minimize hali
 
         public event EventHandler? CloseRequested;
 
@@ -23,6 +25,7 @@ namespace OtomatikMetinGenisletici.Views
             Opacity = _settingsService.Settings.ShortcutPreviewPanelOpacity;
             Width = _settingsService.Settings.ShortcutPreviewPanelWidth;
             Height = _settingsService.Settings.ShortcutPreviewPanelHeight;
+            _normalHeight = Height; // Normal yüksekliği kaydet
 
             // Pozisyonu ayarla
             if (_settingsService.Settings.ShortcutPreviewPanelLeft >= 0 &&
@@ -37,6 +40,9 @@ namespace OtomatikMetinGenisletici.Views
                 // İlk açılışta ekranın sağına yerleştir
                 PositionWindowToRight();
             }
+
+            // Minimize event handler'ını ekle
+            PreviewPanel.MinimizeRequested += PreviewPanel_MinimizeRequested;
         }
 
         public void UpdateShortcuts(ObservableCollection<Shortcut> shortcuts)
@@ -149,7 +155,7 @@ namespace OtomatikMetinGenisletici.Views
         private void PreviewPanel_OpacityChanged(object sender, double opacity)
         {
             Opacity = opacity;
-            
+
             // Opacity değişikliğini ayarlara kaydet
             if (_settingsService != null)
             {
@@ -157,6 +163,27 @@ namespace OtomatikMetinGenisletici.Views
                 settings.ShortcutPreviewPanelOpacity = opacity;
                 _settingsService.UpdateSettings(settings);
                 _ = _settingsService.SaveSettingsAsync();
+            }
+        }
+
+        private void PreviewPanel_MinimizeRequested(object? sender, bool isMinimized)
+        {
+            if (isMinimized)
+            {
+                // Minimize: sadece başlık görünsün
+                _normalHeight = Height; // Mevcut yüksekliği kaydet
+                Height = _minimizedHeight;
+                MinHeight = _minimizedHeight;
+                MaxHeight = _minimizedHeight;
+                ResizeMode = ResizeMode.NoResize; // Resize'ı devre dışı bırak
+            }
+            else
+            {
+                // Restore: normal boyuta dön
+                Height = _normalHeight;
+                MinHeight = 300; // Orijinal minimum yükseklik
+                MaxHeight = double.PositiveInfinity;
+                ResizeMode = ResizeMode.CanResizeWithGrip; // Resize'ı tekrar etkinleştir
             }
         }
 

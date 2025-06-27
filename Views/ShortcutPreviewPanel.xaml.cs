@@ -14,10 +14,12 @@ namespace OtomatikMetinGenisletici.Views
         private ObservableCollection<Shortcut> _filteredShortcuts = new();
         private string _searchText = string.Empty;
         private double _panelOpacity = 0.9;
+        private bool _isMinimized = false;
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public event EventHandler? CloseRequested;
         public event EventHandler<double>? OpacityChanged;
+        public event EventHandler<bool>? MinimizeRequested;
 
         public ShortcutPreviewPanel()
         {
@@ -72,6 +74,17 @@ namespace OtomatikMetinGenisletici.Views
 
         public int ShortcutCount => _shortcuts?.Count ?? 0;
 
+        public bool IsMinimized
+        {
+            get => _isMinimized;
+            set
+            {
+                _isMinimized = value;
+                OnPropertyChanged();
+                UpdateMinimizeState();
+            }
+        }
+
         private void FilterShortcuts()
         {
             if (_shortcuts == null)
@@ -122,6 +135,34 @@ namespace OtomatikMetinGenisletici.Views
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             CloseRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            IsMinimized = !IsMinimized;
+            MinimizeRequested?.Invoke(this, IsMinimized);
+        }
+
+        private void UpdateMinimizeState()
+        {
+            // Minimize butonunun içeriğini güncelle
+            if (MinimizeButton != null)
+            {
+                MinimizeButton.Content = IsMinimized ? "□" : "−";
+                MinimizeButton.ToolTip = IsMinimized ? "Büyüt" : "Küçült";
+            }
+
+            // UI elementlerinin görünürlüğünü kontrol et
+            var visibility = IsMinimized ? Visibility.Collapsed : Visibility.Visible;
+
+            if (SearchBox != null)
+                SearchBox.Visibility = visibility;
+
+            if (ShortcutsScrollViewer != null)
+                ShortcutsScrollViewer.Visibility = visibility;
+
+            if (FooterPanel != null)
+                FooterPanel.Visibility = visibility;
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)

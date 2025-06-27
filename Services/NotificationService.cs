@@ -1,6 +1,8 @@
 using System.Windows;
 using Hardcodet.Wpf.TaskbarNotification;
 using Microsoft.Extensions.DependencyInjection;
+using System.IO;
+using System.Linq;
 
 namespace OtomatikMetinGenisletici.Services
 {
@@ -22,12 +24,47 @@ namespace OtomatikMetinGenisletici.Services
             _mainWindow = mainWindow;
         }
 
+        private System.Drawing.Icon LoadCustomIcon()
+        {
+            try
+            {
+                // İlk olarak uygulama dizininde icon.ico dosyasını ara
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "icon.ico");
+
+                if (File.Exists(iconPath))
+                {
+                    return new System.Drawing.Icon(iconPath);
+                }
+
+                // Eğer dosya bulunamazsa, embedded resource olarak dene
+                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                var resourceName = assembly.GetManifestResourceNames()
+                    .FirstOrDefault(name => name.EndsWith("icon.ico"));
+
+                if (!string.IsNullOrEmpty(resourceName))
+                {
+                    using var stream = assembly.GetManifestResourceStream(resourceName);
+                    if (stream != null)
+                    {
+                        return new System.Drawing.Icon(stream);
+                    }
+                }
+
+                // Son çare olarak sistem iconunu kullan
+                return System.Drawing.SystemIcons.Application;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] Icon yüklenemedi: {ex.Message}");
+                return System.Drawing.SystemIcons.Application;
+            }
+        }
+
         private void InitializeTrayIcon()
         {
             _trayIcon = new TaskbarIcon
             {
-                // Use default system icon for now
-                Icon = System.Drawing.SystemIcons.Application,
+                Icon = LoadCustomIcon(),
                 ToolTipText = "Gelişmiş Otomatik Metin Genişletici"
             };
 
