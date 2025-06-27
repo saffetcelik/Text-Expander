@@ -54,12 +54,7 @@
                                 <ColumnDefinition Width="200"/>
                             </Grid.ColumnDefinitions>
 
-                            <CheckBox Grid.Row="0" Grid.ColumnSpan="2" 
-                                      Name="AutoStartCheckBox"
-                                      Content="🚀 Sistem başlangıcında otomatik başlat" 
-                                      Margin="0,8"/>
-
-                            <CheckBox Grid.Row="1" Grid.ColumnSpan="2" 
+                            <CheckBox Grid.Row="0" Grid.ColumnSpan="2"
                                       Name="NotificationsCheckBox"
                                       Content="🔔 Bildirimler" 
                                       Margin="0,8"/>

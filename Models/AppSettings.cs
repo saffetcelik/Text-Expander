@@ -6,7 +6,6 @@ namespace OtomatikMetinGenisletici.Models
 {
     public class AppSettings : INotifyPropertyChanged
     {
-        private bool _autoStart = false;
         private bool _showNotifications = true;
         private int _expansionDelay = 0;
         private string _fontFamily = "Arial";
@@ -43,16 +42,6 @@ namespace OtomatikMetinGenisletici.Models
         {
             // Varsayılan olarak hiçbir pencere filtresi eklenmez
             // Kullanıcı istediğinde kendi filtrelerini oluşturabilir
-        }
-
-        public bool AutoStart
-        {
-            get => _autoStart;
-            set
-            {
-                _autoStart = value;
-                OnPropertyChanged();
-            }
         }
 
         public bool ShowNotifications

@@ -40,7 +40,6 @@ namespace OtomatikMetinGenisletici.Views
 
         private void LoadSettings()
         {
-            AutoStartCheckBox.IsChecked = Settings.AutoStart;
             NotificationsCheckBox.IsChecked = Settings.ShowNotifications;
             ExpansionDelayTextBox.Text = Settings.ExpansionDelay.ToString();
             FontFamilyComboBox.SelectedItem = Settings.FontFamily;
@@ -56,7 +55,6 @@ namespace OtomatikMetinGenisletici.Views
         {
             try
             {
-                Settings.AutoStart = AutoStartCheckBox.IsChecked ?? false;
                 Settings.ShowNotifications = NotificationsCheckBox.IsChecked ?? true;
                 
                 if (int.TryParse(ExpansionDelayTextBox.Text, out int expansionDelay))
