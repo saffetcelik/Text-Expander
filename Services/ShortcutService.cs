@@ -63,9 +63,9 @@ namespace OtomatikMetinGenisletici.Services
         public async Task SaveShortcutsAsync()
         {
             try
-            {
-                var json = JsonConvert.SerializeObject(_shortcuts.ToList(), Formatting.Indented);
-                await File.WriteAllTextAsync(ShortcutsFileName, json);
+           {
+                ExpandText(shortcutKey, expansion);
+                //MessageBox.Show($"Metin genişletilirken hata oluştu: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
