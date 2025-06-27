@@ -9,18 +9,18 @@
   "MinFrequency": 2,
   "MaxSuggestions": 20,
   "ContextWeight": 0.7,
-  "SmartSuggestionsEnabled": false,
+  "SmartSuggestionsEnabled": true,
   "MaxSmartSuggestions": 5,
   "MinWordLength": 2,
   "LearningEnabled": true,
   "LearningWeight": 0.8,
-  "ShortcutPreviewPanelVisible": true,
+  "ShortcutPreviewPanelVisible": false,
   "ShortcutPreviewPanelOpacity": 1.0,
   "ShortcutPreviewPanelWidth": 290.0,
   "ShortcutPreviewPanelHeight": 481.0,
-  "ShortcutPreviewPanelLeft": 1631.0,
-  "ShortcutPreviewPanelTop": 210.0,
+  "ShortcutPreviewPanelLeft": 1456.0,
+  "ShortcutPreviewPanelTop": 200.0,
   "WindowFilters": [],
   "WindowFilteringEnabled": true,
-  "WindowFilterMode": 0
+  "WindowFilterMode": 1
 }
