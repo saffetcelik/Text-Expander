@@ -12,7 +12,8 @@ namespace OtomatikMetinGenisletici.Views
         private bool _isDragging = false;
         private Point _clickPosition;
         private double _normalHeight;
-        private double _minimizedHeight = 35; // Çok ince minimize hali
+        private double _normalWidth;
+        private double _minimizedHeight = 50; // Sadece başlık için yeterli yükseklik
 
         public event EventHandler? CloseRequested;
 
@@ -26,6 +27,7 @@ namespace OtomatikMetinGenisletici.Views
             Width = _settingsService.Settings.ShortcutPreviewPanelWidth;
             Height = _settingsService.Settings.ShortcutPreviewPanelHeight;
             _normalHeight = Height; // Normal yüksekliği kaydet
+            _normalWidth = Width; // Normal genişliği kaydet
 
             // Pozisyonu ayarla
             if (_settingsService.Settings.ShortcutPreviewPanelLeft >= 0 &&
@@ -137,13 +139,20 @@ namespace OtomatikMetinGenisletici.Views
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             // Boyut değişikliklerini ayarlara kaydet
-            if (_settingsService != null && IsLoaded)
+            // Ancak minimize durumunda değilse ve manuel resize ise kaydet
+            if (_settingsService != null && IsLoaded && !PreviewPanel.IsMinimized && Height > _minimizedHeight)
             {
+                // Normal boyuttayken değişiklikleri kaydet
+                _normalHeight = Height;
+                _normalWidth = Width;
+
                 var settings = _settingsService.GetCopy();
                 settings.ShortcutPreviewPanelWidth = Width;
                 settings.ShortcutPreviewPanelHeight = Height;
                 _settingsService.UpdateSettings(settings);
                 _ = _settingsService.SaveSettingsAsync();
+
+                System.Diagnostics.Debug.WriteLine($"Size changed - Saving: Width={Width}, Height={Height}");
             }
         }
 
@@ -170,20 +179,39 @@ namespace OtomatikMetinGenisletici.Views
         {
             if (isMinimized)
             {
-                // Minimize: sadece başlık görünsün
-                _normalHeight = Height; // Mevcut yüksekliği kaydet
+                // Minimize: mevcut boyutları kaydet ve küçült
+                _normalHeight = Height;
+                _normalWidth = Width;
+
+                // Debug için
+                System.Diagnostics.Debug.WriteLine($"Minimizing - Saving: Width={_normalWidth}, Height={_normalHeight}");
+
                 Height = _minimizedHeight;
                 MinHeight = _minimizedHeight;
                 MaxHeight = _minimizedHeight;
-                ResizeMode = ResizeMode.NoResize; // Resize'ı devre dışı bırak
+                ResizeMode = ResizeMode.NoResize;
             }
             else
             {
-                // Restore: normal boyuta dön
+                // Restore: kaydedilmiş boyutları geri yükle
+                System.Diagnostics.Debug.WriteLine($"Restoring - Using: Width={_normalWidth}, Height={_normalHeight}");
+
                 Height = _normalHeight;
-                MinHeight = 300; // Orijinal minimum yükseklik
+                Width = _normalWidth;
+
+                MinHeight = 300;
                 MaxHeight = double.PositiveInfinity;
-                ResizeMode = ResizeMode.CanResizeWithGrip; // Resize'ı tekrar etkinleştir
+                ResizeMode = ResizeMode.CanResizeWithGrip;
+
+                // Restore sonrası boyutları ayarlara kaydet
+                if (_settingsService != null)
+                {
+                    var settings = _settingsService.GetCopy();
+                    settings.ShortcutPreviewPanelWidth = Width;
+                    settings.ShortcutPreviewPanelHeight = Height;
+                    _settingsService.UpdateSettings(settings);
+                    _ = _settingsService.SaveSettingsAsync();
+                }
             }
         }
 
