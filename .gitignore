@@ -5,7 +5,8 @@ obj/
 Debug/
 Release/
 out/
-ornek
+tour_settings.json
+kisayollar.json
 ## User-specific files
 *.user
 *.userosscache
@@ -59,7 +60,6 @@ appsettings.*.json
 
 # User-specific data files
 smart_suggestions_data.json
-settings.json
 kisayollar.json
 
 # Temporary WPF files
@@ -76,3 +76,4 @@ publish/
 
 # Tour settings (user-specific)
 tour_settings.json
+settings.json

@@ -1103,7 +1103,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 !string.IsNullOrEmpty(cleanWord) &&
                 _shortcutService.TryExpandShortcut(cleanWord, out string expansion))
             {
-                SafeSetPreviewText($"🔄 Kısayol genişletildi: '{cleanWord}' → '{expansion}'");
             }
         }
 

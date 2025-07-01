@@ -10,6 +10,9 @@
              ToolTipService.ShowDuration="10000">
 
     <UserControl.Resources>
+        <!-- Converters -->
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
         <!-- Modern Card Style - Kompakt -->
         <Style x:Key="PreviewCardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
@@ -80,12 +83,45 @@
             </Grid.RowDefinitions>
 
             <!-- Header - Kompakt -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
-                <TextBlock Text="🔗" FontSize="14" VerticalAlignment="Center" Margin="0,0,3,0"/>
-                <TextBlock Text="Kısayollar" Style="{StaticResource HeaderStyle}" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding ShortcutCount, StringFormat='({0})'}"
-                           FontSize="9" Foreground="#9E9E9E" VerticalAlignment="Center" Margin="3,0,0,0"/>
-            </StackPanel>
+            <Grid Grid.Row="0" Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="🔗" FontSize="14" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                    <TextBlock Text="Kısayollar" Style="{StaticResource HeaderStyle}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding ShortcutCount, StringFormat='({0})'}"
+                               FontSize="9" Foreground="#9E9E9E" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                </StackPanel>
+
+                <!-- Minimize Button -->
+                <Button x:Name="MinimizeButton"
+                        Grid.Column="1"
+                        Content="−"
+                        FontSize="12"
+                        Width="20"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        Click="MinimizeButton_Click"
+                        ToolTip="Küçült">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="#757575"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#E0E0E0"/>
+                                    <Setter Property="Foreground" Value="#424242"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
 
             <!-- Search Box - Kompakt -->
             <TextBox Grid.Row="1"
@@ -99,8 +135,9 @@
             </TextBox>
 
             <!-- Shortcuts List -->
-            <ScrollViewer Grid.Row="2" 
-                          VerticalScrollBarVisibility="Auto" 
+            <ScrollViewer x:Name="ShortcutsScrollViewer"
+                          Grid.Row="2"
+                          VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <ItemsControl ItemsSource="{Binding FilteredShortcuts}">
                     <ItemsControl.ItemTemplate>
@@ -140,21 +177,30 @@
             </ScrollViewer>
 
             <!-- Footer Controls - Vertical Layout -->
-            <StackPanel Grid.Row="3" Orientation="Vertical" Margin="0,4,0,0">
+            <StackPanel x:Name="FooterPanel"
+                        Grid.Row="3" Orientation="Vertical" Margin="0,4,0,0">
                 <Separator Margin="0,0,0,4"/>
 
                 <!-- Opacity Control - Full Width -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,4" HorizontalAlignment="Stretch">
-                    <TextBlock Text="🔍" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBlock Text="Şeffaflık:" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <Slider x:Name="OpacitySlider"
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="🔍" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBlock Grid.Column="1" Text="Şeffaflık:" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <Slider Grid.Column="2" x:Name="OpacitySlider"
                             Value="{Binding PanelOpacity}"
                             Minimum="0.3" Maximum="1.0"
                             Width="100"
                             Height="18"
-                            VerticalAlignment="Center"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Left"
+                            Margin="0,1,0,0"
                             ValueChanged="OpacitySlider_ValueChanged"/>
-                </StackPanel>
+                </Grid>
 
                 <!-- Close Button - Full Width -->
                 <Button Content="✕ Gizle"

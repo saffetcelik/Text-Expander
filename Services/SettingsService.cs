@@ -53,7 +53,6 @@ namespace OtomatikMetinGenisletici.Services
 
         public void UpdateSettings(AppSettings newSettings)
         {
-            _settings.AutoStart = newSettings.AutoStart;
             _settings.ShowNotifications = newSettings.ShowNotifications;
             _settings.ExpansionDelay = newSettings.ExpansionDelay;
             _settings.FontFamily = newSettings.FontFamily;
@@ -93,7 +92,6 @@ namespace OtomatikMetinGenisletici.Services
         {
             return new AppSettings
             {
-                AutoStart = _settings.AutoStart,
                 ShowNotifications = _settings.ShowNotifications,
                 ExpansionDelay = _settings.ExpansionDelay,
                 FontFamily = _settings.FontFamily,
