@@ -1,104 +1,103 @@
-name: Release Build
+name: Release
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 1.0.0)'
+        description: 'Version (e.g., 1.0.0)'
         required: true
         default: '1.0.0'
 
 jobs:
-  build-and-release:
+  release:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Setup .NET 8
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
 
-    - name: Set version
+    - name: Get version
       id: version
+      shell: pwsh
       run: |
-        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+        if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
           $version = "${{ github.event.inputs.version }}"
         } else {
           $version = "${{ github.ref_name }}" -replace '^v', ''
         }
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-        echo "Release version: $version"
-      shell: pwsh
+        Write-Host "Version: $version"
 
-    - name: Restore dependencies
+    - name: Restore
       run: dotnet restore
 
-    - name: Build Release
-      run: dotnet build --configuration Release --no-restore
+    - name: Build
+      run: dotnet build -c Release --no-restore
 
-    - name: Publish Self-Contained
+    - name: Publish
+      shell: pwsh
       run: |
-        dotnet publish OtomatikMetinGenisletici.csproj `
-          --configuration Release `
-          --runtime win-x64 `
-          --self-contained true `
-          --output ./publish `
-          -p:PublishSingleFile=true `
-          -p:IncludeNativeLibrariesForSelfExtract=true `
-          -p:EnableCompressionInSingleFile=true `
-          --verbosity minimal
+        dotnet publish OtomatikMetinGenisletici.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
 
-    - name: Create Installation Guide
+    - name: Create KURULUM.txt
+      shell: pwsh
       run: |
         $version = "${{ steps.version.outputs.VERSION }}"
+        $content = @"
+# Otomatik Metin Genisletici v$version - Kurulum Kilavuzu
 
-        # Create KURULUM.txt content
-        $content = "# Otomatik Metin Genisletici v$version - Kurulum Kilavuzu`n`n"
-        $content += "## Sistem Gereksinimleri`n"
-        $content += "- Windows 10/11 (x64)`n"
-        $content += "- .NET SDK kurulumu GEREKMEZ (Self-contained)`n`n"
-        $content += "## Kurulum`n"
-        $content += "1. ZIP dosyasini istediginiz klasore cikarin`n"
-        $content += "2. OtomatikMetinGenisletici.exe dosyasini calistirin`n"
-        $content += "3. Ilk calistirmada Windows Defender uyarisi cikabilir - 'Yine de calistir' secin`n`n"
-        $content += "## Hizli Baslangic`n"
-        $content += "1. Kisayol Ekleme: Ana ekranda 'Ekle' butonuna tiklayin`n"
-        $content += "2. Kisayol: Yazmak istediginiz kisa metin (orn: 'mrhb')`n"
-        $content += "3. Genisletme: Tam metin (orn: 'Merhaba, nasilsiniz?')`n"
-        $content += "4. Kaydet ve kullanmaya baslayin!`n`n"
-        $content += "## Temel Ozellikler`n"
-        $content += "- Hizli metin genisletme (Ctrl+Space ile tetikleme)`n"
-        $content += "- Akilli metin onerileri ve ogrenme algoritmasi`n"
-        $content += "- Pencere filtreleme sistemi`n"
-        $content += "- System tray entegrasyonu`n"
-        $content += "- Modern kullanici arayuzu`n`n"
-        $content += "## Iletisim & Destek`n"
-        $content += "- E-posta: iletisim@saffetcelik.com.tr`n"
-        $content += "- Instagram: instagram.com/kamucoder`n"
-        $content += "- GitHub: github.com/saffetcelik`n`n"
-        $content += "## Lisans`n"
-        $content += "© 2024 Saffet Celik - Tum haklari saklidir`n`n"
-        $content += "---`n"
-        $content += "Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez."
+## Sistem Gereksinimleri
+- Windows 10/11 (x64)
+- .NET SDK kurulumu GEREKMEZ (Self-contained)
 
-        $content | Out-File -FilePath "./publish/KURULUM.txt" -Encoding UTF8
+## Kurulum
+1. ZIP dosyasini istediginiz klasore cikarin
+2. OtomatikMetinGenisletici.exe dosyasini calistirin
+3. Ilk calistirmada Windows Defender uyarisi cikabilir - 'Yine de calistir' secin
+
+## Hizli Baslangic
+1. Kisayol Ekleme: Ana ekranda 'Ekle' butonuna tiklayin
+2. Kisayol: Yazmak istediginiz kisa metin (orn: 'mrhb')
+3. Genisletme: Tam metin (orn: 'Merhaba, nasilsiniz?')
+4. Kaydet ve kullanmaya baslayin!
+
+## Temel Ozellikler
+- Hizli metin genisletme (Ctrl+Space ile tetikleme)
+- Akilli metin onerileri ve ogrenme algoritmasi
+- Pencere filtreleme sistemi
+- System tray entegrasyonu
+- Modern kullanici arayuzu
+
+## Iletisim & Destek
+- E-posta: iletisim@saffetcelik.com.tr
+- Instagram: instagram.com/kamucoder
+- GitHub: github.com/saffetcelik
+
+## Lisans
+© 2024 Saffet Celik - Tum haklari saklidir
+
+---
+Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez.
+"@
+        $content | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8
         Write-Host "KURULUM.txt created"
 
-    - name: Verify Required Files
+    - name: Verify files
+      shell: pwsh
       run: |
         Write-Host "Published files:"
-        Get-ChildItem -Path ./publish -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
+        Get-ChildItem -Path publish -Recurse
 
-        # Verify critical files
-        $requiredFiles = @("OtomatikMetinGenisletici.exe", "imlec.png", "KURULUM.txt")
-        foreach ($file in $requiredFiles) {
-          if (Test-Path "./publish/$file") {
+        $files = @("OtomatikMetinGenisletici.exe", "imlec.png", "KURULUM.txt")
+        foreach ($file in $files) {
+          if (Test-Path "publish/$file") {
             Write-Host "Found: $file"
           } else {
             Write-Host "Missing: $file"
@@ -106,42 +105,23 @@ jobs:
           }
         }
 
-        # Show executable size
-        $exeSize = (Get-Item "./publish/OtomatikMetinGenisletici.exe").Length / 1MB
-        Write-Host "Executable size: $([math]::Round($exeSize, 2)) MB"
-
-    - name: Create Release Archive
+    - name: Create package
+      shell: pwsh
       run: |
         $version = "${{ steps.version.outputs.VERSION }}"
-        $archiveName = "MetinGenisletici-x64-v$version.zip"
+        $name = "MetinGenisletici-x64-v$version.zip"
 
-        # Create clean release directory
-        New-Item -ItemType Directory -Path "./release" -Force
+        New-Item -ItemType Directory -Path release -Force
+        Copy-Item publish/OtomatikMetinGenisletici.exe release/
+        Copy-Item publish/imlec.png release/
+        Copy-Item publish/KURULUM.txt release/
 
-        # Copy only required files
-        Copy-Item "./publish/OtomatikMetinGenisletici.exe" "./release/"
-        Copy-Item "./publish/imlec.png" "./release/"
-        Copy-Item "./publish/KURULUM.txt" "./release/"
+        Compress-Archive -Path release/* -DestinationPath $name
 
-        # Create ZIP archive
-        Compress-Archive -Path "./release/*" -DestinationPath "./$archiveName" -Force
+        Write-Host "Created: $name"
+        echo "PACKAGE_NAME=$name" >> $env:GITHUB_ENV
 
-        Write-Host "Created archive: $archiveName"
-        Write-Host "Archive contents:"
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        $zip = [System.IO.Compression.ZipFile]::OpenRead("$archiveName")
-        $zip.Entries | ForEach-Object { Write-Host "  - $($_.Name) ($($_.Length) bytes)" }
-        $zip.Dispose()
-
-        echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
-
-    - name: Calculate File Hash
-      run: |
-        $hash = Get-FileHash -Path "./${{ env.ARCHIVE_NAME }}" -Algorithm SHA256
-        Write-Host "SHA256: $($hash.Hash)"
-        echo "FILE_HASH=$($hash.Hash)" >> $env:GITHUB_ENV
-
-    - name: Create GitHub Release
+    - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
@@ -149,43 +129,34 @@ jobs:
         body: |
           ## Otomatik Metin Genisletici v${{ steps.version.outputs.VERSION }}
 
-          ### İndirme
-          - **Windows x64**: ${{ env.ARCHIVE_NAME }}
-          - **SHA256**: ${{ env.FILE_HASH }}
+          ### Indirme
+          - Windows x64: ${{ env.PACKAGE_NAME }}
 
-          ### Özellikler
-          - Akıllı metin genişletme sistemi
-          - Öğrenme algoritması ile akıllı öneriler
-          - Modern WPF kullanıcı arayüzü
-          - Özelleştirilebilir tuş kombinasyonları
+          ### Ozellikler
+          - Akilli metin genisletme sistemi
+          - Ogrenme algoritmasi ile akilli oneriler
+          - Modern WPF kullanici arayuzu
+          - Ozellestirebilir tus kombinasyonlari
           - Pencere filtreleme sistemi
           - System tray entegrasyonu
-          - %100 yerel çalışma (internet bağlantısı gerektirmez)
+          - %100 yerel calisma
 
           ### Kurulum
-          1. ZIP dosyasını indirin ve çıkarın
-          2. OtomatikMetinGenisletici.exe dosyasını çalıştırın
-          3. Detaylı kurulum için KURULUM.txt dosyasını okuyun
+          1. ZIP dosyasini indirin ve cikarin
+          2. OtomatikMetinGenisletici.exe dosyasini calistirin
+          3. Detayli kurulum icin KURULUM.txt dosyasini okuyun
 
           ### Sistem Gereksinimleri
           - Windows 10/11 (x64)
           - .NET SDK kurulumu GEREKMEZ (Self-contained)
-          - Yönetici yetkileri (global klavye izleme için)
+          - Yonetici yetkileri (global klavye izleme icin)
 
-          ### İletişim
+          ### Iletisim
           - E-posta: iletisim@saffetcelik.com.tr
           - Instagram: instagram.com/kamucoder
           - GitHub: github.com/saffetcelik
-        files: |
-          ${{ env.ARCHIVE_NAME }}
+        files: ${{ env.PACKAGE_NAME }}
         draft: false
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Release Summary
-      run: |
-        Write-Host "Release completed successfully!"
-        Write-Host "Archive: ${{ env.ARCHIVE_NAME }}"
-        Write-Host "SHA256: ${{ env.FILE_HASH }}"
-        Write-Host "Version: ${{ steps.version.outputs.VERSION }}"
