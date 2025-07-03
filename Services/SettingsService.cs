@@ -120,7 +120,10 @@ namespace OtomatikMetinGenisletici.Services
                 // Pencere Filtreleme Ayarları
                 WindowFilteringEnabled = _settings.WindowFilteringEnabled,
                 WindowFilterMode = _settings.WindowFilterMode,
-                WindowFilters = new System.Collections.ObjectModel.ObservableCollection<Models.WindowFilter>(_settings.WindowFilters)
+                WindowFilters = new System.Collections.ObjectModel.ObservableCollection<Models.WindowFilter>(_settings.WindowFilters),
+
+                // Tuş Yönetimi Ayarları
+                ExpansionTriggerKey = _settings.ExpansionTriggerKey
             };
         }
     }

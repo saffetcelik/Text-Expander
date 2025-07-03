@@ -22,6 +22,7 @@ namespace OtomatikMetinGenisletici.Views
             _settings = _settingsService.GetCopy();
 
             LoadFontFamilies();
+            LoadExpansionTriggerKeys();
             LoadSettings();
             InitializeWindowFiltering();
             StartActiveWindowTimer();
@@ -30,10 +31,10 @@ namespace OtomatikMetinGenisletici.Views
         private void LoadFontFamilies()
         {
             FontFamilyComboBox.Items.Clear();
-            
+
             var fontFamilies = new[]
             {
-                "Segoe UI", "Arial", "Calibri", "Times New Roman", 
+                "Segoe UI", "Arial", "Calibri", "Times New Roman",
                 "Tahoma", "Verdana", "Georgia", "Comic Sans MS"
             };
 
@@ -41,6 +42,28 @@ namespace OtomatikMetinGenisletici.Views
             {
                 FontFamilyComboBox.Items.Add(fontFamily);
             }
+        }
+
+        private void LoadExpansionTriggerKeys()
+        {
+            ExpansionTriggerKeyComboBox.Items.Clear();
+
+            var triggerKeys = ExpansionTriggerKeyHelper.GetAllTriggerKeys();
+            foreach (var kvp in triggerKeys)
+            {
+                var item = new TriggerKeyItem { Key = kvp.Key, Value = kvp.Value };
+                ExpansionTriggerKeyComboBox.Items.Add(item);
+                Console.WriteLine($"[DEBUG] Added ComboBox item: {kvp.Key} = {kvp.Value}");
+            }
+
+            ExpansionTriggerKeyComboBox.DisplayMemberPath = "Value";
+            Console.WriteLine($"[DEBUG] ComboBox loaded with {ExpansionTriggerKeyComboBox.Items.Count} items");
+        }
+
+        public class TriggerKeyItem
+        {
+            public ExpansionTriggerKey Key { get; set; }
+            public string Value { get; set; } = string.Empty;
         }
 
         private void LoadSettings()
@@ -75,6 +98,31 @@ namespace OtomatikMetinGenisletici.Views
             {
                 BlockListModeRadio.IsChecked = true;
             }
+
+            // Expansion Trigger Key Settings
+            Console.WriteLine($"[DEBUG] Loading ExpansionTriggerKey: {_settings.ExpansionTriggerKey}");
+
+            // ComboBox'ta doğru item'ı seç
+            foreach (TriggerKeyItem item in ExpansionTriggerKeyComboBox.Items)
+            {
+                if (item.Key == _settings.ExpansionTriggerKey)
+                {
+                    ExpansionTriggerKeyComboBox.SelectedItem = item;
+                    Console.WriteLine($"[DEBUG] Selected item found and set: {item.Key} = {item.Value}");
+                    break;
+                }
+            }
+
+            if (ExpansionTriggerKeyComboBox.SelectedItem == null)
+            {
+                Console.WriteLine($"[DEBUG] No matching item found, setting to first item");
+                if (ExpansionTriggerKeyComboBox.Items.Count > 0)
+                {
+                    ExpansionTriggerKeyComboBox.SelectedIndex = 0;
+                }
+            }
+
+            UpdateTriggerKeyInfo(_settings.ExpansionTriggerKey);
 
             // Tema ayarı kaldırıldı - sadece Light tema kullanılıyor
         }
@@ -167,6 +215,19 @@ namespace OtomatikMetinGenisletici.Views
                 _settings.WindowFilterMode = AllowListModeRadio.IsChecked == true
                     ? WindowFilterMode.AllowList
                     : WindowFilterMode.BlockList;
+
+                // Expansion Trigger Key Settings
+                var selectedItem = ExpansionTriggerKeyComboBox.SelectedItem as TriggerKeyItem;
+                if (selectedItem != null)
+                {
+                    _settings.ExpansionTriggerKey = selectedItem.Key;
+                    Console.WriteLine($"[DEBUG] Saving ExpansionTriggerKey: {selectedItem.Key} = {selectedItem.Value}");
+                }
+                else
+                {
+                    _settings.ExpansionTriggerKey = ExpansionTriggerKey.Space; // Varsayılan değer
+                    Console.WriteLine($"[DEBUG] No valid selection, using default: Space");
+                }
 
                 // Validate ranges
                 if (_settings.MaxPhraseLength <= _settings.MinPhraseLength)
@@ -320,6 +381,110 @@ namespace OtomatikMetinGenisletici.Views
             {
                 MessageBox.Show($"Pencere seçimi sırasında hata oluştu: {ex.Message}", "Hata",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ExpansionTriggerKeyComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            var selectedItem = ExpansionTriggerKeyComboBox.SelectedItem as TriggerKeyItem;
+            if (selectedItem != null)
+            {
+                Console.WriteLine($"[DEBUG] ComboBox selection changed to: {selectedItem.Key} = {selectedItem.Value}");
+                UpdateTriggerKeyInfo(selectedItem.Key);
+            }
+        }
+
+        private void UpdateTriggerKeyInfo(ExpansionTriggerKey triggerKey)
+        {
+            var description = ExpansionTriggerKeyHelper.GetDescription(triggerKey);
+            var mainKey = ExpansionTriggerKeyHelper.GetMainKey(triggerKey);
+            var modifiers = ExpansionTriggerKeyHelper.GetModifiers(triggerKey);
+
+            string infoText;
+            if (modifiers.Any())
+            {
+                var modifierText = string.Join(" + ", modifiers);
+                infoText = $"Seçilen tuş kombinasyonu: {modifierText} + {mainKey}\n\n" +
+                          $"Metin genişletme işlemi için '{modifierText} + {mainKey}' tuş kombinasyonunu kullanın. " +
+                          $"Örneğin 'dav' yazıp {modifierText} tuşunu basılı tutarak {mainKey} tuşuna bastığınızda metin genişletilir.";
+            }
+            else
+            {
+                infoText = $"Seçilen tuş: {mainKey}\n\n" +
+                          $"Metin genişletme işlemi için '{mainKey}' tuşunu kullanın. " +
+                          $"Örneğin 'dav' yazıp {mainKey} tuşuna bastığınızda metin genişletilir.";
+            }
+
+            TriggerKeyInfoTextBlock.Text = infoText;
+        }
+
+        private void TestTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            // Test alanında tuş kombinasyonlarını test et
+            var selectedItem = ExpansionTriggerKeyComboBox.SelectedItem as TriggerKeyItem;
+            if (selectedItem == null) return;
+
+            var selectedTriggerKey = selectedItem.Key;
+
+            bool isMatch = false;
+            string pressedKey = "";
+
+            switch (selectedTriggerKey)
+            {
+                case ExpansionTriggerKey.Space:
+                    isMatch = e.Key == System.Windows.Input.Key.Space;
+                    pressedKey = "Space";
+                    break;
+                case ExpansionTriggerKey.Enter:
+                    isMatch = e.Key == System.Windows.Input.Key.Enter;
+                    pressedKey = "Enter";
+                    break;
+                case ExpansionTriggerKey.Tab:
+                    isMatch = e.Key == System.Windows.Input.Key.Tab;
+                    pressedKey = "Tab";
+                    break;
+                case ExpansionTriggerKey.CtrlSpace:
+                    isMatch = e.Key == System.Windows.Input.Key.Space &&
+                             (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) == System.Windows.Input.ModifierKeys.Control;
+                    pressedKey = "Ctrl+Space";
+                    break;
+                case ExpansionTriggerKey.ShiftSpace:
+                    isMatch = e.Key == System.Windows.Input.Key.Space &&
+                             (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) == System.Windows.Input.ModifierKeys.Shift;
+                    pressedKey = "Shift+Space";
+                    break;
+                case ExpansionTriggerKey.AltSpace:
+                    isMatch = e.Key == System.Windows.Input.Key.Space &&
+                             (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Alt) == System.Windows.Input.ModifierKeys.Alt;
+                    pressedKey = "Alt+Space";
+                    break;
+                case ExpansionTriggerKey.CtrlEnter:
+                    isMatch = e.Key == System.Windows.Input.Key.Enter &&
+                             (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) == System.Windows.Input.ModifierKeys.Control;
+                    pressedKey = "Ctrl+Enter";
+                    break;
+                case ExpansionTriggerKey.ShiftEnter:
+                    isMatch = e.Key == System.Windows.Input.Key.Enter &&
+                             (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) == System.Windows.Input.ModifierKeys.Shift;
+                    pressedKey = "Shift+Enter";
+                    break;
+                case ExpansionTriggerKey.AltEnter:
+                    isMatch = e.Key == System.Windows.Input.Key.Enter &&
+                             (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Alt) == System.Windows.Input.ModifierKeys.Alt;
+                    pressedKey = "Alt+Enter";
+                    break;
+            }
+
+            if (isMatch)
+            {
+                TestResultTextBlock.Text = $"✅ {pressedKey} tuş kombinasyonu başarıyla algılandı!";
+                TestResultTextBlock.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Green);
+                e.Handled = true; // Tuşun normal işlevini engelle
+            }
+            else
+            {
+                TestResultTextBlock.Text = $"❌ Beklenen: {ExpansionTriggerKeyHelper.GetDescription(selectedTriggerKey)}, Basılan: {e.Key}";
+                TestResultTextBlock.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red);
             }
         }
 

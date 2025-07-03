@@ -23,6 +23,9 @@ namespace OtomatikMetinGenisletici.Models
         private bool _learningEnabled = true;
         private double _learningWeight = 0.8;
 
+        // Tuş Yönetimi Ayarları
+        private ExpansionTriggerKey _expansionTriggerKey = ExpansionTriggerKey.Space;
+
 
 
         // Kısayol Önizleme Paneli Ayarları
@@ -272,6 +275,16 @@ namespace OtomatikMetinGenisletici.Models
             set
             {
                 _windowFilterMode = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ExpansionTriggerKey ExpansionTriggerKey
+        {
+            get => _expansionTriggerKey;
+            set
+            {
+                _expansionTriggerKey = value;
                 OnPropertyChanged();
             }
         }

@@ -47,6 +47,14 @@ namespace OtomatikMetinGenisletici.Services
         public event Action? CtrlSpacePressed;
         public event Func<bool>? TabPressed; // Func<bool> - true döndürürse Tab engellenir
         public event Action<string>? SpacePressed;
+
+        // Yeni tuş kombinasyonu event'leri
+        public event Action<string>? EnterPressed;
+        public event Action<string>? ShiftSpacePressed;
+        public event Action<string>? AltSpacePressed;
+        public event Action<string>? CtrlEnterPressed;
+        public event Action<string>? ShiftEnterPressed;
+        public event Action<string>? AltEnterPressed;
         public bool IsListening => _globalHook != null;
 
         public void StartListening()
@@ -120,12 +128,53 @@ namespace OtomatikMetinGenisletici.Services
                 return;
             }
 
-            // Space kombinasyonunu kontrol et
-            if ((Control.ModifierKeys & Keys.Control) == Keys.Control && e.KeyCode == Keys.Space)
+            // Tuş kombinasyonlarını kontrol et
+            var currentModifiers = Control.ModifierKeys;
+
+            // Space kombinasyonları
+            if (e.KeyCode == Keys.Space)
             {
-                Console.WriteLine($"[DEBUG] Space detected");
-                CtrlSpacePressed?.Invoke();
-                return;
+                if ((currentModifiers & Keys.Control) == Keys.Control)
+                {
+                    Console.WriteLine($"[DEBUG] Ctrl+Space detected");
+                    CtrlSpacePressed?.Invoke();
+                    return;
+                }
+                else if ((currentModifiers & Keys.Shift) == Keys.Shift)
+                {
+                    Console.WriteLine($"[DEBUG] Shift+Space detected");
+                    ShiftSpacePressed?.Invoke(_sentenceBuffer.ToString());
+                    return;
+                }
+                else if ((currentModifiers & Keys.Alt) == Keys.Alt)
+                {
+                    Console.WriteLine($"[DEBUG] Alt+Space detected");
+                    AltSpacePressed?.Invoke(_sentenceBuffer.ToString());
+                    return;
+                }
+            }
+
+            // Enter kombinasyonları
+            if (e.KeyCode == Keys.Enter)
+            {
+                if ((currentModifiers & Keys.Control) == Keys.Control)
+                {
+                    Console.WriteLine($"[DEBUG] Ctrl+Enter detected");
+                    CtrlEnterPressed?.Invoke(_sentenceBuffer.ToString());
+                    return;
+                }
+                else if ((currentModifiers & Keys.Shift) == Keys.Shift)
+                {
+                    Console.WriteLine($"[DEBUG] Shift+Enter detected");
+                    ShiftEnterPressed?.Invoke(_sentenceBuffer.ToString());
+                    return;
+                }
+                else if ((currentModifiers & Keys.Alt) == Keys.Alt)
+                {
+                    Console.WriteLine($"[DEBUG] Alt+Enter detected");
+                    AltEnterPressed?.Invoke(_sentenceBuffer.ToString());
+                    return;
+                }
             }
 
             // Tab tuşunu kontrol et (akıllı öneriler için)
@@ -222,6 +271,73 @@ namespace OtomatikMetinGenisletici.Services
                     SpacePressed?.Invoke(_sentenceBuffer.ToString());
                     break;
 
+                case Keys.Enter:
+                    var enterWord = _wordBuffer.ToString();
+                    Console.WriteLine($"[DEBUG] Enter pressed, word: '{enterWord}'");
+                    WriteToLogFile($"[DEBUG] Enter pressed, word: '{enterWord}'");
+
+                    if (!string.IsNullOrEmpty(enterWord))
+                    {
+                        // Kelimeyi cümle buffer'ına ekle
+                        _sentenceBuffer.Append(enterWord + " ");
+                        Console.WriteLine($"[DEBUG] Sentence buffer: '{_sentenceBuffer}'");
+                        WriteToLogFile($"[DEBUG] Sentence buffer: '{_sentenceBuffer}'");
+
+                        // Duplicate word prevention
+                        var now = DateTime.Now;
+                        if (_lastProcessedWord != enterWord ||
+                            (now - _lastWordTime).TotalMilliseconds >= WORD_COOLDOWN_MS)
+                        {
+                            _lastProcessedWord = enterWord;
+                            _lastWordTime = now;
+                            Console.WriteLine($"[DEBUG] WordCompleted event fired: '{enterWord}'");
+                            WriteToLogFile($"[DEBUG] WordCompleted event fired: '{enterWord}'");
+                            WordCompleted?.Invoke(enterWord);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[DEBUG] Word ignored (duplicate): '{enterWord}'");
+                            WriteToLogFile($"[DEBUG] Word ignored (duplicate): '{enterWord}'");
+                        }
+                    }
+
+                    // KeyPressed event'i için mevcut buffer'ı gönder
+                    Console.WriteLine($"[DEBUG] KeyPressed event firing with sentence: '{_sentenceBuffer.ToString()}'");
+                    WriteToLogFile($"[DEBUG] KeyPressed event firing with sentence: '{_sentenceBuffer.ToString()}'");
+                    KeyPressed?.Invoke(_sentenceBuffer.ToString());
+
+                    // EnterPressed olayını tetikle
+                    Console.WriteLine($"[DEBUG] EnterPressed event firing with: '{_sentenceBuffer.ToString()}'");
+                    WriteToLogFile($"[DEBUG] EnterPressed event firing with: '{_sentenceBuffer.ToString()}'");
+                    EnterPressed?.Invoke(_sentenceBuffer.ToString());
+
+                    // TAM CÜMLE TAMAMLANDI - sentence buffer'ını gönder
+                    string completeSentence = _sentenceBuffer.ToString().Trim();
+                    if (!string.IsNullOrEmpty(completeSentence) && completeSentence.Length > 3)
+                    {
+                        Console.WriteLine($"[DEBUG] COMPLETE SENTENCE (Enter): '{completeSentence}'");
+
+                        // Duplicate sentence prevention
+                        var now = DateTime.Now;
+                        if (_lastProcessedSentence != completeSentence ||
+                            (now - _lastSentenceTime).TotalMilliseconds >= SENTENCE_COOLDOWN_MS)
+                        {
+                            _lastProcessedSentence = completeSentence;
+                            _lastSentenceTime = now;
+                            Console.WriteLine($"[DEBUG] SentenceCompleted event fired (Enter): '{completeSentence}'");
+                            SentenceCompleted?.Invoke(completeSentence);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[DEBUG] Sentence ignored (duplicate, Enter): '{completeSentence}'");
+                        }
+                    }
+
+                    // Buffer'ları temizle
+                    _wordBuffer.Clear();
+                    _sentenceBuffer.Clear();
+                    break;
+
                 case Keys.Back:
                     // Önce kelime buffer'ından sil
                     if (_wordBuffer.Length > 0)
@@ -239,45 +355,7 @@ namespace OtomatikMetinGenisletici.Services
                     KeyPressed?.Invoke(_sentenceBuffer.ToString() + _wordBuffer.ToString());
                     break;
 
-                case Keys.Enter:
-                    {
-                        Console.WriteLine($"[DEBUG] Enter pressed");
 
-                        // Önce mevcut kelimeyi cümle buffer'ına ekle
-                        var currentWord = _wordBuffer.ToString();
-                        if (!string.IsNullOrEmpty(currentWord))
-                        {
-                            _sentenceBuffer.Append(currentWord);
-                            _wordBuffer.Clear();
-                        }
-
-                        // TAM CÜMLE TAMAMLANDI - sentence buffer'ını gönder
-                        string completeSentence = _sentenceBuffer.ToString().Trim();
-                        if (!string.IsNullOrEmpty(completeSentence) && completeSentence.Length > 3)
-                        {
-                            Console.WriteLine($"[DEBUG] COMPLETE SENTENCE (Enter): '{completeSentence}'");
-
-                            // Duplicate sentence prevention
-                            var now = DateTime.Now;
-                            if (_lastProcessedSentence != completeSentence ||
-                                (now - _lastSentenceTime).TotalMilliseconds >= SENTENCE_COOLDOWN_MS)
-                            {
-                                _lastProcessedSentence = completeSentence;
-                                _lastSentenceTime = now;
-                                Console.WriteLine($"[DEBUG] SentenceCompleted event fired (Enter): '{completeSentence}'");
-                                SentenceCompleted?.Invoke(completeSentence);
-                            }
-                            else
-                            {
-                                Console.WriteLine($"[DEBUG] Sentence ignored (duplicate, Enter): '{completeSentence}'");
-                            }
-                        }
-
-                        // Buffer'ları temizle
-                        _wordBuffer.Clear();
-                        _sentenceBuffer.Clear();
-                    }
-                    break;
 
                 case Keys.OemPeriod:    // . (nokta)
                 case Keys.Oemcomma:     // , (virgül)
@@ -304,24 +382,24 @@ namespace OtomatikMetinGenisletici.Services
                         }
 
                         // TAM CÜMLE TAMAMLANDI - sentence buffer'ını gönder
-                        string completeSentence = _sentenceBuffer.ToString().Trim();
-                        if (!string.IsNullOrEmpty(completeSentence) && completeSentence.Length > 3)
+                        string punctuationSentence = _sentenceBuffer.ToString().Trim();
+                        if (!string.IsNullOrEmpty(punctuationSentence) && punctuationSentence.Length > 3)
                         {
-                            Console.WriteLine($"[DEBUG] COMPLETE SENTENCE: '{completeSentence}'");
+                            Console.WriteLine($"[DEBUG] COMPLETE SENTENCE: '{punctuationSentence}'");
 
                             // Duplicate sentence prevention
                             var now = DateTime.Now;
-                            if (_lastProcessedSentence != completeSentence ||
+                            if (_lastProcessedSentence != punctuationSentence ||
                                 (now - _lastSentenceTime).TotalMilliseconds >= SENTENCE_COOLDOWN_MS)
                             {
-                                _lastProcessedSentence = completeSentence;
+                                _lastProcessedSentence = punctuationSentence;
                                 _lastSentenceTime = now;
-                                Console.WriteLine($"[DEBUG] SentenceCompleted event fired: '{completeSentence}'");
-                                SentenceCompleted?.Invoke(completeSentence);
+                                Console.WriteLine($"[DEBUG] SentenceCompleted event fired: '{punctuationSentence}'");
+                                SentenceCompleted?.Invoke(punctuationSentence);
                             }
                             else
                             {
-                                Console.WriteLine($"[DEBUG] Sentence ignored (duplicate): '{completeSentence}'");
+                                Console.WriteLine($"[DEBUG] Sentence ignored (duplicate): '{punctuationSentence}'");
                             }
                         }
 

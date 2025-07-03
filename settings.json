@@ -1,5 +1,4 @@
 {
-  "AutoStart": false,
   "ShowNotifications": true,
   "ExpansionDelay": 0,
   "FontFamily": "Arial",
@@ -22,5 +21,6 @@
   "ShortcutPreviewPanelTop": 200.0,
   "WindowFilters": [],
   "WindowFilteringEnabled": true,
-  "WindowFilterMode": 1
+  "WindowFilterMode": 1,
+  "ExpansionTriggerKey": 3
 }
