@@ -54,12 +54,87 @@ jobs:
           --runtime win-x64 `
           --self-contained true `
           --output ./publish `
+          -p:PublishSingleFile=true `
+          -p:PublishReadyToRun=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
+          -p:EnableCompressionInSingleFile=true `
           --verbosity normal
 
-    - name: 📋 List Published Files
+    - name: 📝 Create Installation Guide
+      run: |
+        $version = "${{ github.ref_name }}"
+        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+          $version = "${{ github.event.inputs.version }}"
+        }
+        $content = @"
+# Otomatik Metin Genişletici $version - Kurulum Kılavuzu
+
+## 📋 Sistem Gereksinimleri
+- Windows 10/11 (x64)
+- .NET SDK kurulumu GEREKMEZ (Self-contained)
+
+## 🚀 Kurulum
+1. ZIP dosyasını istediğiniz klasöre çıkarın
+2. ``OtomatikMetinGenisletici.exe`` dosyasını çalıştırın
+3. İlk çalıştırmada Windows Defender uyarısı çıkabilir - "Yine de çalıştır" seçin
+
+## ⚡ Hızlı Başlangıç
+1. **Kısayol Ekleme**: Ana ekranda "➕ Ekle" butonuna tıklayın
+2. **Kısayol**: Yazmak istediğiniz kısa metin (örn: "mrhb")
+3. **Genişletme**: Tam metin (örn: "Merhaba, nasılsınız?")
+4. **Kaydet** ve kullanmaya başlayın!
+
+## 🎯 Temel Özellikler
+- ✅ Hızlı metin genişletme (Ctrl+Space ile tetikleme)
+- ✅ Akıllı metin önerileri ve öğrenme algoritması
+- ✅ Pencere filtreleme sistemi
+- ✅ System tray entegrasyonu
+- ✅ Modern kullanıcı arayüzü
+
+## ⌨️ Varsayılan Tuş Kombinasyonları
+- **Ctrl+Space**: Kısayol genişletme (varsayılan)
+- **Tab**: Akıllı öneri kabul etme
+- **Esc**: Öneri iptal etme
+- **Space/Enter/Shift+Space/Alt+Space**: Alternatif tetikleme tuşları
+
+## 🛠️ Sorun Giderme
+- **Program açılmıyor**: Windows Defender'ı kontrol edin, yönetici olarak çalıştırın
+- **Kısayollar çalışmıyor**: Ayarlar > Genişletme Tetikleme Tuşu'nu kontrol edin
+- **Öneriler gelmiyor**: Ayarlar > Akıllı Öneriler'i aktif edin
+
+## 📞 İletişim & Destek
+- 📧 E-posta: iletisim@saffetcelik.com.tr
+- 📷 Instagram: instagram.com/kamucoder
+- 🐙 GitHub: github.com/saffetcelik
+
+## 📄 Lisans
+© 2024 Saffet Çelik - Tüm hakları saklıdır
+
+---
+**Not**: Bu uygulama .NET 8 ile geliştirilmiş olup herhangi bir ek kurulum gerektirmez.
+"@
+        $content | Out-File -FilePath "./publish/KURULUM.txt" -Encoding UTF8
+        Write-Host "✅ KURULUM.txt oluşturuldu"
+
+    - name: 📋 Verify Required Files
       run: |
         Write-Host "📁 Published files:"
         Get-ChildItem -Path ./publish -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
+
+        # Verify critical files
+        $requiredFiles = @("OtomatikMetinGenisletici.exe", "imlec.png", "KURULUM.txt")
+        foreach ($file in $requiredFiles) {
+          if (Test-Path "./publish/$file") {
+            Write-Host "✅ $file found"
+          } else {
+            Write-Host "❌ $file NOT found"
+            exit 1
+          }
+        }
+
+        # Show executable size
+        $exeSize = (Get-Item "./publish/OtomatikMetinGenisletici.exe").Length / 1MB
+        Write-Host "📦 Executable size: $([math]::Round($exeSize, 2)) MB"
 
     - name: 🗜️ Create Release Archive
       run: |
@@ -67,9 +142,27 @@ jobs:
         if ("${{ github.event_name }}" -eq "workflow_dispatch") {
           $version = "${{ github.event.inputs.version }}"
         }
-        $archiveName = "Text-Expander-$version-win-x64.zip"
-        Compress-Archive -Path "./publish/*" -DestinationPath "./$archiveName" -Force
+        $cleanVersion = $version -replace '^v', ''
+        $archiveName = "MetinGenisletici-x64-v$cleanVersion.zip"
+
+        # Create clean release directory
+        New-Item -ItemType Directory -Path "./release" -Force
+
+        # Copy only required files
+        Copy-Item "./publish/OtomatikMetinGenisletici.exe" "./release/"
+        Copy-Item "./publish/imlec.png" "./release/"
+        Copy-Item "./publish/KURULUM.txt" "./release/"
+
+        # Create ZIP archive
+        Compress-Archive -Path "./release/*" -DestinationPath "./$archiveName" -Force
+
         Write-Host "✅ Created archive: $archiveName"
+        Write-Host "📦 Archive contents:"
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [System.IO.Compression.ZipFile]::OpenRead("$archiveName")
+        $zip.Entries | ForEach-Object { Write-Host "  - $($_.Name) ($($_.Length) bytes)" }
+        $zip.Dispose()
+
         echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
 
     - name: 📊 Calculate File Hashes
@@ -87,44 +180,52 @@ jobs:
         }
         
         $releaseNotes = @"
-        # 🚀 Text Expander $version
+        # 🚀 Otomatik Metin Genişletici $version
 
-        ## 📦 Downloads
-        - **Windows (x64)**: [${{ env.ARCHIVE_NAME }}]
-        - **Size**: $(Get-Item "./${{ env.ARCHIVE_NAME }}" | Select-Object -ExpandProperty Length | ForEach-Object { [math]::Round($_ / 1MB, 2) }) MB
+        ## 📦 İndirme
+        - **Windows x64**: [${{ env.ARCHIVE_NAME }}]
+        - **Boyut**: $(Get-Item "./${{ env.ARCHIVE_NAME }}" | Select-Object -ExpandProperty Length | ForEach-Object { [math]::Round($_ / 1MB, 2) }) MB
         - **SHA256**: ``${{ env.FILE_HASH }}``
 
-        ## 🎯 Quick Start
-        1. Download the zip file above
-        2. Extract to your preferred location
-        3. Run ``OtomatikMetinGenisletici.exe`` as Administrator
-        4. Start creating shortcuts and boost your productivity!
+        ## 🎯 Hızlı Başlangıç
+        1. Yukarıdaki ZIP dosyasını indirin
+        2. İstediğiniz klasöre çıkarın
+        3. ``OtomatikMetinGenisletici.exe`` dosyasını çalıştırın
+        4. Detaylı kurulum için ``KURULUM.txt`` dosyasını okuyun
 
-        ## ✨ What's New
-        - 🔤 Intelligent text expansion system
-        - 🧠 AI-powered smart suggestions
-        - 🎨 Modern WPF interface
-        - ⚙️ Advanced configuration options
-        - 🛡️ 100% local operation (no internet required)
+        ## ✨ Özellikler
+        - 🔤 Akıllı metin genişletme sistemi
+        - 🧠 Öğrenme algoritması ile akıllı öneriler
+        - 🎨 Modern WPF kullanıcı arayüzü
+        - ⚙️ Özelleştirilebilir tuş kombinasyonları (Space, Ctrl+Space, Shift+Space, Alt+Space, Enter)
+        - 🪟 Pencere filtreleme sistemi
+        - 📊 Öğrenme istatistikleri ve logları
+        - 🛡️ %100 yerel çalışma (internet bağlantısı gerektirmez)
+        - 📱 System tray entegrasyonu
 
-        ## 📋 System Requirements
-        - Windows 10 (1903+) or Windows 11
-        - x64 architecture
+        ## 📋 Sistem Gereksinimleri
+        - Windows 10/11 (x64)
+        - .NET SDK kurulumu GEREKMEZ (Self-contained)
         - 512MB RAM minimum
-        - Administrator privileges
+        - Yönetici yetkileri (global klavye izleme için)
 
-        ## 🔒 Security Note
-        This application uses keyboard hooks for system-wide text expansion. Some antivirus software may flag it as potentially unwanted. This is a false positive - the application is completely safe and open source.
+        ## 🔒 Güvenlik Notu
+        Bu uygulama sistem genelinde metin genişletme için klavye hook'ları kullanır. Bazı antivirüs yazılımları bunu potansiyel olarak istenmeyen program olarak işaretleyebilir. Bu yanlış pozitiftir - uygulama tamamen güvenli ve açık kaynaklıdır.
 
-        ## 🐛 Known Issues
-        - Windows Defender may show a warning (add to exclusions)
-        - Requires administrator rights for global keyboard monitoring
+        ## 🐛 Bilinen Sorunlar
+        - Windows Defender uyarı gösterebilir (istisna listesine ekleyin)
+        - Global klavye izleme için yönetici yetkileri gerektirir
+
+        ## 📞 İletişim & Destek
+        - 📧 E-posta: iletisim@saffetcelik.com.tr
+        - 📷 Instagram: instagram.com/kamucoder
+        - 🐙 GitHub: github.com/saffetcelik
 
         ---
 
-        **📚 Full Documentation**: [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
-        **🐛 Report Issues**: [Issues](https://github.com/${{ github.repository }}/issues)
-        **💬 Discussions**: [Discussions](https://github.com/${{ github.repository }}/discussions)
+        **📚 Tam Dokümantasyon**: [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
+        **🐛 Sorun Bildir**: [Issues](https://github.com/${{ github.repository }}/issues)
+        **💬 Tartışmalar**: [Discussions](https://github.com/${{ github.repository }}/discussions)
         "@
 
         # Save to file for GitHub release
@@ -135,15 +236,13 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref_name || github.event.inputs.version }}
-        name: "Text Expander ${{ github.ref_name || github.event.inputs.version }}"
+        name: "Otomatik Metin Genişletici ${{ github.ref_name || github.event.inputs.version }}"
         body_path: "./release-notes.md"
         files: |
           ./${{ env.ARCHIVE_NAME }}
-          ./CHANGELOG.md
-          ./README.md
         draft: false
         prerelease: false
-        generate_release_notes: true
+        generate_release_notes: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
