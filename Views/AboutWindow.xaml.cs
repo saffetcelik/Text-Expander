@@ -47,5 +47,21 @@ namespace OtomatikMetinGenisletici.Views
                 // Tarayıcı bulunamadı, sessizce geç
             }
         }
+
+        private void Instagram_Click(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://instagram.com/kamucoder",
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+                // Tarayıcı bulunamadı, sessizce geç
+            }
+        }
     }
 }

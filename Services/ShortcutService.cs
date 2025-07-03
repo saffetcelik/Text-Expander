@@ -30,9 +30,45 @@ namespace OtomatikMetinGenisletici.Services
         private DateTime _lastExpansionTime = DateTime.MinValue;
         private const int EXPANSION_COOLDOWN_MS = 500; // 500ms cooldown
 
+        // Learning exclusion tracking
+        private string _lastExpandedText = string.Empty;
+        private DateTime _lastExpansionEndTime = DateTime.MinValue;
+        private const int LEARNING_EXCLUSION_WINDOW_MS = 2000; // 2 saniye öğrenme hariç tutma penceresi
+
         public ObservableCollection<Shortcut> Shortcuts => _shortcuts;
 
         public event Action<string>? ShortcutExpanded;
+
+        /// <summary>
+        /// Verilen metnin yakın zamanda genişletilen bir kısayol olup olmadığını kontrol eder
+        /// </summary>
+        public bool IsRecentlyExpandedText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(_lastExpandedText))
+                return false;
+
+            // Zaman penceresi kontrolü
+            if (DateTime.Now > _lastExpansionEndTime)
+                return false;
+
+            // Metin eşleşme kontrolü - genişletilen metin ile tam veya kısmi eşleşme
+            var normalizedText = text.Trim().ToLowerInvariant();
+            var normalizedExpanded = _lastExpandedText.Trim().ToLowerInvariant();
+
+            // Tam eşleşme
+            if (normalizedText == normalizedExpanded)
+                return true;
+
+            // Genişletilen metin, gelen metnin içinde yer alıyor mu?
+            if (normalizedText.Contains(normalizedExpanded))
+                return true;
+
+            // Gelen metin, genişletilen metnin içinde yer alıyor mu?
+            if (normalizedExpanded.Contains(normalizedText))
+                return true;
+
+            return false;
+        }
 
         public async Task LoadShortcutsAsync()
         {
@@ -134,6 +170,11 @@ namespace OtomatikMetinGenisletici.Services
 
                     // Kısayolu genişlet
                     ExpandText(shortcut.Key, expansion);
+
+                    // Genişletilen metni öğrenme hariç tutma için kaydet
+                    _lastExpandedText = expansion;
+                    _lastExpansionEndTime = DateTime.Now.AddMilliseconds(LEARNING_EXCLUSION_WINDOW_MS);
+
                     ShortcutExpanded?.Invoke(expansion);
                     return true;
                 }

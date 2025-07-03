@@ -1,0 +1,114 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    OTOMATIK METİN GENİŞLETİCİ v2.0.0
+                         Kurulum ve Kullanım Kılavuzu
+═══════════════════════════════════════════════════════════════════════════════
+
+📋 KURULUM TALİMATLARI
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ZIP dosyasını istediğiniz bir klasöre çıkarın
+2. OtomatikMetinGenisletici.exe dosyasını çalıştırın
+3. Program otomatik olarak sistem tepsisinde başlayacaktır
+
+⚠️  ÖNEMLİ NOTLAR:
+• Bu program .NET 8 Runtime ile derlenmiştir ve herhangi bir ek kurulum gerektirmez
+• Windows 10/11 işletim sistemlerinde sorunsuz çalışır
+• İlk çalıştırmada Windows Defender uyarısı verebilir - "Yine de çalıştır" seçeneğini kullanın
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🚀 TEMEL ÖZELLİKLER
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Hızlı Metin Genişletme
+   • Kısayollarınızı yazın ve otomatik olarak genişlesin
+   • Örnek: "mrhb" → "Merhaba, nasılsınız?"
+
+✅ Akıllı Metin Önerileri
+   • Yazdığınız metne göre akıllı öneriler
+   • Tab tuşu ile önerileri kabul edin
+
+✅ Özelleştirilebilir Tuş Kombinasyonları
+   • Varsayılan: Ctrl+Space
+   • Ayarlardan değiştirilebilir (Space, Enter, Shift+Space, Alt+Space, vb.)
+
+✅ Pencere Filtreleme
+   • Belirli uygulamalarda çalışmasını engelleyebilirsiniz
+   • Oyunlar ve özel uygulamalar için ideal
+
+✅ Öğrenme Algoritması
+   • Kullanım alışkanlıklarınızı öğrenir
+   • Zamanla daha akıllı öneriler sunar
+
+═══════════════════════════════════════════════════════════════════════════════
+
+⚙️  HIZLI BAŞLANGIÇ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Program çalıştıktan sonra sistem tepsisindeki ikona sağ tıklayın
+2. "Ayarlar" menüsünden tercihlerinizi yapılandırın
+3. "Kısayollar" bölümünden yeni metin genişletmeleri ekleyin
+4. Herhangi bir metin alanında kısayolunuzu yazıp Ctrl+Space basın
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📁 DOSYA YAPISI
+═══════════════════════════════════════════════════════════════════════════════
+
+OtomatikMetinGenisletici.exe    → Ana program dosyası
+imlec.png                       → Program ikonu
+kurulum.txt                     → Bu dosya
+settings.json                   → Ayarlar (otomatik oluşturulur)
+shortcuts.json                  → Kısayollar (otomatik oluşturulur)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔧 SORUN GİDERME
+═══════════════════════════════════════════════════════════════════════════════
+
+❓ Program açılmıyor?
+   → Windows Defender'ı kontrol edin, "Yine de çalıştır" seçin
+   → Yönetici olarak çalıştırmayı deneyin
+
+❓ Kısayollar çalışmıyor?
+   → Ayarlar > Tuş Kombinasyonu bölümünü kontrol edin
+   → Dinleme durumunun "Aktif" olduğundan emin olun
+
+❓ Bazı uygulamalarda çalışmıyor?
+   → Bu normaldir, güvenlik nedeniyle bazı sistem uygulamalarında çalışmaz
+   → Pencere filtreleme ayarlarını kontrol edin
+
+═══════════════════════════════════════════════════════════════════════════════
+
+👨‍💻 GELİŞTİRİCİ İLETİŞİM
+═══════════════════════════════════════════════════════════════════════════════
+
+📧 E-posta: iletisim@saffetcelik.com.tr
+📷 Instagram: instagram.com/kamucoder
+🐙 GitHub: github.com/saffetcelik
+
+Sorularınız, önerileriniz ve geri bildirimleriniz için yukarıdaki iletişim
+adreslerini kullanabilirsiniz. Sosyal medya hesaplarımızı takip ederek
+güncellemelerden haberdar olabilirsiniz.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📄 LİSANS VE TELİF HAKKI
+═══════════════════════════════════════════════════════════════════════════════
+
+© 2024 Saffet Çelik. Tüm hakları saklıdır.
+
+Bu yazılım kişisel ve ticari kullanım için ücretsizdir.
+Yazılımın kaynak kodunu değiştirmek, dağıtmak veya satmak yasaktır.
+Yazılım "olduğu gibi" sağlanmaktadır ve hiçbir garanti verilmemektedir.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎉 TEŞEKKÜRLER!
+
+Otomatik Metin Genişletici'yi seçtiğiniz için teşekkür ederiz!
+Bu araç yazım hızınızı artıracak ve iş verimliliğinizi yükseltecektir.
+
+İyi kullanımlar! 🚀
+
+═══════════════════════════════════════════════════════════════════════════════

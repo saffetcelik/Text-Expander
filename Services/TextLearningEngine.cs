@@ -13,8 +13,9 @@ namespace OtomatikMetinGenisletici.Services
         private LearningData _learningData;
         private readonly Timer _saveTimer;
         private bool _hasUnsavedChanges;
+        private readonly ShortcutService? _shortcutService;
 
-        public TextLearningEngine(string dataFilePath = "learning_data.json")
+        public TextLearningEngine(string dataFilePath = "learning_data.json", ShortcutService? shortcutService = null)
         {
             try
             {
@@ -22,6 +23,7 @@ namespace OtomatikMetinGenisletici.Services
 
                 _dataFilePath = dataFilePath;
                 _learningData = new LearningData();
+                _shortcutService = shortcutService;
 
                 Console.WriteLine("[DEBUG] Timer oluşturuluyor...");
                 // Her 30 saniyede bir otomatik kaydet
@@ -46,6 +48,13 @@ namespace OtomatikMetinGenisletici.Services
             if (string.IsNullOrWhiteSpace(text) || text.Length < 3)
             {
                 Console.WriteLine($"[LEARNING] Metin çok kısa, öğrenme atlandı: '{text}'");
+                return;
+            }
+
+            // Kısayol genişletmesi kontrolü
+            if (_shortcutService?.IsRecentlyExpandedText(text) == true)
+            {
+                Console.WriteLine($"[LEARNING] *** KISAYOL GENİŞLETMESİ ALGILANDI, ÖĞRENME ATLANIYOR: '{text}' ***");
                 return;
             }
 

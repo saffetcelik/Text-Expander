@@ -122,8 +122,15 @@ public partial class App : Application
                     // Register Services
                     services.AddSingleton<IKeyboardHookService, KeyboardHookService>();
                     services.AddSingleton<IShortcutService, ShortcutService>();
-                    services.AddSingleton<ISmartSuggestionsService, SmartSuggestionsService>();
                     services.AddSingleton<ISettingsService, SettingsService>();
+
+                    // SmartSuggestionsService'i ShortcutService'e bağımlı olarak kaydet
+                    services.AddSingleton<ISmartSuggestionsService>(provider =>
+                    {
+                        var settingsService = provider.GetRequiredService<ISettingsService>();
+                        var shortcutService = provider.GetRequiredService<IShortcutService>() as ShortcutService;
+                        return new SmartSuggestionsService(settingsService, shortcutService);
+                    });
                     services.AddSingleton<INotificationService, NotificationService>();
                     services.AddSingleton<IImageRecognitionService, ImageRecognitionService>();
                     services.AddSingleton<IWindowBehaviorService, WindowBehaviorService>();

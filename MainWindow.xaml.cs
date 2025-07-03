@@ -532,6 +532,36 @@ public partial class MainWindow : Window
             MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private async void ResetLearningData_Click(object sender, RoutedEventArgs e)
+    {
+        var result = MessageBox.Show(
+            "Bu işlem tüm öğrenme verilerini kalıcı olarak silecektir!\n\n" +
+            "• Öğrenilen kelimeler\n" +
+            "• Kelime çiftleri (bigrams)\n" +
+            "• Üçlü kelime grupları (trigrams)\n" +
+            "• Öğrenme logları\n" +
+            "• İstatistikler\n\n" +
+            "Bu işlem geri alınamaz. Devam etmek istediğinizden emin misiniz?",
+            "Öğrenme Verilerini Sıfırla",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            try
+            {
+                await _viewModel.ResetAllLearningDataAsync();
+                MessageBox.Show("Tüm öğrenme verileri başarıyla sıfırlandı!", "Başarılı",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Öğrenme verileri sıfırlanırken hata oluştu:\n{ex.Message}", "Hata",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+
     private void ToggleShortcutPreview_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.ToggleShortcutPreviewPanel();

@@ -16,7 +16,7 @@ namespace OtomatikMetinGenisletici.Services
         public event Action<List<SmartSuggestion>>? SuggestionsUpdated;
         public event Action<SmartSuggestion>? SuggestionAccepted;
 
-        public SmartSuggestionsService(ISettingsService settingsService)
+        public SmartSuggestionsService(ISettingsService settingsService, ShortcutService? shortcutService = null)
         {
             try
             {
@@ -26,7 +26,7 @@ namespace OtomatikMetinGenisletici.Services
                 _settings = _settingsService.Settings;
 
                 Console.WriteLine("[DEBUG] TextLearningEngine oluşturuluyor...");
-                _learningEngine = new TextLearningEngine("smart_suggestions_data.json");
+                _learningEngine = new TextLearningEngine("smart_suggestions_data.json", shortcutService);
                 _isEnabled = _settings.SmartSuggestionsEnabled;
 
                 Console.WriteLine("[DEBUG] Event'ler bağlanıyor...");

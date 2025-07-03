@@ -587,7 +587,15 @@
                                         Margin="0,0,8,0"/>
                                 <Button Content="⚙️ Ayarlar"
                                         Style="{StaticResource ModernButtonStyle}"
-                                        Click="OpenSmartSuggestionsSettings_Click"/>
+                                        Click="OpenSmartSuggestionsSettings_Click"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="🔄 Logu Temizle"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Click="ClearLearningLog_Click"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="🗑️ Logları Sıfırla"
+                                        Style="{StaticResource ErrorButtonStyle}"
+                                        Click="ResetLearningData_Click"/>
                             </StackPanel>
                         </Grid>
 
@@ -622,16 +630,12 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
 
-                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Button Content="🔄 Logu Temizle"
-                                            Style="{StaticResource ModernButtonStyle}"
-                                            Click="ClearLearningLog_Click"
-                                            Margin="0,0,8,0"/>
-                                    <TextBlock Text="{Binding TotalLearnedSentences, StringFormat='Toplam Öğrenilen Cümle: {0}'}"
-                                               VerticalAlignment="Center"
-                                               FontSize="12"
-                                               Foreground="Gray"/>
-                                </StackPanel>
+                                <!-- Toplam Cümle Sayısı -->
+                                <TextBlock Text="{Binding TotalLearnedSentences, StringFormat='Toplam Öğrenilen Cümle: {0}'}"
+                                           FontSize="12"
+                                           Foreground="Gray"
+                                           Margin="0,8,0,0"
+                                           HorizontalAlignment="Left"/>
                             </StackPanel>
                         </Border>
 

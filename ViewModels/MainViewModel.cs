@@ -3092,6 +3092,95 @@ namespace OtomatikMetinGenisletici.ViewModels
             SaveLearningLogToFile();
         }
 
+        public async Task ResetAllLearningDataAsync()
+        {
+            try
+            {
+                Console.WriteLine("[DEBUG] Tüm öğrenme verileri sıfırlanıyor...");
+
+                // 1. SmartSuggestionsService'deki tüm öğrenme verilerini sıfırla
+                if (_smartSuggestionsService != null)
+                {
+                    await _smartSuggestionsService.ResetLearningDataAsync();
+                    Console.WriteLine("[DEBUG] SmartSuggestionsService verileri sıfırlandı");
+                }
+
+                // 2. Local öğrenme verilerini temizle
+                _learnedWords.Clear();
+                _learnedWordPairs.Clear();
+                Console.WriteLine("[DEBUG] Local öğrenme verileri temizlendi");
+
+                // 3. Öğrenme logunu temizle
+                ClearLearningLog();
+                Console.WriteLine("[DEBUG] Öğrenme logu temizlendi");
+
+                // 4. UI'daki istatistikleri sıfırla
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // Temel istatistikler
+                    TotalLearnedWords = 0;
+                    TotalSuggestionsGiven = 0;
+                    AcceptedSuggestions = 0;
+                    AccuracyRate = 0;
+
+                    // Progress göstergeleri
+                    VocabularyProgress = 0;
+                    VocabularyProgressText = "0 / 1000 kelime";
+                    PredictionAccuracy = 0;
+                    PredictionAccuracyText = "0%";
+                    LearningSpeed = 0;
+                    LearningSpeedText = "Başlangıç";
+
+                    // Listeler
+                    MostUsedWords.Clear();
+                    TopBigrams.Clear();
+                    TopTrigrams.Clear();
+                    SmartSuggestions.Clear();
+                });
+
+                // 5. Öğrenme dosyalarını sil
+                await DeleteLearningFilesAsync();
+
+                Console.WriteLine("[DEBUG] Tüm öğrenme verileri başarıyla sıfırlandı");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Öğrenme verileri sıfırlama hatası: {ex.Message}");
+                throw;
+            }
+        }
+
+        private async Task DeleteLearningFilesAsync()
+        {
+            await Task.Run(() =>
+            {
+                try
+                {
+                    string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+                    // Silinecek dosyalar
+                    string[] filesToDelete = {
+                        Path.Combine(baseDirectory, "learning_log.txt"),
+                        Path.Combine(baseDirectory, "smart_suggestions_data.json"),
+                        Path.Combine(baseDirectory, "learning_data.json")
+                    };
+
+                    foreach (string filePath in filesToDelete)
+                    {
+                        if (File.Exists(filePath))
+                        {
+                            File.Delete(filePath);
+                            Console.WriteLine($"[DEBUG] Dosya silindi: {filePath}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Öğrenme dosyaları silme hatası: {ex.Message}");
+                }
+            });
+        }
+
         public void AddToLearningLog(string sentence)
         {
             var timestamp = DateTime.Now;
