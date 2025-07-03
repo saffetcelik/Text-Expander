@@ -225,8 +225,8 @@ namespace OtomatikMetinGenisletici.Views
                 }
                 else
                 {
-                    _settings.ExpansionTriggerKey = ExpansionTriggerKey.Space; // Varsayılan değer
-                    Console.WriteLine($"[DEBUG] No valid selection, using default: Space");
+                    _settings.ExpansionTriggerKey = ExpansionTriggerKey.CtrlSpace; // Varsayılan değer
+                    Console.WriteLine($"[DEBUG] No valid selection, using default: CtrlSpace");
                 }
 
                 // Validate ranges
@@ -438,10 +438,6 @@ namespace OtomatikMetinGenisletici.Views
                 case ExpansionTriggerKey.Enter:
                     isMatch = e.Key == System.Windows.Input.Key.Enter;
                     pressedKey = "Enter";
-                    break;
-                case ExpansionTriggerKey.Tab:
-                    isMatch = e.Key == System.Windows.Input.Key.Tab;
-                    pressedKey = "Tab";
                     break;
                 case ExpansionTriggerKey.CtrlSpace:
                     isMatch = e.Key == System.Windows.Input.Key.Space &&

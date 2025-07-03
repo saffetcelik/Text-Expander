@@ -9,30 +9,27 @@ namespace OtomatikMetinGenisletici.Models
     {
         [Description("Space")]
         Space = 0,
-        
+
         [Description("Enter")]
         Enter = 1,
-        
-        [Description("Tab")]
-        Tab = 2,
-        
+
         [Description("Ctrl + Space")]
-        CtrlSpace = 3,
-        
+        CtrlSpace = 2,
+
         [Description("Shift + Space")]
-        ShiftSpace = 4,
-        
+        ShiftSpace = 3,
+
         [Description("Alt + Space")]
-        AltSpace = 5,
-        
+        AltSpace = 4,
+
         [Description("Ctrl + Enter")]
-        CtrlEnter = 6,
-        
+        CtrlEnter = 5,
+
         [Description("Shift + Enter")]
-        ShiftEnter = 7,
-        
+        ShiftEnter = 6,
+
         [Description("Alt + Enter")]
-        AltEnter = 8
+        AltEnter = 7
     }
 
     /// <summary>
@@ -92,18 +89,16 @@ namespace OtomatikMetinGenisletici.Models
         {
             return key switch
             {
-                ExpansionTriggerKey.Space or 
-                ExpansionTriggerKey.CtrlSpace or 
-                ExpansionTriggerKey.ShiftSpace or 
+                ExpansionTriggerKey.Space or
+                ExpansionTriggerKey.CtrlSpace or
+                ExpansionTriggerKey.ShiftSpace or
                 ExpansionTriggerKey.AltSpace => "Space",
-                
-                ExpansionTriggerKey.Enter or 
-                ExpansionTriggerKey.CtrlEnter or 
-                ExpansionTriggerKey.ShiftEnter or 
+
+                ExpansionTriggerKey.Enter or
+                ExpansionTriggerKey.CtrlEnter or
+                ExpansionTriggerKey.ShiftEnter or
                 ExpansionTriggerKey.AltEnter => "Enter",
-                
-                ExpansionTriggerKey.Tab => "Tab",
-                
+
                 _ => "Space"
             };
         }

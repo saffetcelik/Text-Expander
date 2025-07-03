@@ -20,6 +20,7 @@
     <Version>1.0.0</Version>
 
     <!-- Self-contained deployment settings for optimal Windows release -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <PublishReadyToRun>true</PublishReadyToRun>
@@ -39,6 +40,8 @@
     <PackageReference Include="OpenCvSharp4.Extensions" Version="4.9.0.20240103" />
     <PackageReference Include="OpenCvSharp4.Windows" Version="4.9.0.20240103" />
     <PackageReference Include="System.Windows.Forms" Version="4.0.0" />
+
+
   </ItemGroup>
 
   <ItemGroup>
@@ -54,11 +57,6 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Test klasörünü exclude et -->
-    <Compile Remove="test\**" />
-    <EmbeddedResource Remove="test\**" />
-    <None Remove="test\**" />
-  </ItemGroup>
+
 
 </Project>

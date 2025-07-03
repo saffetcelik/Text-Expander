@@ -24,7 +24,7 @@ namespace OtomatikMetinGenisletici.Models
         private double _learningWeight = 0.8;
 
         // Tuş Yönetimi Ayarları
-        private ExpansionTriggerKey _expansionTriggerKey = ExpansionTriggerKey.Space;
+        private ExpansionTriggerKey _expansionTriggerKey = ExpansionTriggerKey.CtrlSpace;
 
 
 

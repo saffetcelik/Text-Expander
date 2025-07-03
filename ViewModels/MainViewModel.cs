@@ -1370,12 +1370,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             Console.WriteLine("[DEBUG] *** Tab tuşu basıldı ***");
             WriteToLogFile("[DEBUG] *** Tab tuşu basıldı ***");
 
-            // Eğer Tab expansion trigger olarak seçilmişse, expansion yap
-            if (_settingsService.Settings.ExpansionTriggerKey == ExpansionTriggerKey.Tab)
-            {
-                HandleExpansionTrigger(ExpansionTriggerKey.Tab, _contextBuffer);
-                return true; // Tab'ı engelle çünkü expansion yaptık
-            }
+            // Tab artık expansion trigger olarak kullanılmıyor - sadece metin önerileri için
 
             // Eğer pencere filtrelerine uymuyorsa Tab'ı engelleme
             if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
