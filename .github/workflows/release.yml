@@ -66,55 +66,59 @@ jobs:
         if ("${{ github.event_name }}" -eq "workflow_dispatch") {
           $version = "${{ github.event.inputs.version }}"
         }
-        $content = @"
-# Otomatik Metin Genişletici $version - Kurulum Kılavuzu
+
+        # Create installation guide content
+        $content = @'
+# Otomatik Metin Genisletici {0} - Kurulum Kilavuzu
 
 ## 📋 Sistem Gereksinimleri
 - Windows 10/11 (x64)
 - .NET SDK kurulumu GEREKMEZ (Self-contained)
 
 ## 🚀 Kurulum
-1. ZIP dosyasını istediğiniz klasöre çıkarın
-2. ``OtomatikMetinGenisletici.exe`` dosyasını çalıştırın
-3. İlk çalıştırmada Windows Defender uyarısı çıkabilir - "Yine de çalıştır" seçin
+1. ZIP dosyasini istediginiz klasore cikarin
+2. OtomatikMetinGenisletici.exe dosyasini calistirin
+3. Ilk calistirmada Windows Defender uyarisi cikabilir - "Yine de calistir" secin
 
-## ⚡ Hızlı Başlangıç
-1. **Kısayol Ekleme**: Ana ekranda "➕ Ekle" butonuna tıklayın
-2. **Kısayol**: Yazmak istediğiniz kısa metin (örn: "mrhb")
-3. **Genişletme**: Tam metin (örn: "Merhaba, nasılsınız?")
-4. **Kaydet** ve kullanmaya başlayın!
+## ⚡ Hizli Baslangic
+1. Kisayol Ekleme: Ana ekranda "Ekle" butonuna tiklayin
+2. Kisayol: Yazmak istediginiz kisa metin (orn: "mrhb")
+3. Genisletme: Tam metin (orn: "Merhaba, nasilsiniz?")
+4. Kaydet ve kullanmaya baslayin!
 
-## 🎯 Temel Özellikler
-- ✅ Hızlı metin genişletme (Ctrl+Space ile tetikleme)
-- ✅ Akıllı metin önerileri ve öğrenme algoritması
-- ✅ Pencere filtreleme sistemi
-- ✅ System tray entegrasyonu
-- ✅ Modern kullanıcı arayüzü
+## 🎯 Temel Ozellikler
+- Hizli metin genisletme (Ctrl+Space ile tetikleme)
+- Akilli metin onerileri ve ogrenme algoritmasi
+- Pencere filtreleme sistemi
+- System tray entegrasyonu
+- Modern kullanici arayuzu
 
-## ⌨️ Varsayılan Tuş Kombinasyonları
-- **Ctrl+Space**: Kısayol genişletme (varsayılan)
-- **Tab**: Akıllı öneri kabul etme
-- **Esc**: Öneri iptal etme
-- **Space/Enter/Shift+Space/Alt+Space**: Alternatif tetikleme tuşları
+## ⌨️ Varsayilan Tus Kombinasyonlari
+- Ctrl+Space: Kisayol genisletme (varsayilan)
+- Tab: Akilli oneri kabul etme
+- Esc: Oneri iptal etme
+- Space/Enter/Shift+Space/Alt+Space: Alternatif tetikleme tuslari
 
 ## 🛠️ Sorun Giderme
-- **Program açılmıyor**: Windows Defender'ı kontrol edin, yönetici olarak çalıştırın
-- **Kısayollar çalışmıyor**: Ayarlar > Genişletme Tetikleme Tuşu'nu kontrol edin
-- **Öneriler gelmiyor**: Ayarlar > Akıllı Öneriler'i aktif edin
+- Program acilmiyor: Windows Defender'i kontrol edin, yonetici olarak calistirin
+- Kisayollar calismiyor: Ayarlar > Genisletme Tetikleme Tusu'nu kontrol edin
+- Oneriler gelmiyor: Ayarlar > Akilli Oneriler'i aktif edin
 
-## 📞 İletişim & Destek
-- 📧 E-posta: iletisim@saffetcelik.com.tr
-- 📷 Instagram: instagram.com/kamucoder
-- 🐙 GitHub: github.com/saffetcelik
+## 📞 Iletisim & Destek
+- E-posta: iletisim@saffetcelik.com.tr
+- Instagram: instagram.com/kamucoder
+- GitHub: github.com/saffetcelik
 
 ## 📄 Lisans
-© 2024 Saffet Çelik - Tüm hakları saklıdır
+© 2024 Saffet Celik - Tum haklari saklidir
 
 ---
-**Not**: Bu uygulama .NET 8 ile geliştirilmiş olup herhangi bir ek kurulum gerektirmez.
-"@
-        $content | Out-File -FilePath "./publish/KURULUM.txt" -Encoding UTF8
-        Write-Host "✅ KURULUM.txt oluşturuldu"
+Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez.
+'@
+
+        $finalContent = $content -f $version
+        $finalContent | Out-File -FilePath "./publish/KURULUM.txt" -Encoding UTF8
+        Write-Host "✅ KURULUM.txt olusturuldu"
 
     - name: 📋 Verify Required Files
       run: |
