@@ -50,43 +50,42 @@ jobs:
       shell: pwsh
       run: |
         $version = "${{ steps.version.outputs.VERSION }}"
-        $content = @"
-# Otomatik Metin Genisletici v$version - Kurulum Kilavuzu
 
-## Sistem Gereksinimleri
-- Windows 10/11 (x64)
-- .NET SDK kurulumu GEREKMEZ (Self-contained)
+        "# Otomatik Metin Genisletici v$version - Kurulum Kilavuzu" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Sistem Gereksinimleri" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Windows 10/11 (x64)" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- .NET SDK kurulumu GEREKMEZ (Self-contained)" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Kurulum" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "1. ZIP dosyasini istediginiz klasore cikarin" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "2. OtomatikMetinGenisletici.exe dosyasini calistirin" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "3. Ilk calistirmada Windows Defender uyarisi cikabilir - 'Yine de calistir' secin" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Hizli Baslangic" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "1. Kisayol Ekleme: Ana ekranda 'Ekle' butonuna tiklayin" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "2. Kisayol: Yazmak istediginiz kisa metin (orn: 'mrhb')" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "3. Genisletme: Tam metin (orn: 'Merhaba, nasilsiniz?')" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "4. Kaydet ve kullanmaya baslayin!" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Temel Ozellikler" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Hizli metin genisletme (Ctrl+Space ile tetikleme)" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Akilli metin onerileri ve ogrenme algoritmasi" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Pencere filtreleme sistemi" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- System tray entegrasyonu" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Modern kullanici arayuzu" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Iletisim & Destek" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- E-posta: iletisim@saffetcelik.com.tr" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Instagram: instagram.com/kamucoder" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- GitHub: github.com/saffetcelik" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Lisans" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "© 2024 Saffet Celik - Tum haklari saklidir" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "---" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez." | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
 
-## Kurulum
-1. ZIP dosyasini istediginiz klasore cikarin
-2. OtomatikMetinGenisletici.exe dosyasini calistirin
-3. Ilk calistirmada Windows Defender uyarisi cikabilir - 'Yine de calistir' secin
-
-## Hizli Baslangic
-1. Kisayol Ekleme: Ana ekranda 'Ekle' butonuna tiklayin
-2. Kisayol: Yazmak istediginiz kisa metin (orn: 'mrhb')
-3. Genisletme: Tam metin (orn: 'Merhaba, nasilsiniz?')
-4. Kaydet ve kullanmaya baslayin!
-
-## Temel Ozellikler
-- Hizli metin genisletme (Ctrl+Space ile tetikleme)
-- Akilli metin onerileri ve ogrenme algoritmasi
-- Pencere filtreleme sistemi
-- System tray entegrasyonu
-- Modern kullanici arayuzu
-
-## Iletisim & Destek
-- E-posta: iletisim@saffetcelik.com.tr
-- Instagram: instagram.com/kamucoder
-- GitHub: github.com/saffetcelik
-
-## Lisans
-© 2024 Saffet Celik - Tum haklari saklidir
-
----
-Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez.
-"@
-        $content | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8
         Write-Host "KURULUM.txt created"
 
     - name: Verify files
