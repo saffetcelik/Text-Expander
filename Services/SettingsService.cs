@@ -25,8 +25,19 @@ namespace OtomatikMetinGenisletici.Services
                     if (settings != null)
                     {
                         _settings = settings;
+
+                        // Migration: If ExpansionTriggerKey was Tab (old value 2), change it to CtrlSpace (default)
+                        // Since we removed Tab from the enum, old value 2 would now be CtrlSpace
+                        // We need to check if the loaded value makes sense
+                        if (!Enum.IsDefined(typeof(ExpansionTriggerKey), _settings.ExpansionTriggerKey))
+                        {
+                            Console.WriteLine($"[DEBUG] Invalid ExpansionTriggerKey value {_settings.ExpansionTriggerKey}, resetting to CtrlSpace");
+                            _settings.ExpansionTriggerKey = ExpansionTriggerKey.CtrlSpace;
+                        }
+
                         Console.WriteLine("Ayarlar başarıyla yüklendi.");
                         Console.WriteLine($"[DEBUG] SmartSuggestionsEnabled yüklendi: {_settings.SmartSuggestionsEnabled}");
+                        Console.WriteLine($"[DEBUG] ExpansionTriggerKey yüklendi: {_settings.ExpansionTriggerKey}");
                     }
                 }
             }
@@ -70,6 +81,9 @@ namespace OtomatikMetinGenisletici.Services
             _settings.LearningEnabled = newSettings.LearningEnabled;
             _settings.LearningWeight = newSettings.LearningWeight;
 
+            // Tuş Yönetimi Ayarları
+            _settings.ExpansionTriggerKey = newSettings.ExpansionTriggerKey;
+
             // Kısayol Önizleme Paneli Ayarları
             _settings.ShortcutPreviewPanelVisible = newSettings.ShortcutPreviewPanelVisible;
             _settings.ShortcutPreviewPanelOpacity = newSettings.ShortcutPreviewPanelOpacity;
@@ -108,6 +122,9 @@ namespace OtomatikMetinGenisletici.Services
                 MinWordLength = _settings.MinWordLength,
                 LearningEnabled = _settings.LearningEnabled,
                 LearningWeight = _settings.LearningWeight,
+
+                // Tuş Yönetimi Ayarları
+                ExpansionTriggerKey = _settings.ExpansionTriggerKey,
 
                 // Kısayol Önizleme Paneli Ayarları
                 ShortcutPreviewPanelVisible = _settings.ShortcutPreviewPanelVisible,

@@ -342,6 +342,14 @@ namespace OtomatikMetinGenisletici.ViewModels
                 _keyboardHookService.TabPressed += OnTabPressed;
                 _keyboardHookService.SpacePressed += OnSpacePressed;
 
+                // Yeni tuş kombinasyonu event'lerini bağla
+                _keyboardHookService.EnterPressed += OnEnterPressed;
+                _keyboardHookService.ShiftSpacePressed += OnShiftSpacePressed;
+                _keyboardHookService.AltSpacePressed += OnAltSpacePressed;
+                _keyboardHookService.CtrlEnterPressed += OnCtrlEnterPressed;
+                _keyboardHookService.ShiftEnterPressed += OnShiftEnterPressed;
+                _keyboardHookService.AltEnterPressed += OnAltEnterPressed;
+
                 Console.WriteLine("[DEBUG] Klavye dinleme başlatılıyor...");
                 _keyboardHookService.StartListening();
                 Console.WriteLine($"[DEBUG] Klavye dinleme durumu: {_keyboardHookService.IsListening}");
@@ -1098,12 +1106,9 @@ namespace OtomatikMetinGenisletici.ViewModels
             // Kelimeyi temizle
             var cleanWord = word.Trim();
 
-            // Kısayol genişletme kontrolü (sadece izin verilen pencerelerde)
-            if (WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled) &&
-                !string.IsNullOrEmpty(cleanWord) &&
-                _shortcutService.TryExpandShortcut(cleanWord, out string expansion))
-            {
-            }
+            // NOT: Kısayol genişletme artık OnWordCompleted'de yapılmıyor
+            // Sadece seçili tuş kombinasyonu event'lerinde yapılacak
+            // Bu metod sadece context buffer'ı güncellemek için kullanılıyor
         }
 
         private async void OnSentenceCompleted(string sentence)
@@ -1318,6 +1323,13 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             Console.WriteLine("[DEBUG] *** Ctrl+Space basıldı ***");
 
+            // Eğer Ctrl+Space expansion trigger olarak seçilmişse, expansion yap
+            if (_settingsService.Settings.ExpansionTriggerKey == ExpansionTriggerKey.CtrlSpace)
+            {
+                HandleExpansionTrigger(ExpansionTriggerKey.CtrlSpace, _contextBuffer);
+                return;
+            }
+
             // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
             if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
             {
@@ -1357,6 +1369,8 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             Console.WriteLine("[DEBUG] *** Tab tuşu basıldı ***");
             WriteToLogFile("[DEBUG] *** Tab tuşu basıldı ***");
+
+            // Tab artık expansion trigger olarak kullanılmıyor - sadece metin önerileri için
 
             // Eğer pencere filtrelerine uymuyorsa Tab'ı engelleme
             if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
@@ -1476,6 +1490,12 @@ namespace OtomatikMetinGenisletici.ViewModels
         private async void OnSpacePressed(string currentBuffer)
         {
             Console.WriteLine($"[DEBUG] *** Boşluk tuşu basıldı, buffer: '{currentBuffer}' ***");
+
+            // Eğer Space expansion trigger olarak seçilmişse, expansion yap
+            if (_settingsService.Settings.ExpansionTriggerKey == ExpansionTriggerKey.Space)
+            {
+                HandleExpansionTrigger(ExpansionTriggerKey.Space, currentBuffer);
+            }
 
             // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
             if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
@@ -3550,6 +3570,77 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] Tur başlatılırken hata: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Tuş Kombinasyonu Event Handlers
+
+        private void OnEnterPressed(string currentBuffer)
+        {
+            HandleExpansionTrigger(ExpansionTriggerKey.Enter, currentBuffer);
+        }
+
+        private void OnShiftSpacePressed(string currentBuffer)
+        {
+            HandleExpansionTrigger(ExpansionTriggerKey.ShiftSpace, currentBuffer);
+        }
+
+        private void OnAltSpacePressed(string currentBuffer)
+        {
+            HandleExpansionTrigger(ExpansionTriggerKey.AltSpace, currentBuffer);
+        }
+
+        private void OnCtrlEnterPressed(string currentBuffer)
+        {
+            HandleExpansionTrigger(ExpansionTriggerKey.CtrlEnter, currentBuffer);
+        }
+
+        private void OnShiftEnterPressed(string currentBuffer)
+        {
+            HandleExpansionTrigger(ExpansionTriggerKey.ShiftEnter, currentBuffer);
+        }
+
+        private void OnAltEnterPressed(string currentBuffer)
+        {
+            HandleExpansionTrigger(ExpansionTriggerKey.AltEnter, currentBuffer);
+        }
+
+        private void HandleExpansionTrigger(ExpansionTriggerKey triggerKey, string currentBuffer)
+        {
+            Console.WriteLine($"[DEBUG] *** {ExpansionTriggerKeyHelper.GetDescription(triggerKey)} basıldı, buffer: '{currentBuffer}' ***");
+
+            // Sadece seçili tuş kombinasyonu ise expansion yap
+            if (_settingsService.Settings.ExpansionTriggerKey != triggerKey)
+            {
+                Console.WriteLine($"[DEBUG] Bu tuş kombinasyonu aktif değil. Aktif: {ExpansionTriggerKeyHelper.GetDescription(_settingsService.Settings.ExpansionTriggerKey)}");
+                return;
+            }
+
+            // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
+            if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
+            {
+                Console.WriteLine("[DEBUG] Pencere filtreleri nedeniyle expansion işlemi atlandı");
+                return;
+            }
+
+            // Son kelimeyi al ve expansion dene
+            var words = currentBuffer.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length > 0)
+            {
+                var lastWord = words.Last().Trim();
+                Console.WriteLine($"[DEBUG] Son kelime: '{lastWord}'");
+
+                if (!string.IsNullOrEmpty(lastWord) &&
+                    _shortcutService.TryExpandShortcut(lastWord, out string expansion))
+                {
+                    Console.WriteLine($"[DEBUG] Kısayol genişletildi: '{lastWord}' -> '{expansion}'");
+                }
+                else
+                {
+                    Console.WriteLine($"[DEBUG] '{lastWord}' için kısayol bulunamadı");
+                }
             }
         }
 

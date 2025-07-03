@@ -385,6 +385,97 @@
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
+
+            <!-- Tuş Yönetimi Sekmesi -->
+            <TabItem Header="⌨️ Tuş Yönetimi">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <!-- Tuş Kombinasyonu Ayarları -->
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="⌨️ Metin Genişletme Tuş Kombinasyonu"
+                                           FontSize="18"
+                                           FontWeight="Medium"
+                                           Margin="0,0,0,16"/>
+
+                                <TextBlock Text="Metin genişletme işlemi için kullanılacak tuş kombinasyonunu seçin:"
+                                           Margin="0,0,0,12"
+                                           TextWrapping="Wrap"
+                                           Foreground="#666"/>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Tuş Kombinasyonu Seçimi -->
+                                    <TextBlock Grid.Row="0"
+                                               Text="🎯 Aktif Tuş Kombinasyonu:"
+                                               FontWeight="Medium"
+                                               Margin="0,8,0,8"/>
+
+                                    <ComboBox Grid.Row="1"
+                                              Name="ExpansionTriggerKeyComboBox"
+                                              Margin="0,0,0,16"
+                                              Padding="12,8"
+                                              FontSize="14"
+                                              SelectionChanged="ExpansionTriggerKeyComboBox_SelectionChanged"/>
+
+                                    <!-- Açıklama Metni -->
+                                    <Border Grid.Row="2"
+                                            Background="#F8F9FA"
+                                            BorderBrush="#E9ECEF"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="16"
+                                            Margin="0,8,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="ℹ️ Bilgi"
+                                                       FontWeight="Medium"
+                                                       Margin="0,0,0,8"/>
+                                            <TextBlock Name="TriggerKeyInfoTextBlock"
+                                                       Text="Seçilen tuş kombinasyonu ile metin genişletme işlemi gerçekleştirilir. Örneğin 'dav' yazıp seçili tuş kombinasyonuna bastığınızda metin genişletilir."
+                                                       TextWrapping="Wrap"
+                                                       Foreground="#666"
+                                                       LineHeight="20"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Test Alanı -->
+                        <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <TextBlock Text="🧪 Test Alanı"
+                                           FontSize="18"
+                                           FontWeight="Medium"
+                                           Margin="0,0,0,16"/>
+
+                                <TextBlock Text="Seçilen tuş kombinasyonunu test etmek için aşağıdaki alana 'test' yazıp tuş kombinasyonuna basın:"
+                                           Margin="0,0,0,12"
+                                           TextWrapping="Wrap"
+                                           Foreground="#666"/>
+
+                                <TextBox Name="TestTextBox"
+                                         Padding="12,8"
+                                         FontSize="14"
+                                         Margin="0,0,0,8"
+                                         Text="Buraya 'test' yazın ve tuş kombinasyonunu deneyin..."
+                                         KeyDown="TestTextBox_KeyDown"/>
+
+                                <TextBlock Name="TestResultTextBlock"
+                                           Text=""
+                                           Foreground="Green"
+                                           FontWeight="Medium"
+                                           Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
         </TabControl>
 
         <!-- Action Buttons -->
