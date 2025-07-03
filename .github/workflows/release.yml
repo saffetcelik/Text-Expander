@@ -60,65 +60,64 @@ jobs:
           -p:EnableCompressionInSingleFile=true `
           --verbosity normal
 
-    - name: 📝 Create Installation Guide
+    - name: Create Installation Guide
       run: |
         $version = "${{ github.ref_name }}"
         if ("${{ github.event_name }}" -eq "workflow_dispatch") {
           $version = "${{ github.event.inputs.version }}"
         }
 
-        # Create installation guide content
-        $content = @'
-# Otomatik Metin Genisletici {0} - Kurulum Kilavuzu
+        # Create KURULUM.txt file
+        $lines = @(
+          "# Otomatik Metin Genisletici $version - Kurulum Kilavuzu",
+          "",
+          "## Sistem Gereksinimleri",
+          "- Windows 10/11 (x64)",
+          "- .NET SDK kurulumu GEREKMEZ (Self-contained)",
+          "",
+          "## Kurulum",
+          "1. ZIP dosyasini istediginiz klasore cikarin",
+          "2. OtomatikMetinGenisletici.exe dosyasini calistirin",
+          "3. Ilk calistirmada Windows Defender uyarisi cikabilir - 'Yine de calistir' secin",
+          "",
+          "## Hizli Baslangic",
+          "1. Kisayol Ekleme: Ana ekranda 'Ekle' butonuna tiklayin",
+          "2. Kisayol: Yazmak istediginiz kisa metin (orn: 'mrhb')",
+          "3. Genisletme: Tam metin (orn: 'Merhaba, nasilsiniz?')",
+          "4. Kaydet ve kullanmaya baslayin!",
+          "",
+          "## Temel Ozellikler",
+          "- Hizli metin genisletme (Ctrl+Space ile tetikleme)",
+          "- Akilli metin onerileri ve ogrenme algoritmasi",
+          "- Pencere filtreleme sistemi",
+          "- System tray entegrasyonu",
+          "- Modern kullanici arayuzu",
+          "",
+          "## Varsayilan Tus Kombinasyonlari",
+          "- Ctrl+Space: Kisayol genisletme (varsayilan)",
+          "- Tab: Akilli oneri kabul etme",
+          "- Esc: Oneri iptal etme",
+          "- Space/Enter/Shift+Space/Alt+Space: Alternatif tetikleme tuslari",
+          "",
+          "## Sorun Giderme",
+          "- Program acilmiyor: Windows Defender'i kontrol edin, yonetici olarak calistirin",
+          "- Kisayollar calismiyor: Ayarlar > Genisletme Tetikleme Tusu'nu kontrol edin",
+          "- Oneriler gelmiyor: Ayarlar > Akilli Oneriler'i aktif edin",
+          "",
+          "## Iletisim & Destek",
+          "- E-posta: iletisim@saffetcelik.com.tr",
+          "- Instagram: instagram.com/kamucoder",
+          "- GitHub: github.com/saffetcelik",
+          "",
+          "## Lisans",
+          "© 2024 Saffet Celik - Tum haklari saklidir",
+          "",
+          "---",
+          "Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez."
+        )
 
-## 📋 Sistem Gereksinimleri
-- Windows 10/11 (x64)
-- .NET SDK kurulumu GEREKMEZ (Self-contained)
-
-## 🚀 Kurulum
-1. ZIP dosyasini istediginiz klasore cikarin
-2. OtomatikMetinGenisletici.exe dosyasini calistirin
-3. Ilk calistirmada Windows Defender uyarisi cikabilir - "Yine de calistir" secin
-
-## ⚡ Hizli Baslangic
-1. Kisayol Ekleme: Ana ekranda "Ekle" butonuna tiklayin
-2. Kisayol: Yazmak istediginiz kisa metin (orn: "mrhb")
-3. Genisletme: Tam metin (orn: "Merhaba, nasilsiniz?")
-4. Kaydet ve kullanmaya baslayin!
-
-## 🎯 Temel Ozellikler
-- Hizli metin genisletme (Ctrl+Space ile tetikleme)
-- Akilli metin onerileri ve ogrenme algoritmasi
-- Pencere filtreleme sistemi
-- System tray entegrasyonu
-- Modern kullanici arayuzu
-
-## ⌨️ Varsayilan Tus Kombinasyonlari
-- Ctrl+Space: Kisayol genisletme (varsayilan)
-- Tab: Akilli oneri kabul etme
-- Esc: Oneri iptal etme
-- Space/Enter/Shift+Space/Alt+Space: Alternatif tetikleme tuslari
-
-## 🛠️ Sorun Giderme
-- Program acilmiyor: Windows Defender'i kontrol edin, yonetici olarak calistirin
-- Kisayollar calismiyor: Ayarlar > Genisletme Tetikleme Tusu'nu kontrol edin
-- Oneriler gelmiyor: Ayarlar > Akilli Oneriler'i aktif edin
-
-## 📞 Iletisim & Destek
-- E-posta: iletisim@saffetcelik.com.tr
-- Instagram: instagram.com/kamucoder
-- GitHub: github.com/saffetcelik
-
-## 📄 Lisans
-© 2024 Saffet Celik - Tum haklari saklidir
-
----
-Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez.
-'@
-
-        $finalContent = $content -f $version
-        $finalContent | Out-File -FilePath "./publish/KURULUM.txt" -Encoding UTF8
-        Write-Host "✅ KURULUM.txt olusturuldu"
+        $lines | Out-File -FilePath "./publish/KURULUM.txt" -Encoding UTF8
+        Write-Host "KURULUM.txt olusturuldu"
 
     - name: 📋 Verify Required Files
       run: |
