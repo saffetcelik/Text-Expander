@@ -1,4 +1,4 @@
-name: 🚀 ModernMetinGenisletici Release
+name: Release Build
 
 on:
   push:
@@ -7,146 +7,113 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., v1.0.0)'
+        description: 'Release version (e.g., 1.0.0)'
         required: true
-        default: 'v1.0.0'
-      create_release:
-        description: 'Create GitHub Release'
-        required: true
-        default: true
-        type: boolean
-
-env:
-  DOTNET_VERSION: '8.0.x'
-  PROJECT_NAME: 'OtomatikMetinGenisletici'
-  SOLUTION_FILE: 'OtomatikMetinGenisletici.sln'
+        default: '1.0.0'
 
 jobs:
   build-and-release:
-    name: 🏗️ Build and Release
     runs-on: windows-latest
-    
-    steps:
-    - name: 📥 Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
-    - name: 🔧 Setup .NET
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: '8.0.x'
 
-    - name: 📦 Restore Dependencies
-      run: dotnet restore ${{ env.SOLUTION_FILE }}
-
-    - name: 🏗️ Build Solution
-      run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
-
-    - name: 🧪 Run Tests
-      run: dotnet test ${{ env.SOLUTION_FILE }} --configuration Release --no-build --verbosity normal
-      continue-on-error: true
-
-    - name: 📦 Publish Self-Contained
+    - name: Set version
+      id: version
       run: |
-        dotnet publish ${{ env.PROJECT_NAME }}.csproj `
+        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+          $version = "${{ github.event.inputs.version }}"
+        } else {
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+        }
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Release version: $version"
+      shell: pwsh
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build Release
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Publish Self-Contained
+      run: |
+        dotnet publish OtomatikMetinGenisletici.csproj `
           --configuration Release `
           --runtime win-x64 `
           --self-contained true `
           --output ./publish `
           -p:PublishSingleFile=true `
-          -p:PublishReadyToRun=false `
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -p:EnableCompressionInSingleFile=true `
           --verbosity minimal
 
     - name: Create Installation Guide
       run: |
-        $version = "${{ github.ref_name }}"
-        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-          $version = "${{ github.event.inputs.version }}"
-        }
+        $version = "${{ steps.version.outputs.VERSION }}"
 
-        # Create KURULUM.txt file
-        $lines = @(
-          "# Otomatik Metin Genisletici $version - Kurulum Kilavuzu",
-          "",
-          "## Sistem Gereksinimleri",
-          "- Windows 10/11 (x64)",
-          "- .NET SDK kurulumu GEREKMEZ (Self-contained)",
-          "",
-          "## Kurulum",
-          "1. ZIP dosyasini istediginiz klasore cikarin",
-          "2. OtomatikMetinGenisletici.exe dosyasini calistirin",
-          "3. Ilk calistirmada Windows Defender uyarisi cikabilir - 'Yine de calistir' secin",
-          "",
-          "## Hizli Baslangic",
-          "1. Kisayol Ekleme: Ana ekranda 'Ekle' butonuna tiklayin",
-          "2. Kisayol: Yazmak istediginiz kisa metin (orn: 'mrhb')",
-          "3. Genisletme: Tam metin (orn: 'Merhaba, nasilsiniz?')",
-          "4. Kaydet ve kullanmaya baslayin!",
-          "",
-          "## Temel Ozellikler",
-          "- Hizli metin genisletme (Ctrl+Space ile tetikleme)",
-          "- Akilli metin onerileri ve ogrenme algoritmasi",
-          "- Pencere filtreleme sistemi",
-          "- System tray entegrasyonu",
-          "- Modern kullanici arayuzu",
-          "",
-          "## Varsayilan Tus Kombinasyonlari",
-          "- Ctrl+Space: Kisayol genisletme (varsayilan)",
-          "- Tab: Akilli oneri kabul etme",
-          "- Esc: Oneri iptal etme",
-          "- Space/Enter/Shift+Space/Alt+Space: Alternatif tetikleme tuslari",
-          "",
-          "## Sorun Giderme",
-          "- Program acilmiyor: Windows Defender'i kontrol edin, yonetici olarak calistirin",
-          "- Kisayollar calismiyor: Ayarlar > Genisletme Tetikleme Tusu'nu kontrol edin",
-          "- Oneriler gelmiyor: Ayarlar > Akilli Oneriler'i aktif edin",
-          "",
-          "## Iletisim & Destek",
-          "- E-posta: iletisim@saffetcelik.com.tr",
-          "- Instagram: instagram.com/kamucoder",
-          "- GitHub: github.com/saffetcelik",
-          "",
-          "## Lisans",
-          "© 2024 Saffet Celik - Tum haklari saklidir",
-          "",
-          "---",
-          "Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez."
-        )
+        # Create KURULUM.txt content
+        $content = "# Otomatik Metin Genisletici v$version - Kurulum Kilavuzu`n`n"
+        $content += "## Sistem Gereksinimleri`n"
+        $content += "- Windows 10/11 (x64)`n"
+        $content += "- .NET SDK kurulumu GEREKMEZ (Self-contained)`n`n"
+        $content += "## Kurulum`n"
+        $content += "1. ZIP dosyasini istediginiz klasore cikarin`n"
+        $content += "2. OtomatikMetinGenisletici.exe dosyasini calistirin`n"
+        $content += "3. Ilk calistirmada Windows Defender uyarisi cikabilir - 'Yine de calistir' secin`n`n"
+        $content += "## Hizli Baslangic`n"
+        $content += "1. Kisayol Ekleme: Ana ekranda 'Ekle' butonuna tiklayin`n"
+        $content += "2. Kisayol: Yazmak istediginiz kisa metin (orn: 'mrhb')`n"
+        $content += "3. Genisletme: Tam metin (orn: 'Merhaba, nasilsiniz?')`n"
+        $content += "4. Kaydet ve kullanmaya baslayin!`n`n"
+        $content += "## Temel Ozellikler`n"
+        $content += "- Hizli metin genisletme (Ctrl+Space ile tetikleme)`n"
+        $content += "- Akilli metin onerileri ve ogrenme algoritmasi`n"
+        $content += "- Pencere filtreleme sistemi`n"
+        $content += "- System tray entegrasyonu`n"
+        $content += "- Modern kullanici arayuzu`n`n"
+        $content += "## Iletisim & Destek`n"
+        $content += "- E-posta: iletisim@saffetcelik.com.tr`n"
+        $content += "- Instagram: instagram.com/kamucoder`n"
+        $content += "- GitHub: github.com/saffetcelik`n`n"
+        $content += "## Lisans`n"
+        $content += "© 2024 Saffet Celik - Tum haklari saklidir`n`n"
+        $content += "---`n"
+        $content += "Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez."
 
-        $lines | Out-File -FilePath "./publish/KURULUM.txt" -Encoding UTF8
-        Write-Host "KURULUM.txt olusturuldu"
+        $content | Out-File -FilePath "./publish/KURULUM.txt" -Encoding UTF8
+        Write-Host "KURULUM.txt created"
 
-    - name: 📋 Verify Required Files
+    - name: Verify Required Files
       run: |
-        Write-Host "📁 Published files:"
+        Write-Host "Published files:"
         Get-ChildItem -Path ./publish -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
 
         # Verify critical files
         $requiredFiles = @("OtomatikMetinGenisletici.exe", "imlec.png", "KURULUM.txt")
         foreach ($file in $requiredFiles) {
           if (Test-Path "./publish/$file") {
-            Write-Host "✅ $file found"
+            Write-Host "Found: $file"
           } else {
-            Write-Host "❌ $file NOT found"
+            Write-Host "Missing: $file"
             exit 1
           }
         }
 
         # Show executable size
         $exeSize = (Get-Item "./publish/OtomatikMetinGenisletici.exe").Length / 1MB
-        Write-Host "📦 Executable size: $([math]::Round($exeSize, 2)) MB"
+        Write-Host "Executable size: $([math]::Round($exeSize, 2)) MB"
 
-    - name: 🗜️ Create Release Archive
+    - name: Create Release Archive
       run: |
-        $version = "${{ github.ref_name }}"
-        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-          $version = "${{ github.event.inputs.version }}"
-        }
-        $cleanVersion = $version -replace '^v', ''
-        $archiveName = "MetinGenisletici-x64-v$cleanVersion.zip"
+        $version = "${{ steps.version.outputs.VERSION }}"
+        $archiveName = "MetinGenisletici-x64-v$version.zip"
 
         # Create clean release directory
         New-Item -ItemType Directory -Path "./release" -Force
@@ -159,8 +126,8 @@ jobs:
         # Create ZIP archive
         Compress-Archive -Path "./release/*" -DestinationPath "./$archiveName" -Force
 
-        Write-Host "✅ Created archive: $archiveName"
-        Write-Host "📦 Archive contents:"
+        Write-Host "Created archive: $archiveName"
+        Write-Host "Archive contents:"
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $zip = [System.IO.Compression.ZipFile]::OpenRead("$archiveName")
         $zip.Entries | ForEach-Object { Write-Host "  - $($_.Name) ($($_.Length) bytes)" }
@@ -168,91 +135,57 @@ jobs:
 
         echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
 
-    - name: 📊 Calculate File Hashes
+    - name: Calculate File Hash
       run: |
         $hash = Get-FileHash -Path "./${{ env.ARCHIVE_NAME }}" -Algorithm SHA256
-        Write-Host "🔐 SHA256: $($hash.Hash)"
+        Write-Host "SHA256: $($hash.Hash)"
         echo "FILE_HASH=$($hash.Hash)" >> $env:GITHUB_ENV
 
-    - name: 📝 Generate Release Notes
-      id: release_notes
-      run: |
-        $version = "${{ github.ref_name }}"
-        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-          $version = "${{ github.event.inputs.version }}"
-        }
-        
-        $releaseNotes = @"
-        # 🚀 Otomatik Metin Genişletici $version
-
-        ## 📦 İndirme
-        - **Windows x64**: [${{ env.ARCHIVE_NAME }}]
-        - **Boyut**: $(Get-Item "./${{ env.ARCHIVE_NAME }}" | Select-Object -ExpandProperty Length | ForEach-Object { [math]::Round($_ / 1MB, 2) }) MB
-        - **SHA256**: ``${{ env.FILE_HASH }}``
-
-        ## 🎯 Hızlı Başlangıç
-        1. Yukarıdaki ZIP dosyasını indirin
-        2. İstediğiniz klasöre çıkarın
-        3. ``OtomatikMetinGenisletici.exe`` dosyasını çalıştırın
-        4. Detaylı kurulum için ``KURULUM.txt`` dosyasını okuyun
-
-        ## ✨ Özellikler
-        - 🔤 Akıllı metin genişletme sistemi
-        - 🧠 Öğrenme algoritması ile akıllı öneriler
-        - 🎨 Modern WPF kullanıcı arayüzü
-        - ⚙️ Özelleştirilebilir tuş kombinasyonları (Space, Ctrl+Space, Shift+Space, Alt+Space, Enter)
-        - 🪟 Pencere filtreleme sistemi
-        - 📊 Öğrenme istatistikleri ve logları
-        - 🛡️ %100 yerel çalışma (internet bağlantısı gerektirmez)
-        - 📱 System tray entegrasyonu
-
-        ## 📋 Sistem Gereksinimleri
-        - Windows 10/11 (x64)
-        - .NET SDK kurulumu GEREKMEZ (Self-contained)
-        - 512MB RAM minimum
-        - Yönetici yetkileri (global klavye izleme için)
-
-        ## 🔒 Güvenlik Notu
-        Bu uygulama sistem genelinde metin genişletme için klavye hook'ları kullanır. Bazı antivirüs yazılımları bunu potansiyel olarak istenmeyen program olarak işaretleyebilir. Bu yanlış pozitiftir - uygulama tamamen güvenli ve açık kaynaklıdır.
-
-        ## 🐛 Bilinen Sorunlar
-        - Windows Defender uyarı gösterebilir (istisna listesine ekleyin)
-        - Global klavye izleme için yönetici yetkileri gerektirir
-
-        ## 📞 İletişim & Destek
-        - 📧 E-posta: iletisim@saffetcelik.com.tr
-        - 📷 Instagram: instagram.com/kamucoder
-        - 🐙 GitHub: github.com/saffetcelik
-
-        ---
-
-        **📚 Tam Dokümantasyon**: [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
-        **🐛 Sorun Bildir**: [Issues](https://github.com/${{ github.repository }}/issues)
-        **💬 Tartışmalar**: [Discussions](https://github.com/${{ github.repository }}/discussions)
-        "@
-
-        # Save to file for GitHub release
-        $releaseNotes | Out-File -FilePath "./release-notes.md" -Encoding UTF8
-        Write-Host "📝 Release notes generated"
-
-    - name: 🚀 Create GitHub Release
+    - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref_name || github.event.inputs.version }}
-        name: "Otomatik Metin Genişletici ${{ github.ref_name || github.event.inputs.version }}"
-        body_path: "./release-notes.md"
+        tag_name: ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
+        name: "Otomatik Metin Genisletici v${{ steps.version.outputs.VERSION }}"
+        body: |
+          ## Otomatik Metin Genisletici v${{ steps.version.outputs.VERSION }}
+
+          ### İndirme
+          - **Windows x64**: ${{ env.ARCHIVE_NAME }}
+          - **SHA256**: ${{ env.FILE_HASH }}
+
+          ### Özellikler
+          - Akıllı metin genişletme sistemi
+          - Öğrenme algoritması ile akıllı öneriler
+          - Modern WPF kullanıcı arayüzü
+          - Özelleştirilebilir tuş kombinasyonları
+          - Pencere filtreleme sistemi
+          - System tray entegrasyonu
+          - %100 yerel çalışma (internet bağlantısı gerektirmez)
+
+          ### Kurulum
+          1. ZIP dosyasını indirin ve çıkarın
+          2. OtomatikMetinGenisletici.exe dosyasını çalıştırın
+          3. Detaylı kurulum için KURULUM.txt dosyasını okuyun
+
+          ### Sistem Gereksinimleri
+          - Windows 10/11 (x64)
+          - .NET SDK kurulumu GEREKMEZ (Self-contained)
+          - Yönetici yetkileri (global klavye izleme için)
+
+          ### İletişim
+          - E-posta: iletisim@saffetcelik.com.tr
+          - Instagram: instagram.com/kamucoder
+          - GitHub: github.com/saffetcelik
         files: |
-          ./${{ env.ARCHIVE_NAME }}
+          ${{ env.ARCHIVE_NAME }}
         draft: false
         prerelease: false
-        generate_release_notes: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: 📊 Release Summary
+    - name: Release Summary
       run: |
-        Write-Host "🎉 Release completed successfully!"
-        Write-Host "📦 Archive: ${{ env.ARCHIVE_NAME }}"
-        Write-Host "🔐 SHA256: ${{ env.FILE_HASH }}"
-        Write-Host "🏷️ Tag: ${{ github.ref_name || github.event.inputs.version }}"
-        Write-Host "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name || github.event.inputs.version }}"
+        Write-Host "Release completed successfully!"
+        Write-Host "Archive: ${{ env.ARCHIVE_NAME }}"
+        Write-Host "SHA256: ${{ env.FILE_HASH }}"
+        Write-Host "Version: ${{ steps.version.outputs.VERSION }}"
