@@ -55,10 +55,10 @@ jobs:
           --self-contained true `
           --output ./publish `
           -p:PublishSingleFile=true `
-          -p:PublishReadyToRun=true `
+          -p:PublishReadyToRun=false `
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -p:EnableCompressionInSingleFile=true `
-          --verbosity normal
+          --verbosity minimal
 
     - name: Create Installation Guide
       run: |

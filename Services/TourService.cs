@@ -153,19 +153,21 @@ namespace OtomatikMetinGenisletici.Services
             };
         }
 
-        public async Task StartTourAsync()
+        public Task StartTourAsync()
         {
-            if (_isTourActive) return;
+            if (_isTourActive) return Task.CompletedTask;
 
             _isTourActive = true;
             _currentStepIndex = 0;
-            
+
             Console.WriteLine("[TOUR] Tur başlatıldı");
-            
+
             if (CurrentStep != null)
             {
                 StepChanged?.Invoke(CurrentStep);
             }
+
+            return Task.CompletedTask;
         }
 
         public async Task NextStepAsync()
@@ -188,48 +190,52 @@ namespace OtomatikMetinGenisletici.Services
             }
         }
 
-        public async Task PreviousStepAsync()
+        public Task PreviousStepAsync()
         {
-            if (!_isTourActive || _currentStepIndex <= 0) return;
+            if (!_isTourActive || _currentStepIndex <= 0) return Task.CompletedTask;
 
             _currentStepIndex--;
-            
+
             Console.WriteLine($"[TOUR] Önceki adım: {_currentStepIndex + 1}/{_tourSteps.Count}");
-            
+
             if (CurrentStep != null)
             {
                 StepChanged?.Invoke(CurrentStep);
             }
+
+            return Task.CompletedTask;
         }
 
-        public async Task SkipTourAsync()
+        public Task SkipTourAsync()
         {
-            if (!_isTourActive) return;
+            if (!_isTourActive) return Task.CompletedTask;
 
             Console.WriteLine("[TOUR] Tur atlandı");
-            
+
             _isTourActive = false;
             _currentStepIndex = -1;
-            
+
             TourSkipped?.Invoke();
+            return Task.CompletedTask;
         }
 
-        public async Task CompleteTourAsync()
+        public Task CompleteTourAsync()
         {
-            if (!_isTourActive) return;
+            if (!_isTourActive) return Task.CompletedTask;
 
             Console.WriteLine("[TOUR] Tur tamamlandı");
-            
+
             _isTourActive = false;
             _currentStepIndex = -1;
-            
+
             // İlk çalıştırma tamamlandı olarak işaretle
             if (_settings.IsFirstRun)
             {
                 SetFirstRunCompleted();
             }
-            
+
             TourCompleted?.Invoke();
+            return Task.CompletedTask;
         }
 
         public void SetFirstRunCompleted()

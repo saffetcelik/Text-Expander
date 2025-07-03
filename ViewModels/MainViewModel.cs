@@ -698,7 +698,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 WriteToLogFile($"[SMART SUGGESTIONS] Buffer ends with space: {buffer.EndsWith(" ")}");
 
                 // 1. ÖNCE KELİME TAMAMLAMA KONTROL ET (henüz tamamlanmamış kelime varsa)
-                bool hasWordCompletion = false;
                 if (words.Length > 0 && !buffer.EndsWith(" "))
                 {
                     var lastWord = words.Last();
@@ -849,7 +848,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         }
 
         // BASİT TAHMİN SİSTEMİ (fallback)
-        private async Task TrySimplePrediction(string[] words)
+        private Task TrySimplePrediction(string[] words)
         {
             try
             {
@@ -890,6 +889,8 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Console.WriteLine($"[ERROR] TrySimplePrediction hatası: {ex.Message}");
                 WriteToLogFile($"[ERROR] TrySimplePrediction hatası: {ex.Message}");
             }
+
+            return Task.CompletedTask;
         }
 
         private void ShowPreview(string buffer)
@@ -1095,7 +1096,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        private async void OnWordCompleted(string word)
+        private void OnWordCompleted(string word)
         {
             _contextBuffer += word + " "; // Context için boşluk ekle
             if (_contextBuffer.Length > 200)
@@ -1111,7 +1112,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             // Bu metod sadece context buffer'ı güncellemek için kullanılıyor
         }
 
-        private async void OnSentenceCompleted(string sentence)
+        private async Task OnSentenceCompleted(string sentence)
         {
             Console.WriteLine($"[SMART SUGGESTIONS] Cümle tamamlandı: '{sentence}'");
             WriteToLogFile($"[SMART SUGGESTIONS] Cümle tamamlandı: '{sentence}'");
