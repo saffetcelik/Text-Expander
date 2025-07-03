@@ -698,6 +698,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 WriteToLogFile($"[SMART SUGGESTIONS] Buffer ends with space: {buffer.EndsWith(" ")}");
 
                 // 1. ÖNCE KELİME TAMAMLAMA KONTROL ET (henüz tamamlanmamış kelime varsa)
+                bool hasWordCompletion = false;
                 if (words.Length > 0 && !buffer.EndsWith(" "))
                 {
                     var lastWord = words.Last();
@@ -708,7 +709,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     {
                         Console.WriteLine($"[SMART SUGGESTIONS] Kelime tamamlama kontrol ediliyor: '{lastWord}'");
                         WriteToLogFile($"[SMART SUGGESTIONS] Kelime tamamlama kontrol ediliyor: '{lastWord}'");
-                        await UpdateWordCompletionAsync(lastWord, buffer);
+                        UpdateWordCompletionAsync(lastWord, buffer);
 
                         // Kelime tamamlama önerisi bulunduysa işaretle
                         if (_currentSmartSuggestions.Count > 0)
@@ -1112,7 +1113,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             // Bu metod sadece context buffer'ı güncellemek için kullanılıyor
         }
 
-        private async Task OnSentenceCompleted(string sentence)
+        private async void OnSentenceCompleted(string sentence)
         {
             Console.WriteLine($"[SMART SUGGESTIONS] Cümle tamamlandı: '{sentence}'");
             WriteToLogFile($"[SMART SUGGESTIONS] Cümle tamamlandı: '{sentence}'");
@@ -1759,7 +1760,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        private async Task AcceptSmartSuggestion()
+        private void AcceptSmartSuggestion()
         {
             try
             {
@@ -2010,7 +2011,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         // Preview otomatik kapanma timer'ı (3 saniye)
         private System.Timers.Timer? _previewAutoHideTimer;
 
-        private async Task UpdateWordCompletionAsync(string partialWord, string fullContext)
+        private void UpdateWordCompletionAsync(string partialWord, string fullContext)
         {
             Console.WriteLine($"[DEBUG] *** UpdateWordCompletionAsync çağrıldı ***");
             WriteToLogFile($"[DEBUG] *** UpdateWordCompletionAsync çağrıldı ***");
