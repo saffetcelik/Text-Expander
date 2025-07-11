@@ -1,0 +1,179 @@
+{
+  "WordFrequencies": {
+    "laz\u0131m": 1,
+    "gidermemiz": 1,
+    "bu": 2,
+    "sorunuhalen": 1,
+    "\u00F6\u011Freniyor": 2,
+    "alg\u0131lay\u0131p": 1,
+    "rakamlar\u0131": 2,
+    "sorunu": 1,
+    "halen": 1
+  },
+  "Bigrams": {
+    "sorunu gidermemiz": 1,
+    "bu sorunu": 1,
+    "halen rakamlar\u0131": 1,
+    "gidermemiz laz\u0131m": 1,
+    "\u00F6\u011Freniyor bu": 2,
+    "rakamlar\u0131 alg\u0131lay\u0131p": 1,
+    "bu sorunuhalen": 1,
+    "sorunuhalen rakamlar\u0131": 1,
+    "rakamlar\u0131 \u00F6\u011Freniyor": 1,
+    "alg\u0131lay\u0131p \u00F6\u011Freniyor": 1
+  },
+  "Trigrams": {
+    "sorunu gidermemiz laz\u0131m": 1,
+    "bu sorunuhalen rakamlar\u0131": 1,
+    "\u00F6\u011Freniyor bu sorunu": 1,
+    "alg\u0131lay\u0131p \u00F6\u011Freniyor bu": 1,
+    "halen rakamlar\u0131 alg\u0131lay\u0131p": 1,
+    "bu sorunu gidermemiz": 1,
+    "\u00F6\u011Freniyor bu sorunuhalen": 1,
+    "rakamlar\u0131 alg\u0131lay\u0131p \u00F6\u011Freniyor": 1,
+    "rakamlar\u0131 \u00F6\u011Freniyor bu": 1,
+    "sorunuhalen rakamlar\u0131 \u00F6\u011Freniyor": 1
+  },
+  "CompletionPrefixes": {
+    "\u00F6\u011Fre": [
+      "\u00F6\u011Freniyor"
+    ],
+    "so": [
+      "sorunuhalen",
+      "sorunu"
+    ],
+    "giderm": [
+      "gidermemiz"
+    ],
+    "alg\u0131l": [
+      "alg\u0131lay\u0131p"
+    ],
+    "rakamla": [
+      "rakamlar\u0131"
+    ],
+    "\u00F6\u011Freni": [
+      "\u00F6\u011Freniyor"
+    ],
+    "giderme": [
+      "gidermemiz"
+    ],
+    "l": [
+      "laz\u0131m"
+    ],
+    "\u00F6\u011Freniy": [
+      "\u00F6\u011Freniyor"
+    ],
+    "ra": [
+      "rakamlar\u0131"
+    ],
+    "hal": [
+      "halen"
+    ],
+    "gid": [
+      "gidermemiz"
+    ],
+    "sorunu": [
+      "sorunuhalen"
+    ],
+    "soru": [
+      "sorunuhalen",
+      "sorunu"
+    ],
+    "alg\u0131lay": [
+      "alg\u0131lay\u0131p"
+    ],
+    "a": [
+      "alg\u0131lay\u0131p"
+    ],
+    "\u00F6": [
+      "\u00F6\u011Freniyor"
+    ],
+    "alg\u0131la": [
+      "alg\u0131lay\u0131p"
+    ],
+    "r": [
+      "rakamlar\u0131"
+    ],
+    "alg": [
+      "alg\u0131lay\u0131p"
+    ],
+    "\u00F6\u011Fr": [
+      "\u00F6\u011Freniyor"
+    ],
+    "la": [
+      "laz\u0131m"
+    ],
+    "\u00F6\u011Fren": [
+      "\u00F6\u011Freniyor"
+    ],
+    "laz\u0131": [
+      "laz\u0131m"
+    ],
+    "ha": [
+      "halen"
+    ],
+    "rak": [
+      "rakamlar\u0131"
+    ],
+    "laz": [
+      "laz\u0131m"
+    ],
+    "s": [
+      "sorunuhalen",
+      "sorunu"
+    ],
+    "g": [
+      "gidermemiz"
+    ],
+    "gider": [
+      "gidermemiz"
+    ],
+    "sor": [
+      "sorunuhalen",
+      "sorunu"
+    ],
+    "h": [
+      "halen"
+    ],
+    "sorun": [
+      "sorunuhalen",
+      "sorunu"
+    ],
+    "\u00F6\u011F": [
+      "\u00F6\u011Freniyor"
+    ],
+    "hale": [
+      "halen"
+    ],
+    "rakaml": [
+      "rakamlar\u0131"
+    ],
+    "gide": [
+      "gidermemiz"
+    ],
+    "rakam": [
+      "rakamlar\u0131"
+    ],
+    "alg\u0131": [
+      "alg\u0131lay\u0131p"
+    ],
+    "raka": [
+      "rakamlar\u0131"
+    ],
+    "al": [
+      "alg\u0131lay\u0131p"
+    ],
+    "sorunuh": [
+      "sorunuhalen"
+    ],
+    "gi": [
+      "gidermemiz"
+    ]
+  },
+  "UserCorrections": {},
+  "LastUpdated": "2025-07-11T12:36:21.0628713+03:00",
+  "TotalWordsLearned": 12,
+  "TotalSuggestionsGiven": 0,
+  "TotalSuggestionsAccepted": 0,
+  "TotalSuggestionsRejected": 0
+}

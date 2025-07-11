@@ -611,6 +611,9 @@ namespace OtomatikMetinGenisletici.Services
                         {
                             Console.WriteLine($"[LEARNING]   - '{bigram.Key}': {bigram.Value}");
                         }
+
+                        // Mevcut verilerden rakam içeren kelimeleri temizle
+                        CleanInvalidWordsFromData();
                     }
                     else
                     {
@@ -646,6 +649,61 @@ namespace OtomatikMetinGenisletici.Services
                     Console.WriteLine($"[ERROR] Boş dosya oluşturma hatası: {saveEx.Message}");
                 }
             }
+        }
+
+        private void CleanInvalidWordsFromData()
+        {
+            Console.WriteLine($"[LEARNING] Geçersiz kelimeleri temizleme başlıyor...");
+
+            // WordFrequencies'den geçersiz kelimeleri temizle
+            var invalidWords = _learningData.WordFrequencies.Keys.Where(word => !IsValidWord(word)).ToList();
+            Console.WriteLine($"[LEARNING] {invalidWords.Count} geçersiz kelime bulundu: {string.Join(", ", invalidWords.Take(10))}");
+            foreach (var word in invalidWords)
+            {
+                _learningData.WordFrequencies.TryRemove(word, out _);
+            }
+
+            // Bigrams'den geçersiz kelimeleri temizle
+            var invalidBigrams = _learningData.Bigrams.Keys.Where(bigram =>
+                bigram.Split(' ').Any(word => !IsValidWord(word))).ToList();
+            Console.WriteLine($"[LEARNING] {invalidBigrams.Count} geçersiz bigram bulundu");
+            foreach (var bigram in invalidBigrams)
+            {
+                _learningData.Bigrams.TryRemove(bigram, out _);
+            }
+
+            // Trigrams'den geçersiz kelimeleri temizle
+            var invalidTrigrams = _learningData.Trigrams.Keys.Where(trigram =>
+                trigram.Split(' ').Any(word => !IsValidWord(word))).ToList();
+            Console.WriteLine($"[LEARNING] {invalidTrigrams.Count} geçersiz trigram bulundu");
+            foreach (var trigram in invalidTrigrams)
+            {
+                _learningData.Trigrams.TryRemove(trigram, out _);
+            }
+
+            // CompletionPrefixes'den geçersiz kelimeleri temizle
+            var invalidPrefixes = new List<string>();
+            foreach (var kvp in _learningData.CompletionPrefixes)
+            {
+                var validCompletions = kvp.Value.Where(word => IsValidWord(word)).ToList();
+                if (validCompletions.Count == 0)
+                {
+                    invalidPrefixes.Add(kvp.Key);
+                }
+                else
+                {
+                    _learningData.CompletionPrefixes[kvp.Key] = validCompletions;
+                }
+            }
+            foreach (var prefix in invalidPrefixes)
+            {
+                _learningData.CompletionPrefixes.TryRemove(prefix, out _);
+            }
+
+            Console.WriteLine($"[LEARNING] Temizleme tamamlandı. Kalan kelime sayısı: {_learningData.WordFrequencies.Count}");
+
+            // Temizleme sonrası verileri kaydet
+            SaveLearningData();
         }
 
         private void AutoSave(object? state)
