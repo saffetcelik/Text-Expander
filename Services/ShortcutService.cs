@@ -23,6 +23,8 @@ namespace OtomatikMetinGenisletici.Services
         private const byte VK_BACK = 0x08;
         private const byte VK_CONTROL = 0x11;
         private const byte VK_V = 0x56;
+        private const byte VK_SHIFT = 0x10;
+        private const byte VK_LEFT = 0x25;
 
         // Duplicate prevention
         private volatile bool _isExpanding = false;
@@ -219,18 +221,20 @@ namespace OtomatikMetinGenisletici.Services
                 else
                 {
                     // REPLACE MODE: Genişletme kısayol ile başlamıyorsa, kısayolu sil ve tam metni yaz
-                    Clipboard.SetText(expansion);
 
-                    // Kısayolu sil
-                    for (int i = 0; i < shortcutKey.Length; i++)
-                    {
-                        SendBackspace();
-                    }
+                    // Önce kısayolu seç (Ctrl+Shift+Sol ok ile)
+                    SelectPreviousWord(shortcutKey.Length);
+
+                    // Kısa bekleme
+                    Thread.Sleep(20);
+
+                    // Seçili metni sil ve genişletilmiş metni yaz
+                    Clipboard.SetText(expansion);
 
                     // Kısa bekleme
                     Thread.Sleep(10);
 
-                    // Tam metni yapıştır
+                    // Tam metni yapıştır (seçili metin otomatik olarak silinir)
                     SendCtrlV();
                 }
 
@@ -274,6 +278,26 @@ namespace OtomatikMetinGenisletici.Services
             keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
             // Ctrl tuşunu bırak
             keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+        }
+
+        private void SelectPreviousWord(int characterCount)
+        {
+            // Belirtilen karakter sayısı kadar geri git ve seç
+            // Shift+Sol ok tuşu kombinasyonu ile seçim yap
+            for (int i = 0; i < characterCount; i++)
+            {
+                // Shift tuşunu bas
+                keybd_event(VK_SHIFT, 0, 0, UIntPtr.Zero);
+                // Sol ok tuşunu bas
+                keybd_event(VK_LEFT, 0, 0, UIntPtr.Zero);
+                // Sol ok tuşunu bırak
+                keybd_event(VK_LEFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                // Shift tuşunu bırak
+                keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+                // Kısa bekleme (her karakter için)
+                Thread.Sleep(5);
+            }
         }
 
         public Shortcut? GetShortcut(string key)

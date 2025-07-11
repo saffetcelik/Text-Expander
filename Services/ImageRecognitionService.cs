@@ -130,7 +130,7 @@ namespace OtomatikMetinGenisletici.Services
                     if (minVal <= 0.15) // Basit threshold
                     {
                         int caretX = searchXStart + minLoc.X;
-                        int caretY = searchYStart + minLoc.Y + template.Height + 5;
+                        int caretY = searchYStart + minLoc.Y + template.Height + 3;
                         
                         Console.WriteLine($"[IMAGE RECOGNITION] İmleç bulundu: {caretX},{caretY}");
                         return new Point(caretX, caretY);
