@@ -4,27 +4,79 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using Newtonsoft.Json;
 using OtomatikMetinGenisletici.Models;
+using System.Collections.Generic;
+using Clipboard = System.Windows.Clipboard;
 
 namespace OtomatikMetinGenisletici.Services
 {
     public class ShortcutService : IShortcutService
     {
         private const string ShortcutsFileName = "kisayollar.json";
-        private readonly ObservableCollection<Shortcut> _shortcuts = new();
+        private readonly ObservableCollection<Models.Shortcut> _shortcuts = new();
 
-        // Win32 API'leri
+        // Win32 API'leri - Modern SendInput kullanıyoruz
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
         [DllImport("user32.dll")]
-        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+        private static extern IntPtr GetMessageExtraInfo();
 
-        [DllImport("user32.dll")]
-        private static extern short VkKeyScan(char ch);
+        // INPUT yapıları
+        [StructLayout(LayoutKind.Sequential)]
+        public struct INPUT
+        {
+            public int type;
+            public InputUnion U;
+        }
 
+        [StructLayout(LayoutKind.Explicit)]
+        public struct InputUnion
+        {
+            [FieldOffset(0)]
+            public MOUSEINPUT mi;
+            [FieldOffset(0)]
+            public KEYBDINPUT ki;
+            [FieldOffset(0)]
+            public HARDWAREINPUT hi;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct KEYBDINPUT
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MOUSEINPUT
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct HARDWAREINPUT
+        {
+            public uint uMsg;
+            public ushort wParamL;
+            public ushort wParamH;
+        }
+
+        // Sabitler
+        private const int INPUT_KEYBOARD = 1;
+        private const uint KEYEVENTF_KEYDOWN = 0x0000;
         private const uint KEYEVENTF_KEYUP = 0x0002;
-        private const byte VK_BACK = 0x08;
-        private const byte VK_CONTROL = 0x11;
-        private const byte VK_V = 0x56;
-        private const byte VK_SHIFT = 0x10;
-        private const byte VK_LEFT = 0x25;
+        private const uint KEYEVENTF_SCANCODE = 0x0008;
+        private const ushort VK_BACK = 0x08;
+        private const ushort VK_CONTROL = 0x11;
+        private const ushort VK_V = 0x56;
 
         // Duplicate prevention
         private volatile bool _isExpanding = false;
@@ -37,7 +89,7 @@ namespace OtomatikMetinGenisletici.Services
         private DateTime _lastExpansionEndTime = DateTime.MinValue;
         private const int LEARNING_EXCLUSION_WINDOW_MS = 2000; // 2 saniye öğrenme hariç tutma penceresi
 
-        public ObservableCollection<Shortcut> Shortcuts => _shortcuts;
+        public ObservableCollection<Models.Shortcut> Shortcuts => _shortcuts;
 
         public event Action<string>? ShortcutExpanded;
 
@@ -122,7 +174,7 @@ namespace OtomatikMetinGenisletici.Services
             }
             else
             {
-                _shortcuts.Add(new Shortcut(key, expansion));
+                _shortcuts.Add(new Models.Shortcut(key, expansion));
             }
         }
 
@@ -215,15 +267,15 @@ namespace OtomatikMetinGenisletici.Services
                     // Kısa bekleme
                     Thread.Sleep(10);
 
-                    // Sadece eksik kısmı yapıştır
-                    SendCtrlV();
+                    // Sadece eksik kısmı yapıştır - SendInput ile Ctrl+V
+                    SendCtrlVWithSendInput();
                 }
                 else
                 {
                     // REPLACE MODE: Genişletme kısayol ile başlamıyorsa, kısayolu sil ve tam metni yaz
 
-                    // Kısayolu seç ve değiştir
-                    SelectAndReplaceText(shortcutKey.Length, expansion);
+                    // Modern SendInput ile kısayolu değiştir
+                    ReplaceTextWithSendInput(shortcutKey.Length, expansion);
                 }
 
                 // Orijinal clipboard içeriğini geri yükle (async)
@@ -250,29 +302,7 @@ namespace OtomatikMetinGenisletici.Services
             }
         }
 
-        private void SendBackspace()
-        {
-            // Backspace tuşunu bas
-            keybd_event(VK_BACK, 0, 0, UIntPtr.Zero);
-            // Kısa bekleme
-            Thread.Sleep(5);
-            // Backspace tuşunu bırak
-            keybd_event(VK_BACK, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-        }
-
-        private void SendCtrlV()
-        {
-            // Ctrl tuşunu bas
-            keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
-            // V tuşunu bas
-            keybd_event(VK_V, 0, 0, UIntPtr.Zero);
-            // V tuşunu bırak
-            keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-            // Ctrl tuşunu bırak
-            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-        }
-
-        private void SelectAndReplaceText(int characterCount, string replacement)
+        private void ReplaceTextWithSendInput(int characterCount, string replacement)
         {
             try
             {
@@ -284,22 +314,129 @@ namespace OtomatikMetinGenisletici.Services
                 }
                 catch { }
 
-                // Belirtilen karakter sayısı kadar geri git ve seç
+                // INPUT array oluştur: backspace'ler + clipboard + Ctrl+V
+                var inputs = new List<INPUT>();
+
+                // 1. Belirtilen sayıda backspace gönder
                 for (int i = 0; i < characterCount; i++)
                 {
-                    SendShiftLeft();
-                    Thread.Sleep(5); // Her seçim arasında kısa bekleme
+                    // Backspace key down
+                    inputs.Add(new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_BACK,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYDOWN,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    });
+
+                    // Backspace key up
+                    inputs.Add(new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_BACK,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYUP,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    });
                 }
 
-                // Kısa bekleme
-                Thread.Sleep(20);
+                // Tüm backspace'leri tek seferde gönder
+                if (inputs.Count > 0)
+                {
+                    SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
+                    Thread.Sleep(50); // Backspace işlemlerinin tamamlanmasını bekle
+                }
 
-                // Yeni metni clipboard'a koy
+                // 2. Yeni metni clipboard'a koy ve Ctrl+V ile yapıştır
                 Clipboard.SetText(replacement);
                 Thread.Sleep(10);
 
-                // Seçili metni değiştir (Ctrl+V)
-                SendCtrlV();
+                // Ctrl+V için INPUT array
+                var pasteInputs = new INPUT[]
+                {
+                    // Ctrl key down
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_CONTROL,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYDOWN,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    },
+                    // V key down
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_V,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYDOWN,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    },
+                    // V key up
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_V,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYUP,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    },
+                    // Ctrl key up
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_CONTROL,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYUP,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    }
+                };
+
+                // Ctrl+V'yi gönder
+                SendInput((uint)pasteInputs.Length, pasteInputs, Marshal.SizeOf(typeof(INPUT)));
 
                 // Orijinal clipboard'ı geri yükle (async)
                 Task.Run(async () =>
@@ -317,32 +454,95 @@ namespace OtomatikMetinGenisletici.Services
             }
             catch (Exception ex)
             {
-                // Hata durumunda fallback olarak backspace kullan
-                for (int i = 0; i < characterCount; i++)
-                {
-                    SendBackspace();
-                    Thread.Sleep(10);
-                }
-
-                Clipboard.SetText(replacement);
-                Thread.Sleep(10);
-                SendCtrlV();
+                MessageBox.Show($"Metin değiştirme hatası: {ex.Message}",
+                    "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
-        private void SendShiftLeft()
+        private void SendCtrlVWithSendInput()
         {
-            // Shift tuşunu bas
-            keybd_event(VK_SHIFT, 0, 0, UIntPtr.Zero);
-            // Sol ok tuşunu bas
-            keybd_event(VK_LEFT, 0, 0, UIntPtr.Zero);
-            // Sol ok tuşunu bırak
-            keybd_event(VK_LEFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-            // Shift tuşunu bırak
-            keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            try
+            {
+                // Ctrl+V için INPUT array
+                var pasteInputs = new INPUT[]
+                {
+                    // Ctrl key down
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_CONTROL,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYDOWN,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    },
+                    // V key down
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_V,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYDOWN,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    },
+                    // V key up
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_V,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYUP,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    },
+                    // Ctrl key up
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_CONTROL,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYUP,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    }
+                };
+
+                // Ctrl+V'yi gönder
+                SendInput((uint)pasteInputs.Length, pasteInputs, Marshal.SizeOf(typeof(INPUT)));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ctrl+V gönderme hatası: {ex.Message}",
+                    "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
-        public Shortcut? GetShortcut(string key)
+        public Models.Shortcut? GetShortcut(string key)
         {
             return _shortcuts.FirstOrDefault(s => s.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
         }
