@@ -209,11 +209,12 @@ namespace OtomatikMetinGenisletici.Views
             if (isMinimized)
             {
                 // Minimize: mevcut boyutları kaydet ve küçült
+                // Sadece minimize edilmeden önceki boyutları kaydet, ayarlardaki değerleri değiştirme
                 _normalHeight = Height;
                 _normalWidth = Width;
 
                 // Debug için
-                System.Diagnostics.Debug.WriteLine($"Minimizing - Saving: Width={_normalWidth}, Height={_normalHeight}");
+                System.Diagnostics.Debug.WriteLine($"Minimizing - Saving to memory: Width={_normalWidth}, Height={_normalHeight}");
 
                 Height = _minimizedHeight;
                 MinHeight = _minimizedHeight;
@@ -225,21 +226,28 @@ namespace OtomatikMetinGenisletici.Views
                 // Restore: kaydedilmiş boyutları geri yükle
                 System.Diagnostics.Debug.WriteLine($"Restoring - Using: Width={_normalWidth}, Height={_normalHeight}");
 
-                Height = _normalHeight;
-                Width = _normalWidth;
+                // Restore işlemi sırasında SizeChanged event'ini geçici olarak devre dışı bırak
+                var tempWidth = _normalWidth;
+                var tempHeight = _normalHeight;
 
                 MinHeight = 300;
                 MaxHeight = double.PositiveInfinity;
                 ResizeMode = ResizeMode.CanResizeWithGrip;
 
-                // Restore sonrası boyutları ayarlara kaydet
+                // Boyutları geri yükle
+                Width = tempWidth;
+                Height = tempHeight;
+
+                // Restore sonrası boyutları ayarlara kaydet (kullanıcının son ayarladığı boyut)
                 if (_settingsService != null)
                 {
                     var settings = _settingsService.GetCopy();
-                    settings.ShortcutPreviewPanelWidth = Width;
-                    settings.ShortcutPreviewPanelHeight = Height;
+                    settings.ShortcutPreviewPanelWidth = tempWidth;
+                    settings.ShortcutPreviewPanelHeight = tempHeight;
                     _settingsService.UpdateSettings(settings);
                     _ = _settingsService.SaveSettingsAsync();
+
+                    System.Diagnostics.Debug.WriteLine($"Restore - Saved to settings: Width={tempWidth}, Height={tempHeight}");
                 }
             }
         }
