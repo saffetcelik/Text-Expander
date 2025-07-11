@@ -196,15 +196,32 @@ namespace OtomatikMetinGenisletici.Services
 
             // Noktalama işaretlerini ayır
             text = Regex.Replace(text, @"([.!?,:;])", " $1 ");
-            
+
             // Çoklu boşlukları tek boşluğa çevir
             text = Regex.Replace(text, @"\s+", " ");
-            
+
             // Kelimeleri ayır ve temizle
             return text.Split(' ', StringSplitOptions.RemoveEmptyEntries)
                       .Select(w => w.Trim().ToLowerInvariant())
-                      .Where(w => !string.IsNullOrEmpty(w))
+                      .Where(w => !string.IsNullOrEmpty(w) && IsValidWord(w))
                       .ToList();
+        }
+
+        private bool IsValidWord(string word)
+        {
+            // Rakam içeren kelimeleri filtrele (güvenlik için)
+            if (word.Any(char.IsDigit))
+                return false;
+
+            // Sadece noktalama işaretlerinden oluşan kelimeleri filtrele
+            if (word.All(c => char.IsPunctuation(c) || char.IsSymbol(c)))
+                return false;
+
+            // En az bir harf içermeli
+            if (!word.Any(char.IsLetter))
+                return false;
+
+            return true;
         }
 
         private void UpdateWordFrequencies(List<string> words)
