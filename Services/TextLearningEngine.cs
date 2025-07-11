@@ -213,6 +213,10 @@ namespace OtomatikMetinGenisletici.Services
             if (word.Any(char.IsDigit))
                 return false;
 
+            // Sadece rakamlardan oluşan kelimeleri filtrele (güvenlik için)
+            if (word.All(char.IsDigit))
+                return false;
+
             // Sadece noktalama işaretlerinden oluşan kelimeleri filtrele
             if (word.All(c => char.IsPunctuation(c) || char.IsSymbol(c)))
                 return false;
