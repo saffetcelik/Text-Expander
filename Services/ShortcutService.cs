@@ -274,8 +274,8 @@ namespace OtomatikMetinGenisletici.Services
                 {
                     // REPLACE MODE: Genişletme kısayol ile başlamıyorsa, kısayolu sil ve tam metni yaz
 
-                    // Modern SendInput ile kısayolu değiştir
-                    ReplaceTextWithSendInput(shortcutKey.Length, expansion);
+                    // Modern SendInput ile Ctrl+Backspace + yapıştır
+                    ReplaceTextWithSendInput(0, expansion); // characterCount artık kullanılmıyor
                 }
 
                 // Orijinal clipboard içeriğini geri yükle (async)
@@ -314,14 +314,27 @@ namespace OtomatikMetinGenisletici.Services
                 }
                 catch { }
 
-                // INPUT array oluştur: backspace'ler + clipboard + Ctrl+V
-                var inputs = new List<INPUT>();
-
-                // 1. Belirtilen sayıda backspace gönder
-                for (int i = 0; i < characterCount; i++)
+                // 1. Ctrl+Backspace ile kelimeyi sil (tek işlem)
+                var deleteInputs = new INPUT[]
                 {
+                    // Ctrl key down
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_CONTROL,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYDOWN,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    },
                     // Backspace key down
-                    inputs.Add(new INPUT
+                    new INPUT
                     {
                         type = INPUT_KEYBOARD,
                         U = new InputUnion
@@ -335,10 +348,9 @@ namespace OtomatikMetinGenisletici.Services
                                 dwExtraInfo = GetMessageExtraInfo()
                             }
                         }
-                    });
-
+                    },
                     // Backspace key up
-                    inputs.Add(new INPUT
+                    new INPUT
                     {
                         type = INPUT_KEYBOARD,
                         U = new InputUnion
@@ -352,19 +364,34 @@ namespace OtomatikMetinGenisletici.Services
                                 dwExtraInfo = GetMessageExtraInfo()
                             }
                         }
-                    });
-                }
+                    },
+                    // Ctrl key up
+                    new INPUT
+                    {
+                        type = INPUT_KEYBOARD,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = VK_CONTROL,
+                                wScan = 0,
+                                dwFlags = KEYEVENTF_KEYUP,
+                                time = 0,
+                                dwExtraInfo = GetMessageExtraInfo()
+                            }
+                        }
+                    }
+                };
 
-                // Tüm backspace'leri tek seferde gönder
-                if (inputs.Count > 0)
-                {
-                    SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
-                    Thread.Sleep(50); // Backspace işlemlerinin tamamlanmasını bekle
-                }
+                // Ctrl+Backspace'i gönder
+                SendInput((uint)deleteInputs.Length, deleteInputs, Marshal.SizeOf(typeof(INPUT)));
+
+                // Kelime silme işleminin tamamlanmasını bekle
+                Thread.Sleep(100);
 
                 // 2. Yeni metni clipboard'a koy ve Ctrl+V ile yapıştır
                 Clipboard.SetText(replacement);
-                Thread.Sleep(10);
+                Thread.Sleep(20);
 
                 // Ctrl+V için INPUT array
                 var pasteInputs = new INPUT[]
@@ -441,7 +468,7 @@ namespace OtomatikMetinGenisletici.Services
                 // Orijinal clipboard'ı geri yükle (async)
                 Task.Run(async () =>
                 {
-                    await Task.Delay(200);
+                    await Task.Delay(300);
                     try
                     {
                         if (!string.IsNullOrEmpty(originalClipboard))
