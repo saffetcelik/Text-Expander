@@ -54,10 +54,39 @@ namespace OtomatikMetinGenisletici.Views
 
         private void PositionWindowToRight()
         {
-            // Ekranın sağ tarafına yapışık olarak konumlandır
-            var workingArea = SystemParameters.WorkArea;
-            Left = workingArea.Right - Width - 10; // 10px margin
-            Top = (workingArea.Height - Height) / 2; // Dikey olarak ortala
+            // Ana pencereyi bul
+            var mainWindow = Application.Current.MainWindow;
+
+            if (mainWindow != null && mainWindow.IsLoaded)
+            {
+                // Ana pencereye yapışık olarak konumlandır
+                Left = mainWindow.Left + mainWindow.Width + 5; // 5px boşluk
+                Top = mainWindow.Top; // Ana pencere ile aynı yükseklikte başla
+
+                // Eğer ekran dışına taşarsa, ana pencerenin soluna yerleştir
+                var workingArea = SystemParameters.WorkArea;
+                if (Left + Width > workingArea.Right)
+                {
+                    Left = mainWindow.Left - Width - 5; // Ana pencerenin soluna
+                }
+
+                // Dikey olarak ekran sınırları içinde tut
+                if (Top + Height > workingArea.Bottom)
+                {
+                    Top = workingArea.Bottom - Height - 10;
+                }
+                if (Top < workingArea.Top)
+                {
+                    Top = workingArea.Top + 10;
+                }
+            }
+            else
+            {
+                // Ana pencere bulunamazsa ekranın sağ tarafına yerleştir (eski davranış)
+                var workingArea = SystemParameters.WorkArea;
+                Left = workingArea.Right - Width - 10; // 10px margin
+                Top = (workingArea.Height - Height) / 2; // Dikey olarak ortala
+            }
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
