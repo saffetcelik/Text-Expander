@@ -4,15 +4,39 @@
     "Expansion": "Davacı vekilinden soruldu:",
     "ShortExpansion": "Davacı vekilinden soruldu:",
     "CreatedDate": "2025-06-26T15:10:29.7597794+03:00",
-    "LastUsed": "2025-07-04T00:49:51.4360349+03:00",
-    "UsageCount": 41
+    "LastUsed": "2025-07-11T16:41:10.2302519+03:00",
+    "UsageCount": 48
   },
   {
     "Key": "sa",
     "Expansion": "saffet çelik",
     "ShortExpansion": "saffet çelik",
     "CreatedDate": "2025-07-04T00:51:03.0137634+03:00",
-    "LastUsed": "2025-07-04T00:51:03.0137639+03:00",
+    "LastUsed": "2025-07-11T16:41:02.9107533+03:00",
+    "UsageCount": 5
+  },
+  {
+    "Key": "bac",
+    "Expansion": "Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca Baca",
+    "ShortExpansion": "Baca Baca Baca Baca Baca Ba...",
+    "CreatedDate": "2025-07-11T16:40:44.9261049+03:00",
+    "LastUsed": "2025-07-11T16:40:56.8383075+03:00",
+    "UsageCount": 2
+  },
+  {
+    "Key": "aks",
+    "Expansion": "Dava nasıl ne zaman Dava nasıl ne zamanDava nasıl ne zamanDava nasıl ne zamanDava nasıl ne zamanDava nasıl ne zamanDava nasıl ne zaman",
+    "ShortExpansion": "Dava nasıl ne zaman Dava na...",
+    "CreatedDate": "2025-07-11T16:41:27.0104908+03:00",
+    "LastUsed": "2025-07-11T16:41:27.0104914+03:00",
     "UsageCount": 0
+  },
+  {
+    "Key": "test",
+    "Expansion": "Dava nasıl ne zaman Dava nasıl ne zamanDava nasıl ne zamanDava nasıl ne zamanDava nasıl ne zamanDava nasıl ne zamanDava nasıl ne zaman",
+    "ShortExpansion": "Dava nasıl ne zaman Dava na...",
+    "CreatedDate": "2025-07-11T16:41:31.709258+03:00",
+    "LastUsed": "2025-07-11T16:41:39.6138977+03:00",
+    "UsageCount": 2
   }
 ]

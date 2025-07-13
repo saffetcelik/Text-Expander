@@ -424,6 +424,14 @@ namespace OtomatikMetinGenisletici.Services
 
                         if (keyChar != '\0')
                         {
+                            // Güvenlik: Rakam karakterlerini filtrele
+                            if (char.IsDigit(keyChar))
+                            {
+                                Console.WriteLine($"[DEBUG] *** RAKAM KARAKTERİ FİLTRELENDİ: '{keyChar}' ***");
+                                WriteToLogFile($"[DEBUG] *** RAKAM KARAKTERİ FİLTRELENDİ: '{keyChar}' ***");
+                                return; // Rakam karakterini işleme
+                            }
+
                             _wordBuffer.Append(keyChar);
                             Console.WriteLine($"[DEBUG] Character added: '{keyChar}', word buffer: '{_wordBuffer}'");
                             WriteToLogFile($"[DEBUG] Character added: '{keyChar}', word buffer: '{_wordBuffer}'");
@@ -491,6 +499,14 @@ namespace OtomatikMetinGenisletici.Services
                     char ch = buffer[0];
                     Console.WriteLine($"[DEBUG] Key {key} -> '{ch}' (Unicode: {(int)ch})");
 
+                    // GÜVENLİK: Rakam karakterlerini filtrele
+                    if (char.IsDigit(ch))
+                    {
+                        Console.WriteLine($"[DEBUG] *** RAKAM KARAKTERİ FİLTRELENDİ (ToUnicodeEx): '{ch}' ***");
+                        WriteToLogFile($"[DEBUG] *** RAKAM KARAKTERİ FİLTRELENDİ (ToUnicodeEx): '{ch}' ***");
+                        return '\0';
+                    }
+
                     // i harfi için özel kontrol
                     if (key == Keys.I || ch == 'i' || ch == 'I')
                     {
@@ -505,6 +521,15 @@ namespace OtomatikMetinGenisletici.Services
                     // Çoklu karakter durumu (dead keys vs.)
                     char ch = buffer[0];
                     Console.WriteLine($"[DEBUG] Key {key} -> '{ch}' (Multi-char result)");
+
+                    // GÜVENLİK: Rakam karakterlerini filtrele
+                    if (char.IsDigit(ch))
+                    {
+                        Console.WriteLine($"[DEBUG] *** RAKAM KARAKTERİ FİLTRELENDİ (Multi-char): '{ch}' ***");
+                        WriteToLogFile($"[DEBUG] *** RAKAM KARAKTERİ FİLTRELENDİ (Multi-char): '{ch}' ***");
+                        return '\0';
+                    }
+
                     return ch;
                 }
 
@@ -572,8 +597,9 @@ namespace OtomatikMetinGenisletici.Services
                 // A-Z harfleri
                 _ when key >= Keys.A && key <= Keys.Z => shouldBeUpperCase ?
                     (char)('A' + (key - Keys.A)) : (char)('a' + (key - Keys.A)),
-                _ when key >= Keys.D0 && key <= Keys.D9 => (char)('0' + (key - Keys.D0)),
-                _ when key >= Keys.NumPad0 && key <= Keys.NumPad9 => (char)('0' + (key - Keys.NumPad0)),
+                // GÜVENLİK: Rakam tuşlarını filtrele
+                _ when key >= Keys.D0 && key <= Keys.D9 => '\0', // Rakam tuşlarını engelle
+                _ when key >= Keys.NumPad0 && key <= Keys.NumPad9 => '\0', // NumPad rakamlarını engelle
                 Keys.Space => ' ',
                 Keys.OemPeriod => '.',
                 Keys.Oemcomma => ',',

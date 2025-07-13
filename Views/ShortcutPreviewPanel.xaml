@@ -124,15 +124,35 @@
             </Grid>
 
             <!-- Search Box - Kompakt -->
-            <TextBox Grid.Row="1"
-                     x:Name="SearchBox"
-                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource ModernTextBoxStyle}"
-                     FontSize="9"
-                     Margin="0,0,0,4"
-                     Height="20">
-                <ui:ControlHelper.PlaceholderText>Ara...</ui:ControlHelper.PlaceholderText>
-            </TextBox>
+            <Grid Grid.Row="1" Margin="0,0,0,4">
+                <TextBox x:Name="SearchBox"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         FontSize="12"
+                         Height="32"
+                         Background="White"
+                         Foreground="Black"
+                         BorderBrush="#E0E0E0"
+                         BorderThickness="1"
+                         Padding="8,4"
+                         VerticalContentAlignment="Center"/>
+                <TextBlock Text="Ara..."
+                           Foreground="#999999"
+                           FontSize="12"
+                           Margin="10,0,0,0"
+                           VerticalAlignment="Center"
+                           IsHitTestVisible="False">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=SearchBox, Path=Text}" Value="">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
 
             <!-- Shortcuts List -->
             <ScrollViewer x:Name="ShortcutsScrollViewer"
