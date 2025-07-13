@@ -234,8 +234,12 @@ namespace OtomatikMetinGenisletici.Views
         {
             try
             {
+                Console.WriteLine("[PREVIEW] UpdatePosition çağrıldı");
+
                 // Test projesindeki gibi daha güvenilir pozisyonlama sistemi
                 var caretPos = GetCaretPositionImproved();
+                Console.WriteLine($"[PREVIEW] GetCaretPositionImproved sonucu: {(caretPos.HasValue ? $"{caretPos.Value.X},{caretPos.Value.Y}" : "null")}");
+
                 if (caretPos.HasValue)
                 {
                     // Ekran sınırlarını kontrol et
@@ -343,7 +347,7 @@ namespace OtomatikMetinGenisletici.Views
                     }
                     else
                     {
-                        Console.WriteLine($"[CARET] .UDF penceresi - imlec.png ile bulunamadı");
+                        Console.WriteLine($"[CARET] .UDF penceresi - imlec.png ile bulunamadı, standart yöntemlere geçiliyor");
                     }
                 }
 
@@ -373,7 +377,22 @@ namespace OtomatikMetinGenisletici.Views
 
                 Console.WriteLine($"[CARET] GUITHREADINFO ile bulunamadı");
 
-                // Fallback: Mouse pozisyonunu kullan
+                // UDF editörü için özel fallback: Pencere merkezine yakın bir konum
+                if (title.Contains(".UDF"))
+                {
+                    RECT windowRect;
+                    if (GetWindowRect(hwnd, out windowRect))
+                    {
+                        // Pencere içinde merkezi bir konum hesapla
+                        int centerX = windowRect.Left + (windowRect.Right - windowRect.Left) / 2;
+                        int centerY = windowRect.Top + (windowRect.Bottom - windowRect.Top) / 3; // Üst 1/3'lük kısım
+
+                        Console.WriteLine($"[CARET] .UDF penceresi için merkez pozisyon kullanıldı: {centerX}, {centerY}");
+                        return new System.Drawing.Point(centerX, centerY);
+                    }
+                }
+
+                // Genel fallback: Mouse pozisyonunu kullan
                 var mousePos = System.Windows.Forms.Cursor.Position;
                 Console.WriteLine($"[CARET] Mouse pozisyonu kullanıldı: {mousePos.X}, {mousePos.Y}");
                 return mousePos;

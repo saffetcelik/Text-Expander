@@ -69,6 +69,9 @@ namespace OtomatikMetinGenisletici.Services
                     return null;
                 }
 
+                Console.WriteLine($"[IMAGE RECOGNITION] .UDF penceresi tespit edildi: '{title}'");
+                Console.WriteLine($"[IMAGE RECOGNITION] Görsel tanıma başlatılıyor...");
+
                 // Template'i al (cache'li)
                 Mat? template = GetCachedTemplate();
                 if (template == null || template.Empty())
@@ -89,11 +92,11 @@ namespace OtomatikMetinGenisletici.Services
                 int windowWidth = windowRect.Right - windowRect.Left;
                 int windowHeight = windowRect.Bottom - windowRect.Top;
 
-                // Arama alanı (pencere içinde merkezi alan)
-                int searchXStart = windowRect.Left + (windowWidth / 8);      // Sol %12.5
-                int searchYStart = windowRect.Top + (windowHeight / 6);      // Üst %16.7
-                int searchWidth = (windowWidth * 3) / 4;                     // Genişlik %75
-                int searchHeight = (windowHeight * 2) / 3;                   // Yükseklik %66.7
+                // Arama alanını genişlettik (UDF editörü için daha geniş alan)
+                int searchXStart = windowRect.Left + (windowWidth / 10);     // Sol %10
+                int searchYStart = windowRect.Top + (windowHeight / 8);      // Üst %12.5
+                int searchWidth = (windowWidth * 4) / 5;                     // Genişlik %80
+                int searchHeight = (windowHeight * 3) / 4;                   // Yükseklik %75
 
                 Console.WriteLine($"[IMAGE RECOGNITION] Arama alanı: {searchXStart},{searchYStart} - {searchWidth}x{searchHeight}");
 
@@ -114,6 +117,7 @@ namespace OtomatikMetinGenisletici.Services
                 }
 
                 // Basit OpenCV işlemi
+                double minVal = 1.0; // Varsayılan değer
                 using (Mat screenshotMat = BitmapConverter.ToMat(_screenshotBuffer))
                 using (Mat screenshotGray = new Mat())
                 using (Mat result = new Mat())
@@ -121,23 +125,23 @@ namespace OtomatikMetinGenisletici.Services
                     Cv2.CvtColor(screenshotMat, screenshotGray, ColorConversionCodes.BGR2GRAY);
                     Cv2.MatchTemplate(screenshotGray, template, result, TemplateMatchModes.SqDiffNormed);
 
-                    double minVal, maxVal;
+                    double maxVal;
                     OpenCvSharp.Point minLoc, maxLoc;
                     Cv2.MinMaxLoc(result, out minVal, out maxVal, out minLoc, out maxLoc);
 
-                    Console.WriteLine($"[IMAGE RECOGNITION] Template match sonucu: minVal={minVal:F3}");
+                    Console.WriteLine($"[IMAGE RECOGNITION] Template match sonucu: minVal={minVal:F3}, threshold=0.35");
 
-                    if (minVal <= 0.15) // Basit threshold
+                    if (minVal <= 0.35) // Threshold'u daha da artırdık (UDF editörü için)
                     {
-                        int caretX = searchXStart + minLoc.X;
-                        int caretY = searchYStart + minLoc.Y + template.Height + 3;
-                        
-                        Console.WriteLine($"[IMAGE RECOGNITION] İmleç bulundu: {caretX},{caretY}");
+                        int caretX = searchXStart + minLoc.X + (template.Width / 2); // Template merkezini kullan
+                        int caretY = searchYStart + minLoc.Y + template.Height + 5;  // Biraz daha aşağı
+
+                        Console.WriteLine($"[IMAGE RECOGNITION] İmleç bulundu: {caretX},{caretY} (minVal={minVal:F3})");
                         return new Point(caretX, caretY);
                     }
                 }
 
-                Console.WriteLine($"[IMAGE RECOGNITION] İmleç bulunamadı (threshold aşıldı)");
+                Console.WriteLine($"[IMAGE RECOGNITION] İmleç bulunamadı (threshold aşıldı: {minVal:F3} > 0.35)");
                 return null;
             }
             catch (Exception ex)
@@ -158,17 +162,29 @@ namespace OtomatikMetinGenisletici.Services
                     {
                         string templatePath = Path.Combine(AppContext.BaseDirectory, "imlec.png");
                         Console.WriteLine($"[IMAGE RECOGNITION] Template yolu: {templatePath}");
-                        
+
                         if (File.Exists(templatePath))
                         {
                             try
                             {
+                                var fileInfo = new FileInfo(templatePath);
+                                Console.WriteLine($"[IMAGE RECOGNITION] Template dosya boyutu: {fileInfo.Length} bytes");
+
                                 _templateCache = Cv2.ImRead(templatePath, ImreadModes.Grayscale);
-                                Console.WriteLine($"[IMAGE RECOGNITION] Template yüklendi: {_templateCache.Width}x{_templateCache.Height}");
+                                if (_templateCache != null && !_templateCache.Empty())
+                                {
+                                    Console.WriteLine($"[IMAGE RECOGNITION] Template başarıyla yüklendi: {_templateCache.Width}x{_templateCache.Height}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[ERROR] Template yüklendi ama boş veya geçersiz");
+                                    _templateCache = null;
+                                }
                             }
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"[ERROR] Template yükleme hatası: {ex.Message}");
+                                _templateCache = null;
                             }
                         }
                         else

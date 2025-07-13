@@ -145,7 +145,8 @@
                             VerticalAlignment="Center"
                             Margin="0,0,8,0"
                             Cursor="Hand"
-                            MouseLeftButtonDown="ClickThroughToggle_Click">
+                            MouseLeftButtonDown="ClickThroughToggle_Click"
+                            ToolTipService.InitialShowDelay="0">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Style.Triggers>
@@ -277,7 +278,8 @@
                             Height="20"
                             VerticalAlignment="Center"
                             Click="MinimizeButton_Click"
-                            ToolTip="Küçült">
+                            ToolTip="Küçült"
+                            ToolTipService.InitialShowDelay="0">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                                 <Setter Property="Background" Value="Transparent"/>
@@ -337,7 +339,8 @@
                         <DataTemplate>
                             <Border Style="{StaticResource ShortcutItemStyle}"
                                     MouseEnter="ShortcutItem_MouseEnter"
-                                    MouseLeave="ShortcutItem_MouseLeave">
+                                    MouseLeave="ShortcutItem_MouseLeave"
+                                    ToolTipService.InitialShowDelay="0">
                                 <Border.ToolTip>
                                     <ToolTip Background="#2C3E50"
                                              Foreground="White"
@@ -409,7 +412,9 @@
                             FontSize="10"
                             Height="22"
                             HorizontalAlignment="Stretch"
-                            Click="AddShortcutButton_Click">
+                            Click="AddShortcutButton_Click"
+                            ToolTip="Yeni kısayol ekle"
+                            ToolTipService.InitialShowDelay="0">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                                 <Setter Property="Background" Value="#E8F5E8"/>
@@ -431,7 +436,9 @@
                             FontSize="10"
                             Height="22"
                             HorizontalAlignment="Stretch"
-                            Click="CloseButton_Click">
+                            Click="CloseButton_Click"
+                            ToolTip="Önizleme panelini gizle"
+                            ToolTipService.InitialShowDelay="0">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                                 <Setter Property="Background" Value="#F0F0F0"/>
