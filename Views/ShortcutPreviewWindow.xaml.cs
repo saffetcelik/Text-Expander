@@ -22,6 +22,9 @@ namespace OtomatikMetinGenisletici.Views
             InitializeComponent();
             _settingsService = settingsService;
 
+            // SettingsService'i PreviewPanel'e geç
+            PreviewPanel.SetSettingsService(_settingsService);
+
             // Ayarlardan değerleri al
             Opacity = _settingsService.Settings.ShortcutPreviewPanelOpacity;
             Width = _settingsService.Settings.ShortcutPreviewPanelWidth;
