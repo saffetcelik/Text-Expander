@@ -15,9 +15,9 @@
     <AssemblyDescription>Akıllı metin genişletme ve kısayol yönetim uygulaması</AssemblyDescription>
     <AssemblyCompany>Text Expander</AssemblyCompany>
     <AssemblyProduct>Text Expander</AssemblyProduct>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
-    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.9.0</AssemblyVersion>
+    <FileVersion>1.0.9.0</FileVersion>
+    <Version>1.0.9</Version>
 
     <!-- Self-contained deployment settings for optimal Windows release -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
