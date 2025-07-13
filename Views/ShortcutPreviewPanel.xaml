@@ -73,14 +73,16 @@
         </Style>
     </UserControl.Resources>
 
-    <Border Style="{StaticResource PreviewCardStyle}" Background="#FAFBFC">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+    <Grid>
+        <!-- Main Content -->
+        <Border Style="{StaticResource PreviewCardStyle}" Background="#FAFBFC">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
             <!-- Header - Kompakt -->
             <Grid Grid.Row="0" Margin="0,0,0,4">
@@ -89,50 +91,209 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <TextBlock Text="🔗" FontSize="14" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="Kısayollar" Style="{StaticResource HeaderStyle}" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding ShortcutCount, StringFormat='({0})'}"
                                FontSize="9" Foreground="#9E9E9E" VerticalAlignment="Center" Margin="3,0,8,0"/>
 
                     <!-- Aktif Tuş Kombinasyonu -->
-                    <Border Background="#E8F5E8" CornerRadius="6" Padding="6,3" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="⌨️" FontSize="9" VerticalAlignment="Center" Margin="0,0,3,0"/>
-                            <TextBlock Text="{Binding ActiveTriggerKey}"
+                    <Border x:Name="ShortcutKeyBorder"
+                            Background="#E8F5E8"
+                            CornerRadius="4"
+                            Padding="4,2"
+                            VerticalAlignment="Center"
+                            Margin="4,0,0,0"
+                            MouseEnter="ShortcutKeyBorder_MouseEnter"
+                            MouseLeave="ShortcutKeyBorder_MouseLeave">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="⌨️" FontSize="8" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                            <TextBlock Text="{Binding ActiveTriggerKey, Mode=OneWay}"
                                        FontSize="8"
                                        FontWeight="SemiBold"
                                        Foreground="#2E7D32"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
+
+                    <!-- Tab Tuşu Tamamlama -->
+                    <Border x:Name="TabKeyBorder"
+                            Background="#E3F2FD"
+                            CornerRadius="4"
+                            Padding="4,2"
+                            VerticalAlignment="Center"
+                            Margin="3,0,0,0"
+                            MouseEnter="TabKeyBorder_MouseEnter"
+                            MouseLeave="TabKeyBorder_MouseLeave">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="⇥" FontSize="8" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                            <TextBlock Text="Tab"
+                                       FontSize="8"
+                                       FontWeight="SemiBold"
+                                       Foreground="#1976D2"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
-                <!-- Minimize Button -->
-                <Button x:Name="MinimizeButton"
-                        Grid.Column="1"
-                        Content="−"
-                        FontSize="12"
-                        Width="20"
-                        Height="20"
-                        VerticalAlignment="Center"
-                        Click="MinimizeButton_Click"
-                        ToolTip="Küçült">
-                    <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="#757575"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Padding" Value="0"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E0E0E0"/>
-                                    <Setter Property="Foreground" Value="#424242"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
+                <!-- Click-Through Checkbox ve Minimize Button -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Modern Click-Through Toggle -->
+                    <Border x:Name="ClickThroughToggle"
+                            Background="#F5F5F5"
+                            CornerRadius="12"
+                            Padding="8,4"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="ClickThroughToggle_Click">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#E8F5E8"/>
+                                    </Trigger>
+                                    <DataTrigger Binding="{Binding IsClickThroughEnabled}" Value="True">
+                                        <Setter Property="Background" Value="#E3F2FD"/>
+                                    </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsClickThroughEnabled}" Value="True"/>
+                                            <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Background" Value="#BBDEFB"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Border.ToolTip>
+                            <ToolTip Background="#1976D2"
+                                     Foreground="White"
+                                     Padding="16,12"
+                                     HasDropShadow="True"
+                                     Placement="Bottom">
+                                <StackPanel MaxWidth="320">
+                                    <!-- Başlık -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="🖱️" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Tıklama Geçirgenliği"
+                                                   FontSize="14"
+                                                   FontWeight="Bold"
+                                                   Foreground="White"/>
+                                    </StackPanel>
+
+                                    <!-- Ana Açıklama -->
+                                    <TextBlock Text="Bu özellik etkinleştirildiğinde, pencere arkasındaki dosya, klasör ve uygulamalara doğrudan tıklayabilirsiniz."
+                                               FontSize="12"
+                                               Foreground="#E3F2FD"
+                                               TextWrapping="Wrap"
+                                               LineHeight="18"
+                                               Margin="0,0,0,10"/>
+
+                                    <!-- Nasıl Çalışır -->
+                                    <Border Background="#1565C0" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="🔄 Nasıl Çalışır:"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#FFC107"
+                                                       Margin="0,0,0,6"/>
+                                            <TextBlock FontSize="11" Foreground="#E1F5FE" TextWrapping="Wrap" LineHeight="16">
+                                                <Run Text="✓ Etkin: Pencere şeffaf hale gelir, arkasındaki öğelere tıklayabilirsiniz"/>
+                                                <LineBreak/>
+                                                <Run Text="✓ Pasif: Normal pencere davranışı, pencere ile etkileşim kurabilirsiniz"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Önemli Uyarı -->
+                                    <Border Background="#D32F2F" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="⚠️ Önemli Bilgi:"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#FFEBEE"
+                                                       Margin="0,0,0,6"/>
+                                            <TextBlock FontSize="11" Foreground="#FFCDD2" TextWrapping="Wrap" LineHeight="16">
+                                                <Run Text="Bu özellik etkinken pencereyi normal şekilde kullanamayacaksınız!"/>
+                                                <LineBreak/>
+                                                <Run Text="Kapatmak için ana GUI'deki "/>
+                                                <Run Text="'Önizleme (Gizle)'" FontWeight="Bold" Foreground="#FFE0B2"/>
+                                                <Run Text=" butonuna basın."/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- İpucu -->
+                                    <TextBlock Text="💡 İpucu: Bu özellik özellikle dosya yönetimi yaparken kısayolları görünür tutmak için idealdir."
+                                               FontSize="10"
+                                               Foreground="#90CAF9"
+                                               TextWrapping="Wrap"
+                                               FontStyle="Italic"/>
+                                </StackPanel>
+                            </ToolTip>
+                        </Border.ToolTip>
+
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Toggle Icon -->
+                            <Border Width="16" Height="16" CornerRadius="8" Margin="0,0,6,0">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#BDBDBD"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsClickThroughEnabled}" Value="True">
+                                                <Setter Property="Background" Value="#2196F3"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="🖱️" FontSize="8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <!-- Toggle Text -->
+                            <TextBlock VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Geçirgen"/>
+                                        <Setter Property="FontSize" Value="9"/>
+                                        <Setter Property="Foreground" Value="#757575"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsClickThroughEnabled}" Value="True">
+                                                <Setter Property="Text" Value="Aktif"/>
+                                                <Setter Property="Foreground" Value="#2196F3"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Minimize Button -->
+                    <Button x:Name="MinimizeButton"
+                            Content="−"
+                            FontSize="12"
+                            Width="20"
+                            Height="20"
+                            VerticalAlignment="Center"
+                            Click="MinimizeButton_Click"
+                            ToolTip="Küçült">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="#757575"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#E0E0E0"/>
+                                        <Setter Property="Foreground" Value="#424242"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <!-- Search Box - Kompakt -->
@@ -287,6 +448,156 @@
                     </Button>
                 </Grid>
             </StackPanel>
-        </Grid>
-    </Border>
+            </Grid>
+        </Border>
+
+        <!-- Modern Popup for Shortcut Key -->
+        <Popup x:Name="ShortcutKeyPopup"
+               PlacementTarget="{Binding ElementName=ShortcutKeyBorder}"
+               Placement="Bottom"
+               AllowsTransparency="True"
+               PopupAnimation="Fade"
+               StaysOpen="False">
+            <Border Background="#2C3E50"
+                    CornerRadius="12"
+                    Padding="16,12"
+                    Margin="8">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Direction="270" ShadowDepth="4"
+                                      BlurRadius="12" Opacity="0.4"/>
+                </Border.Effect>
+                <StackPanel MaxWidth="280">
+                    <!-- Başlık -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="⌨️" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Kısayol Genişletme Tuşu"
+                                   FontSize="14"
+                                   FontWeight="Bold"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Ana Açıklama -->
+                    <TextBlock Text="Bu tuş kombinasyonu ile yazdığınız kısayolları tam metinlere dönüştürebilirsiniz."
+                               FontSize="12"
+                               Foreground="#E8F4FD"
+                               TextWrapping="Wrap"
+                               LineHeight="18"
+                               Margin="0,0,0,8"/>
+
+                    <!-- Örnek Kullanım -->
+                    <Border Background="#34495E" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="💡 Örnek Kullanım:"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="#F39C12"
+                                       Margin="0,0,0,4"/>
+                            <TextBlock FontSize="11" Foreground="#BDC3C7" TextWrapping="Wrap">
+                                <Run Text="1. Bir kısayol yazın (örn: "/>
+                                <Run Text="merhaba" FontWeight="Bold" Foreground="#3498DB"/>
+                                <Run Text=")"/>
+                                <LineBreak/>
+                                <Run Text="2. "/>
+                                <Run Text="{Binding ActiveTriggerKey, Mode=OneWay}" FontWeight="Bold" Foreground="#2ECC71"/>
+                                <Run Text=" tuşuna basın"/>
+                                <LineBreak/>
+                                <Run Text="3. Kısayol otomatik genişletilir!"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Alt Bilgi -->
+                    <TextBlock Text="💡 İpucu: Ayarlar menüsünden farklı tuş kombinasyonları seçebilirsiniz."
+                               FontSize="10"
+                               Foreground="#95A5A6"
+                               TextWrapping="Wrap"
+                               FontStyle="Italic"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- Modern Popup for Tab Key -->
+        <Popup x:Name="TabKeyPopup"
+               PlacementTarget="{Binding ElementName=TabKeyBorder}"
+               Placement="Bottom"
+               AllowsTransparency="True"
+               PopupAnimation="Fade"
+               StaysOpen="False">
+            <Border Background="#1976D2"
+                    CornerRadius="12"
+                    Padding="16,12"
+                    Margin="8">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Direction="270" ShadowDepth="4"
+                                      BlurRadius="12" Opacity="0.4"/>
+                </Border.Effect>
+                <StackPanel MaxWidth="280">
+                    <!-- Başlık -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="⇥" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Tab Tuşu ile Kelime Tamamlama"
+                                   FontSize="14"
+                                   FontWeight="Bold"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Ana Açıklama -->
+                    <TextBlock Text="Yazmaya başladığınız kelimeleri Tab tuşu ile akıllı bir şekilde tamamlayabilirsiniz."
+                               FontSize="12"
+                               Foreground="#E3F2FD"
+                               TextWrapping="Wrap"
+                               LineHeight="18"
+                               Margin="0,0,0,8"/>
+
+                    <!-- Örnek Kullanım -->
+                    <Border Background="#1565C0" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="💡 Örnek Kullanım:"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="#FFC107"
+                                       Margin="0,0,0,4"/>
+                            <TextBlock FontSize="11" Foreground="#E1F5FE" TextWrapping="Wrap">
+                                <Run Text="1. Bir kelimenin başını yazın (örn: "/>
+                                <Run Text="prog" FontWeight="Bold" Foreground="#81C784"/>
+                                <Run Text=")"/>
+                                <LineBreak/>
+                                <Run Text="2. "/>
+                                <Run Text="Tab" FontWeight="Bold" Foreground="#FFD54F"/>
+                                <Run Text=" tuşuna basın"/>
+                                <LineBreak/>
+                                <Run Text="3. Kelime tamamlanır ("/>
+                                <Run Text="program" FontWeight="Bold" Foreground="#81C784"/>
+                                <Run Text=")"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Özellikler -->
+                    <Border Background="#0D47A1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="🚀 Akıllı Özellikler:"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="#4FC3F7"
+                                       Margin="0,0,0,4"/>
+                            <TextBlock Text="• Yazım geçmişinizden öğrenir&#10;• En çok kullandığınız kelimeleri önceliklendirir&#10;• Bağlama göre uygun öneriler sunar"
+                                       FontSize="10"
+                                       Foreground="#B3E5FC"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Alt Bilgi -->
+                    <TextBlock Text="💡 İpucu: Kelime tamamlama özelliği kullandıkça daha akıllı hale gelir!"
+                               FontSize="10"
+                               Foreground="#90CAF9"
+                               TextWrapping="Wrap"
+                               FontStyle="Italic"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+    </Grid>
 </UserControl>

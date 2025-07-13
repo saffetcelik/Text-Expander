@@ -119,21 +119,58 @@
 
                             <!-- Instagram -->
                             <Border Grid.Row="2"
-                                    Background="#F8F9FA"
+                                    Background="#E4405F"
                                     CornerRadius="8"
                                     Padding="15,10">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#E4405F" Opacity="0.3" ShadowDepth="2" BlurRadius="8"/>
+                                </Border.Effect>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <TextBlock Text="📷" FontSize="18" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="instagram.com/kamucoder"
+                                    <TextBlock Text="🚀" FontSize="18" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="@kamucoder - TAKİP ET!"
                                                FontSize="14"
-                                               Foreground="#E4405F"
+                                               Foreground="White"
                                                Cursor="Hand"
                                                MouseLeftButtonUp="Instagram_Click"
-                                               FontWeight="Medium"
+                                               FontWeight="Bold"
                                                VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
+
+                        <!-- Instagram Follow Call-to-Action -->
+                        <Border Background="#E4405F"
+                                CornerRadius="12"
+                                Padding="20,15"
+                                Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="🚀 Instagram'dan Takip Edin!"
+                                           FontSize="16"
+                                           FontWeight="Bold"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,8"/>
+                                <TextBlock Text="✨ Daha fazla kolaylık sağlayan otomasyon ipuçları"
+                                           FontSize="12"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,3"/>
+                                <TextBlock Text="🤖 Yeni teknoloji ve yapay zeka haberleri"
+                                           FontSize="12"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,3"/>
+                                <TextBlock Text="💡 Programlama ve verimlilik tüyoları"
+                                           FontSize="12"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,3"/>
+                                <TextBlock Text="🎯 Özel içerikler ve güncellemeler"
+                                           FontSize="12"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
 
                         <!-- Description -->
                         <TextBlock Text="Modern .NET 8 teknolojileri ile geliştirilmiştir"

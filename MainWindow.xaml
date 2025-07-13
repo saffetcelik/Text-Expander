@@ -84,7 +84,7 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button x:Name="ShortcutPreviewButton"
-                            Content="🔗 Kısayol Önizlemesi"
+                            Content="{Binding ShortcutPreviewButtonText}"
                             Style="{StaticResource ModernButtonStyle}"
                             Background="Transparent"
                             BorderThickness="1"

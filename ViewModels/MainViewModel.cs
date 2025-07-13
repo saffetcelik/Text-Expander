@@ -69,6 +69,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         public string ShortcutPreviewPanelStatusText => IsShortcutPreviewPanelVisible ? "🟢 Görünür" : "🔴 Gizli";
         public string ShortcutPreviewPanelStatusColor => IsShortcutPreviewPanelVisible ? "Green" : "Red";
+        public string ShortcutPreviewButtonText => IsShortcutPreviewPanelVisible ? "🔗 Önizleme (Gizle)" : "🔗 Önizleme (Göster)";
 
         // Pencere Filtreleme Özellikleri
         public bool IsWindowFilteringEnabled
@@ -2518,14 +2519,13 @@ namespace OtomatikMetinGenisletici.ViewModels
                         WriteToLogFile($"[DEBUG] Ctrl+V gönderiliyor...");
                         SendCtrlV();
 
-                        // Kelime tamamlandıktan sonra boşluk ekle
+                        // Kelime tamamlandı - boşluk eklenmez, kullanıcı isterse space tuşuna basabilir
                         Thread.Sleep(50); // Kısa bekleme
-                        Console.WriteLine($"[DEBUG] Kelime tamamlandı, boşluk ekleniyor...");
-                        WriteToLogFile($"[DEBUG] Kelime tamamlandı, boşluk ekleniyor...");
-                        SendSpace();
+                        Console.WriteLine($"[DEBUG] Kelime tamamlandı - boşluk eklenmedi");
+                        WriteToLogFile($"[DEBUG] Kelime tamamlandı - boşluk eklenmedi");
 
-                        Console.WriteLine($"[DEBUG] *** ApplyWordCompletionAsync tamamlandı: {fullWord} + boşluk ***");
-                        WriteToLogFile($"[DEBUG] *** ApplyWordCompletionAsync tamamlandı: {fullWord} + boşluk ***");
+                        Console.WriteLine($"[DEBUG] *** ApplyWordCompletionAsync tamamlandı: {fullWord} (boşluk yok) ***");
+                        WriteToLogFile($"[DEBUG] *** ApplyWordCompletionAsync tamamlandı: {fullWord} (boşluk yok) ***");
 
                         // Kelime tamamlandıktan sonra hemen yeni context ile sonraki kelimeyi tahmin et
                         Task.Run(async () =>
@@ -2535,8 +2535,8 @@ namespace OtomatikMetinGenisletici.ViewModels
                                 // Kısa bekleme - metin işlensin
                                 await Task.Delay(150);
 
-                                // Yeni context oluştur (tamamlanan kelime + boşluk)
-                                var newContext = _contextBuffer + fullWord + " ";
+                                // Yeni context oluştur (sadece eksik kısım eklendi - boşluk yok)
+                                var newContext = _contextBuffer + remainingPart;
                                 Console.WriteLine($"[DEBUG] *** TAB SONRASI YENİ TAHMİN *** Context: '{newContext}'");
                                 WriteToLogFile($"[DEBUG] *** TAB SONRASI YENİ TAHMİN *** Context: '{newContext}'");
 
@@ -2634,7 +2634,15 @@ namespace OtomatikMetinGenisletici.ViewModels
                             WriteToLogFile($"[DEBUG] Clipboard okuma hatası: {ex.Message}");
                         }
 
-                        // Öneri metnini clipboard'a koy (boşluk ekleme!)
+                        // Önce boşluk ekle, sonra öneri metnini ekle
+                        Console.WriteLine($"[DEBUG] Önce boşluk ekleniyor...");
+                        WriteToLogFile($"[DEBUG] Önce boşluk ekleniyor...");
+                        SendSpace();
+
+                        // Kısa bekleme
+                        Thread.Sleep(50);
+
+                        // Öneri metnini clipboard'a koy
                         Console.WriteLine($"[DEBUG] Clipboard'a metin yazılıyor: '{suggestionText}'");
                         WriteToLogFile($"[DEBUG] Clipboard'a metin yazılıyor: '{suggestionText}'");
                         System.Windows.Clipboard.SetText(suggestionText);
@@ -2647,14 +2655,8 @@ namespace OtomatikMetinGenisletici.ViewModels
                         WriteToLogFile($"[DEBUG] Ctrl+V gönderiliyor...");
                         SendCtrlV();
 
-                        // Öneri eklendikten sonra boşluk ekle
-                        Thread.Sleep(50); // Kısa bekleme
-                        Console.WriteLine($"[DEBUG] Öneri eklendi, boşluk ekleniyor...");
-                        WriteToLogFile($"[DEBUG] Öneri eklendi, boşluk ekleniyor...");
-                        SendSpace();
-
-                        Console.WriteLine($"[DEBUG] *** ApplySuggestionTextAsync tamamlandı: {suggestionText} + boşluk ***");
-                        WriteToLogFile($"[DEBUG] *** ApplySuggestionTextAsync tamamlandı: {suggestionText} + boşluk ***");
+                        Console.WriteLine($"[DEBUG] *** ApplySuggestionTextAsync tamamlandı: boşluk + {suggestionText} ***");
+                        WriteToLogFile($"[DEBUG] *** ApplySuggestionTextAsync tamamlandı: boşluk + {suggestionText} ***");
 
                         // ÖNEMLİ: Öneri eklendikten sonra HEMEN yeni context ile sonraki kelimeyi tahmin et
                         Task.Run(async () =>
@@ -2664,8 +2666,8 @@ namespace OtomatikMetinGenisletici.ViewModels
                                 // Kısa bekleme - metin işlensin
                                 await Task.Delay(100);
 
-                                // Yeni context oluştur (eklenen öneri + boşluk)
-                                var newContext = _contextBuffer + suggestionText + " ";
+                                // Yeni context oluştur (boşluk + eklenen öneri)
+                                var newContext = _contextBuffer + " " + suggestionText;
                                 Console.WriteLine($"[DEBUG] *** TAB SONRASI YENİ TAHMİN BAŞLIYOR *** Context: '{newContext}'");
                                 WriteToLogFile($"[DEBUG] *** TAB SONRASI YENİ TAHMİN BAŞLIYOR *** Context: '{newContext}'");
 
@@ -3532,6 +3534,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 OnPropertyChanged(nameof(IsShortcutPreviewPanelVisible));
                 OnPropertyChanged(nameof(ShortcutPreviewPanelStatusText));
                 OnPropertyChanged(nameof(ShortcutPreviewPanelStatusColor));
+                OnPropertyChanged(nameof(ShortcutPreviewButtonText));
             }
             catch (Exception ex)
             {
@@ -3556,6 +3559,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 OnPropertyChanged(nameof(IsShortcutPreviewPanelVisible));
                 OnPropertyChanged(nameof(ShortcutPreviewPanelStatusText));
                 OnPropertyChanged(nameof(ShortcutPreviewPanelStatusColor));
+                OnPropertyChanged(nameof(ShortcutPreviewButtonText));
             }
             catch (Exception ex)
             {
