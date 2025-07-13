@@ -580,14 +580,14 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        private void UpdateStats()
+        public void UpdateStats()
         {
             OnPropertyChanged(nameof(TotalShortcuts));
             OnPropertyChanged(nameof(TotalExpansions));
             OnPropertyChanged(nameof(IsListening));
         }
 
-        private void UpdateAnalytics()
+        public void UpdateAnalytics()
         {
             // Update top shortcuts
             TopShortcuts.Clear();
@@ -3611,7 +3611,7 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        public virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

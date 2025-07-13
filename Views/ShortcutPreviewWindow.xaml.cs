@@ -263,30 +263,66 @@ namespace OtomatikMetinGenisletici.Views
             PreviewPanel.PanelOpacity = Opacity;
         }
 
-        private void PreviewPanel_AddShortcutRequested(object? sender, EventArgs e)
+        private async void PreviewPanel_AddShortcutRequested(object? sender, EventArgs e)
         {
             try
             {
-                // ShortcutDialog'u aç
-                var shortcutDialog = ServiceProviderExtensions.Services.GetRequiredService<ShortcutDialog>();
-                shortcutDialog.Owner = this;
-
-                var result = shortcutDialog.ShowDialog();
-
-                // Dialog başarıyla kapatıldıysa kısayolları yenile
-                if (result == true)
+                // Ana penceredeki ViewModel'i al
+                var mainWindow = Application.Current.MainWindow as MainWindow;
+                if (mainWindow?.DataContext is ViewModels.MainViewModel viewModel)
                 {
-                    // Ana penceredeki ViewModel'den güncel kısayolları al
-                    var mainWindow = Application.Current.MainWindow as MainWindow;
-                    if (mainWindow?.DataContext is ViewModels.MainViewModel viewModel)
+                    // ShortcutDialog'u aç
+                    var shortcutDialog = ServiceProviderExtensions.Services.GetRequiredService<ShortcutDialog>();
+                    shortcutDialog.Owner = this;
+
+                    var result = shortcutDialog.ShowDialog();
+
+                    // Dialog başarıyla kapatıldıysa kısayolu ekle
+                    if (result == true)
                     {
+                        Console.WriteLine($"[DEBUG] Kısayol önizleme panelinden ekleniyor: Key='{shortcutDialog.ShortcutKey}', Text='{shortcutDialog.ExpansionText}'");
+
+                        // Ana ViewModel'deki ShortcutService'i kullanarak kısayolu ekle
+                        var shortcutService = ServiceProviderExtensions.Services.GetRequiredService<IShortcutService>();
+
+                        // Kısayol zaten var mı kontrol et
+                        if (shortcutService.ShortcutExists(shortcutDialog.ShortcutKey))
+                        {
+                            var confirmResult = MessageBox.Show(
+                                $"'{shortcutDialog.ShortcutKey}' kısayolu zaten mevcut. Üzerine yazmak istiyor musunuz?",
+                                "Kısayol Mevcut",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Question);
+
+                            if (confirmResult != MessageBoxResult.Yes)
+                                return;
+                        }
+
+                        // Kısayolu ekle
+                        shortcutService.AddShortcut(shortcutDialog.ShortcutKey, shortcutDialog.ExpansionText);
+                        await shortcutService.SaveShortcutsAsync();
+
+                        // Ana ViewModel'i güncelle
+                        viewModel.OnPropertyChanged(nameof(viewModel.Shortcuts));
+                        viewModel.UpdateStats();
+                        viewModel.UpdateAnalytics();
+                        viewModel.UpdateShortcutPreviewPanel();
+
+                        // Önizleme panelini güncelle
                         UpdateShortcuts(viewModel.Shortcuts);
+
+                        Console.WriteLine("[DEBUG] Kısayol başarıyla eklendi ve UI güncellendi");
                     }
+                }
+                else
+                {
+                    MessageBox.Show("Ana pencere bulunamadı!", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Kısayol ekleme penceresi açılırken hata oluştu:\n{ex.Message}",
+                Console.WriteLine($"[ERROR] Kısayol ekleme hatası: {ex.Message}");
+                MessageBox.Show($"Kısayol eklenirken hata oluştu:\n{ex.Message}",
                     "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
