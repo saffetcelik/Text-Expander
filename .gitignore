@@ -60,7 +60,9 @@ appsettings.*.json
 
 # User-specific data files
 smart_suggestions_data.json
+smart_suggestions_data_backup.json
 kisayollar.json
+learning_log.txt
 
 # Temporary WPF files
 *_wpftmp.csproj

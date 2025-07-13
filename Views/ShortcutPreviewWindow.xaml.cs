@@ -1,13 +1,40 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Runtime.InteropServices;
 using OtomatikMetinGenisletici.Models;
 using OtomatikMetinGenisletici.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OtomatikMetinGenisletici.Views
 {
     public partial class ShortcutPreviewWindow : Window
     {
+        // Windows API constants for click-through functionality
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_TRANSPARENT = 0x00000020;
+        private const int WS_EX_LAYERED = 0x00080000;
+
+        [DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hwnd, int index);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr WindowFromPoint(POINT Point);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
         private readonly ISettingsService _settingsService;
         private bool _isDragging = false;
         private Point _clickPosition;
@@ -21,6 +48,9 @@ namespace OtomatikMetinGenisletici.Views
         {
             InitializeComponent();
             _settingsService = settingsService;
+
+            // SettingsService'i PreviewPanel'e geç
+            PreviewPanel.SetSettingsService(_settingsService);
 
             // Ayarlardan değerleri al
             Opacity = _settingsService.Settings.ShortcutPreviewPanelOpacity;
@@ -43,8 +73,10 @@ namespace OtomatikMetinGenisletici.Views
                 PositionWindowToRight();
             }
 
-            // Minimize event handler'ını ekle
+            // Event handler'ları ekle
             PreviewPanel.MinimizeRequested += PreviewPanel_MinimizeRequested;
+            PreviewPanel.AddShortcutRequested += PreviewPanel_AddShortcutRequested;
+            PreviewPanel.ClickThroughChanged += PreviewPanel_ClickThroughChanged;
         }
 
         public void UpdateShortcuts(ObservableCollection<Shortcut> shortcuts)
@@ -256,6 +288,150 @@ namespace OtomatikMetinGenisletici.Views
         {
             Opacity = Math.Max(0.3, Math.Min(1.0, opacity));
             PreviewPanel.PanelOpacity = Opacity;
+        }
+
+        private async void PreviewPanel_AddShortcutRequested(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Ana penceredeki ViewModel'i al
+                var mainWindow = Application.Current.MainWindow as MainWindow;
+                if (mainWindow?.DataContext is ViewModels.MainViewModel viewModel)
+                {
+                    // ShortcutDialog'u aç
+                    var shortcutDialog = ServiceProviderExtensions.Services.GetRequiredService<ShortcutDialog>();
+                    shortcutDialog.Owner = this;
+
+                    var result = shortcutDialog.ShowDialog();
+
+                    // Dialog başarıyla kapatıldıysa kısayolu ekle
+                    if (result == true)
+                    {
+                        Console.WriteLine($"[DEBUG] Kısayol önizleme panelinden ekleniyor: Key='{shortcutDialog.ShortcutKey}', Text='{shortcutDialog.ExpansionText}'");
+
+                        // Ana ViewModel'deki ShortcutService'i kullanarak kısayolu ekle
+                        var shortcutService = ServiceProviderExtensions.Services.GetRequiredService<IShortcutService>();
+
+                        // Kısayol zaten var mı kontrol et
+                        if (shortcutService.ShortcutExists(shortcutDialog.ShortcutKey))
+                        {
+                            var confirmResult = MessageBox.Show(
+                                $"'{shortcutDialog.ShortcutKey}' kısayolu zaten mevcut. Üzerine yazmak istiyor musunuz?",
+                                "Kısayol Mevcut",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Question);
+
+                            if (confirmResult != MessageBoxResult.Yes)
+                                return;
+                        }
+
+                        // Kısayolu ekle
+                        shortcutService.AddShortcut(shortcutDialog.ShortcutKey, shortcutDialog.ExpansionText);
+                        await shortcutService.SaveShortcutsAsync();
+
+                        // Ana ViewModel'i güncelle
+                        viewModel.OnPropertyChanged(nameof(viewModel.Shortcuts));
+                        viewModel.UpdateStats();
+                        viewModel.UpdateAnalytics();
+                        viewModel.UpdateShortcutPreviewPanel();
+
+                        // Önizleme panelini güncelle
+                        UpdateShortcuts(viewModel.Shortcuts);
+
+                        Console.WriteLine("[DEBUG] Kısayol başarıyla eklendi ve UI güncellendi");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Ana pencere bulunamadı!", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Kısayol ekleme hatası: {ex.Message}");
+                MessageBox.Show($"Kısayol eklenirken hata oluştu:\n{ex.Message}",
+                    "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void PreviewPanel_ClickThroughChanged(object? sender, bool isEnabled)
+        {
+            SetClickThrough(isEnabled);
+        }
+
+        private void SetClickThrough(bool enabled)
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+            {
+                int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+
+                if (enabled)
+                {
+                    // Enable click-through for the entire window
+                    SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+
+                    // Add hit test hook to make header clickable
+                    var source = HwndSource.FromHwnd(hwnd);
+                    source?.AddHook(HitTestHook);
+
+                    System.Diagnostics.Debug.WriteLine("Click-through enabled");
+                }
+                else
+                {
+                    // Disable click-through
+                    SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_TRANSPARENT);
+
+                    // Remove hit test hook
+                    var source = HwndSource.FromHwnd(hwnd);
+                    source?.RemoveHook(HitTestHook);
+
+                    System.Diagnostics.Debug.WriteLine("Click-through disabled");
+                }
+            }
+        }
+
+        private IntPtr HitTestHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            const int WM_NCHITTEST = 0x0084;
+            const int HTTRANSPARENT = -1;
+            const int HTCLIENT = 1;
+
+            if (msg == WM_NCHITTEST)
+            {
+                // Get cursor position from lParam
+                int x = (short)(lParam.ToInt32() & 0xFFFF);
+                int y = (short)((lParam.ToInt32() >> 16) & 0xFFFF);
+
+                // Convert screen coordinates to window coordinates
+                var screenPoint = new Point(x, y);
+                var windowPoint = PointFromScreen(screenPoint);
+
+                // Make the entire top area clickable (first 120 pixels to be sure)
+                // This should definitely include all header buttons
+                if (windowPoint.Y >= -10 && windowPoint.Y <= 120 &&
+                    windowPoint.X >= -10 && windowPoint.X <= ActualWidth + 10)
+                {
+                    handled = true;
+                    return (IntPtr)HTCLIENT; // Make header area fully interactive
+                }
+
+                // For other areas, make transparent
+                handled = true;
+                return (IntPtr)HTTRANSPARENT;
+            }
+
+            return IntPtr.Zero;
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            // Window handle is now available, we can set click-through if needed
+            if (PreviewPanel.IsClickThroughEnabled)
+            {
+                SetClickThrough(true);
+            }
         }
 
         protected override void OnClosed(EventArgs e)

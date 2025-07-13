@@ -50,6 +50,8 @@
                                     CloseRequested="PreviewPanel_CloseRequested"
                                     OpacityChanged="PreviewPanel_OpacityChanged"/>
 
+
+
         <!-- Custom Resize Grip -->
         <Grid Style="{StaticResource CustomResizeGripStyle}"
               MouseLeftButtonDown="ResizeGrip_MouseLeftButtonDown">

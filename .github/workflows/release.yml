@@ -1,156 +1,163 @@
-name: 🚀 ModernMetinGenisletici Release
+name: Release
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., v1.0.0)'
+        description: 'Version (e.g., 1.0.0)'
         required: true
-        default: 'v1.0.0'
-      create_release:
-        description: 'Create GitHub Release'
-        required: true
-        default: true
-        type: boolean
-
-env:
-  DOTNET_VERSION: '8.0.x'
-  PROJECT_NAME: 'OtomatikMetinGenisletici'
-  SOLUTION_FILE: 'OtomatikMetinGenisletici.sln'
+        default: '1.0.0'
 
 jobs:
-  build-and-release:
-    name: 🏗️ Build and Release
+  release:
     runs-on: windows-latest
-    
-    steps:
-    - name: 📥 Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+    permissions:
+      contents: write
 
-    - name: 🔧 Setup .NET
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: '8.0.x'
 
-    - name: 📦 Restore Dependencies
-      run: dotnet restore ${{ env.SOLUTION_FILE }}
-
-    - name: 🏗️ Build Solution
-      run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
-
-    - name: 🧪 Run Tests
-      run: dotnet test ${{ env.SOLUTION_FILE }} --configuration Release --no-build --verbosity normal
-      continue-on-error: true
-
-    - name: 📦 Publish Self-Contained
+    - name: Get version
+      id: version
+      shell: pwsh
       run: |
-        dotnet publish ${{ env.PROJECT_NAME }}.csproj `
-          --configuration Release `
-          --runtime win-x64 `
-          --self-contained true `
-          --output ./publish `
-          --verbosity normal
-
-    - name: 📋 List Published Files
-      run: |
-        Write-Host "📁 Published files:"
-        Get-ChildItem -Path ./publish -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
-
-    - name: 🗜️ Create Release Archive
-      run: |
-        $version = "${{ github.ref_name }}"
-        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+        if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
           $version = "${{ github.event.inputs.version }}"
+        } else {
+          $version = "${{ github.ref_name }}" -replace '^v', ''
         }
-        $archiveName = "Text-Expander-$version-win-x64.zip"
-        Compress-Archive -Path "./publish/*" -DestinationPath "./$archiveName" -Force
-        Write-Host "✅ Created archive: $archiveName"
-        echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        Write-Host "Version: $version"
 
-    - name: 📊 Calculate File Hashes
-      run: |
-        $hash = Get-FileHash -Path "./${{ env.ARCHIVE_NAME }}" -Algorithm SHA256
-        Write-Host "🔐 SHA256: $($hash.Hash)"
-        echo "FILE_HASH=$($hash.Hash)" >> $env:GITHUB_ENV
+    - name: Restore
+      run: dotnet restore
 
-    - name: 📝 Generate Release Notes
-      id: release_notes
+    - name: Build
+      run: dotnet build -c Release --no-restore
+
+    - name: Publish
+      shell: pwsh
       run: |
-        $version = "${{ github.ref_name }}"
-        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-          $version = "${{ github.event.inputs.version }}"
+        dotnet publish OtomatikMetinGenisletici.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
+
+    - name: Create KURULUM.txt
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.VERSION }}"
+
+        "# Otomatik Metin Genisletici v$version - Kurulum Kilavuzu" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Sistem Gereksinimleri" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Windows 10/11 (x64)" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- .NET SDK kurulumu GEREKMEZ (Self-contained)" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Kurulum" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "1. ZIP dosyasini istediginiz klasore cikarin" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "2. OtomatikMetinGenisletici.exe dosyasini calistirin" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "3. Ilk calistirmada Windows Defender uyarisi cikabilir - 'Yine de calistir' secin" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Hizli Baslangic" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "1. Kisayol Ekleme: Ana ekranda 'Ekle' butonuna tiklayin" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "2. Kisayol: Yazmak istediginiz kisa metin (orn: 'mrhb')" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "3. Genisletme: Tam metin (orn: 'Merhaba, nasilsiniz?')" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "4. Kaydet ve kullanmaya baslayin!" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Temel Ozellikler" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Hizli metin genisletme (Ctrl+Space ile tetikleme)" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Akilli metin onerileri ve ogrenme algoritmasi" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Pencere filtreleme sistemi" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- System tray entegrasyonu" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Modern kullanici arayuzu" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Iletisim & Destek" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- E-posta: iletisim@saffetcelik.com.tr" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- Instagram: instagram.com/kamucoder" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "- GitHub: github.com/saffetcelik" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "## Lisans" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "© 2024 Saffet Celik - Tum haklari saklidir" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "---" | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+        "Not: Bu uygulama .NET 8 ile gelistirilmis olup herhangi bir ek kurulum gerektirmez." | Out-File -FilePath "publish/KURULUM.txt" -Encoding UTF8 -Append
+
+        Write-Host "KURULUM.txt created"
+
+    - name: Verify files
+      shell: pwsh
+      run: |
+        Write-Host "Published files:"
+        Get-ChildItem -Path publish -Recurse
+
+        $files = @("OtomatikMetinGenisletici.exe", "imlec.png", "KURULUM.txt")
+        foreach ($file in $files) {
+          if (Test-Path "publish/$file") {
+            Write-Host "Found: $file"
+          } else {
+            Write-Host "Missing: $file"
+            exit 1
+          }
         }
-        
-        $releaseNotes = @"
-        # 🚀 Text Expander $version
 
-        ## 📦 Downloads
-        - **Windows (x64)**: [${{ env.ARCHIVE_NAME }}]
-        - **Size**: $(Get-Item "./${{ env.ARCHIVE_NAME }}" | Select-Object -ExpandProperty Length | ForEach-Object { [math]::Round($_ / 1MB, 2) }) MB
-        - **SHA256**: ``${{ env.FILE_HASH }}``
+    - name: Create package
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.VERSION }}"
+        $name = "MetinGenisletici-x64-v$version.zip"
 
-        ## 🎯 Quick Start
-        1. Download the zip file above
-        2. Extract to your preferred location
-        3. Run ``OtomatikMetinGenisletici.exe`` as Administrator
-        4. Start creating shortcuts and boost your productivity!
+        New-Item -ItemType Directory -Path release -Force
+        Copy-Item publish/OtomatikMetinGenisletici.exe release/
+        Copy-Item publish/imlec.png release/
+        Copy-Item publish/KURULUM.txt release/
 
-        ## ✨ What's New
-        - 🔤 Intelligent text expansion system
-        - 🧠 AI-powered smart suggestions
-        - 🎨 Modern WPF interface
-        - ⚙️ Advanced configuration options
-        - 🛡️ 100% local operation (no internet required)
+        Compress-Archive -Path release/* -DestinationPath $name
 
-        ## 📋 System Requirements
-        - Windows 10 (1903+) or Windows 11
-        - x64 architecture
-        - 512MB RAM minimum
-        - Administrator privileges
+        Write-Host "Created: $name"
+        echo "PACKAGE_NAME=$name" >> $env:GITHUB_ENV
 
-        ## 🔒 Security Note
-        This application uses keyboard hooks for system-wide text expansion. Some antivirus software may flag it as potentially unwanted. This is a false positive - the application is completely safe and open source.
-
-        ## 🐛 Known Issues
-        - Windows Defender may show a warning (add to exclusions)
-        - Requires administrator rights for global keyboard monitoring
-
-        ---
-
-        **📚 Full Documentation**: [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
-        **🐛 Report Issues**: [Issues](https://github.com/${{ github.repository }}/issues)
-        **💬 Discussions**: [Discussions](https://github.com/${{ github.repository }}/discussions)
-        "@
-
-        # Save to file for GitHub release
-        $releaseNotes | Out-File -FilePath "./release-notes.md" -Encoding UTF8
-        Write-Host "📝 Release notes generated"
-
-    - name: 🚀 Create GitHub Release
+    - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref_name || github.event.inputs.version }}
-        name: "Text Expander ${{ github.ref_name || github.event.inputs.version }}"
-        body_path: "./release-notes.md"
-        files: |
-          ./${{ env.ARCHIVE_NAME }}
-          ./CHANGELOG.md
-          ./README.md
+        tag_name: ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
+        name: "Otomatik Metin Genisletici v${{ steps.version.outputs.VERSION }}"
+        body: |
+          ## Otomatik Metin Genisletici v${{ steps.version.outputs.VERSION }}
+
+          ### Indirme
+          - Windows x64: ${{ env.PACKAGE_NAME }}
+
+          ### Ozellikler
+          - Akilli metin genisletme sistemi
+          - Ogrenme algoritmasi ile akilli oneriler
+          - Modern WPF kullanici arayuzu
+          - Ozellestirebilir tus kombinasyonlari
+          - Pencere filtreleme sistemi
+          - System tray entegrasyonu
+          - %100 yerel calisma
+
+          ### Kurulum
+          1. ZIP dosyasini indirin ve cikarin
+          2. OtomatikMetinGenisletici.exe dosyasini calistirin
+          3. Detayli kurulum icin KURULUM.txt dosyasini okuyun
+
+          ### Sistem Gereksinimleri
+          - Windows 10/11 (x64)
+          - .NET SDK kurulumu GEREKMEZ (Self-contained)
+          - Yonetici yetkileri (global klavye izleme icin)
+
+          ### Iletisim
+          - E-posta: iletisim@saffetcelik.com.tr
+          - Instagram: instagram.com/kamucoder
+          - GitHub: github.com/saffetcelik
+        files: ${{ env.PACKAGE_NAME }}
         draft: false
         prerelease: false
-        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: 📊 Release Summary
-      run: |
-        Write-Host "🎉 Release completed successfully!"
-        Write-Host "📦 Archive: ${{ env.ARCHIVE_NAME }}"
-        Write-Host "🔐 SHA256: ${{ env.FILE_HASH }}"
-        Write-Host "🏷️ Tag: ${{ github.ref_name || github.event.inputs.version }}"
-        Write-Host "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name || github.event.inputs.version }}"
