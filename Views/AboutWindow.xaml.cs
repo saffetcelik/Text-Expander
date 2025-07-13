@@ -16,6 +16,11 @@ namespace OtomatikMetinGenisletici.Views
             Close();
         }
 
+        private void CloseButton_Click(object sender, MouseButtonEventArgs e)
+        {
+            Close();
+        }
+
         private void Email_Click(object sender, MouseButtonEventArgs e)
         {
             try
