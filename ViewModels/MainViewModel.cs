@@ -20,8 +20,10 @@ namespace OtomatikMetinGenisletici.ViewModels
         private readonly IKeyboardHookService _keyboardHookService;
         private readonly IAdvancedInputService _advancedInputService;
         private readonly ITourService _tourService;
+        private readonly IUdfEditorTrackingService _udfEditorTrackingService;
         private PreviewOverlay? _previewOverlay;
         private Views.ShortcutPreviewWindow? _shortcutPreviewWindow;
+        private bool _isPreviewSyncWithMainWindowEnabled = false;
 
         private string _shortcutFilter = string.Empty;
 
@@ -246,7 +248,8 @@ namespace OtomatikMetinGenisletici.ViewModels
             ISettingsService settingsService,
             IKeyboardHookService keyboardHookService,
             IAdvancedInputService advancedInputService,
-            ITourService tourService)
+            ITourService tourService,
+            IUdfEditorTrackingService udfEditorTrackingService)
         {
             try
             {
@@ -259,6 +262,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 _keyboardHookService = keyboardHookService ?? throw new ArgumentNullException(nameof(keyboardHookService));
                 _advancedInputService = advancedInputService ?? throw new ArgumentNullException(nameof(advancedInputService));
                 _tourService = tourService ?? throw new ArgumentNullException(nameof(tourService));
+                _udfEditorTrackingService = udfEditorTrackingService ?? throw new ArgumentNullException(nameof(udfEditorTrackingService));
 
                 Console.WriteLine("[DEBUG] Servisler atandı, PreviewOverlay oluşturuluyor...");
 
@@ -295,6 +299,13 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                 // Önizleme gizleme timer'ını başlat
                 InitializePreviewTimer();
+
+                // UDF editörü tracking servisini başlat (gerçek UDF pencere takibi)
+                _udfEditorTrackingService.UdfEditorVisibilityChanged += OnUdfEditorTrackingChanged;
+                _udfEditorTrackingService.StartTracking();
+
+                // PreviewOverlay event'ini devre dışı bırak - artık gerçek UDF tracking kullanıyoruz
+                // Views.PreviewOverlay.UdfEditorVisibilityChanged += OnUdfEditorVisibilityChangedHandler;
 
                 Console.WriteLine("[DEBUG] MainViewModel constructor tamamlandı.");
             }
@@ -3517,6 +3528,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _shortcutPreviewWindow = new Views.ShortcutPreviewWindow(_settingsService);
                     _shortcutPreviewWindow.CloseRequested += (s, e) => HideShortcutPreviewPanel();
                     _shortcutPreviewWindow.Closed += (s, e) => _shortcutPreviewWindow = null;
+                    _shortcutPreviewWindow.SyncWithMainWindowChanged += OnPreviewSyncWithMainWindowChanged;
                 }
 
                 // Kısayolları güncelle - her zaman en güncel listeyi göster
@@ -3736,6 +3748,65 @@ namespace OtomatikMetinGenisletici.ViewModels
                 {
                     Console.WriteLine($"[DEBUG] '{lastWord}' için kısayol bulunamadı");
                 }
+            }
+        }
+
+        #endregion
+
+        #region Ana Pencere Senkronizasyon
+
+        private void OnPreviewSyncWithMainWindowChanged(object? sender, bool isEnabled)
+        {
+            _isPreviewSyncWithMainWindowEnabled = isEnabled;
+            Console.WriteLine($"[DEBUG] Önizleme penceresi senkronizasyon durumu: {isEnabled}");
+        }
+
+        private void OnUdfEditorVisibilityChangedHandler(object? sender, bool isVisible)
+        {
+            OnUdfEditorVisibilityChanged(isVisible);
+        }
+
+        private void OnUdfEditorTrackingChanged(object? sender, bool isVisible)
+        {
+            // UDF editörü tracking servisinden gelen event
+            OnUdfEditorVisibilityChanged(isVisible);
+        }
+
+        public void OnUdfEditorVisibilityChanged(bool isVisible)
+        {
+            try
+            {
+                if (_isPreviewSyncWithMainWindowEnabled && _shortcutPreviewWindow != null)
+                {
+                    Console.WriteLine($"[DEBUG] UDF editörü görünürlük değişti: {isVisible}, senkronizasyon aktif");
+
+                    if (isVisible)
+                    {
+                        // UDF editörü gösterildiğinde önizleme de göster (sadece gizliyse)
+                        if (!_shortcutPreviewWindow.IsVisible)
+                        {
+                            _shortcutPreviewWindow.Show();
+                            Console.WriteLine("[DEBUG] Önizleme penceresi UDF editörü ile birlikte gösterildi");
+                        }
+                    }
+                    else
+                    {
+                        // UDF editörü gizlendiğinde önizleme de gizle (sadece görünürse)
+                        if (_shortcutPreviewWindow.IsVisible)
+                        {
+                            _shortcutPreviewWindow.Hide();
+                            Console.WriteLine("[DEBUG] Önizleme penceresi UDF editörü ile birlikte gizlendi");
+                        }
+                    }
+                }
+                else if (!_isPreviewSyncWithMainWindowEnabled)
+                {
+                    Console.WriteLine($"[DEBUG] UDF editörü görünürlük değişti: {isVisible}, ama senkronizasyon pasif");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UDF editörü senkronizasyon hatası: {ex.Message}");
             }
         }
 

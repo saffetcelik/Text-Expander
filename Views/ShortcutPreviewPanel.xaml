@@ -270,6 +270,142 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Ana Pencere Senkronizasyon Toggle -->
+                    <Border x:Name="SyncWithMainWindowToggle"
+                            Background="#F5F5F5"
+                            CornerRadius="12"
+                            Padding="8,4"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="SyncWithMainWindowToggle_Click"
+                            ToolTipService.InitialShowDelay="0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#E8F5E8"/>
+                                    </Trigger>
+                                    <DataTrigger Binding="{Binding IsSyncWithMainWindowEnabled}" Value="True">
+                                        <Setter Property="Background" Value="#E8F5E8"/>
+                                    </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsSyncWithMainWindowEnabled}" Value="True"/>
+                                            <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Background" Value="#C8E6C9"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Border.ToolTip>
+                            <ToolTip Background="#4CAF50"
+                                     Foreground="White"
+                                     Padding="16,12"
+                                     HasDropShadow="True"
+                                     Placement="Bottom">
+                                <StackPanel MaxWidth="320">
+                                    <!-- Başlık -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="🔗" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="UDF Editörü Senkronizasyonu"
+                                                   FontSize="14"
+                                                   FontWeight="Bold"
+                                                   Foreground="White"/>
+                                    </StackPanel>
+
+                                    <!-- Ana Açıklama -->
+                                    <TextBlock Text="Bu özellik etkinleştirildiğinde, önizleme penceresi UDF editörü (imlec.png ile çalışan metin genişletme editörü) ile senkronize hareket eder."
+                                               FontSize="12"
+                                               Foreground="#E8F5E8"
+                                               TextWrapping="Wrap"
+                                               LineHeight="18"
+                                               Margin="0,0,0,10"/>
+
+                                    <!-- Nasıl Çalışır -->
+                                    <Border Background="#388E3C" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="🔄 Nasıl Çalışır:"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#FFC107"
+                                                       Margin="0,0,0,6"/>
+                                            <TextBlock FontSize="11" Foreground="#C8E6C9" TextWrapping="Wrap" LineHeight="16">
+                                                <Run Text="✓ UDF editörü açıldığında: Önizleme de gösterilir"/>
+                                                <LineBreak/>
+                                                <Run Text="✓ UDF editörü kapandığında: Önizleme de gizlenir"/>
+                                                <LineBreak/>
+                                                <Run Text="✓ Metin genişletme sırasında senkronize hareket"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Önemli Bilgi -->
+                                    <Border Background="#2E7D32" CornerRadius="8" Padding="10">
+                                        <StackPanel>
+                                            <TextBlock Text="💡 Önemli Bilgi:"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#FFEB3B"
+                                                       Margin="0,0,0,6"/>
+                                            <TextBlock FontSize="11" Foreground="#A5D6A7" TextWrapping="Wrap" LineHeight="16">
+                                                <Run Text="Bu özellik kapatıldığında önizleme penceresi bağımsız hareket eder."/>
+                                                <LineBreak/>
+                                                <Run Text="Varsayılan: Kapalı (bağımsız hareket)"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ToolTip>
+                        </Border.ToolTip>
+
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Toggle Circle -->
+                            <Border Width="16" Height="16" CornerRadius="8" Margin="0,0,6,0">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#BDBDBD"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSyncWithMainWindowEnabled}" Value="True">
+                                                <Setter Property="Background" Value="#4CAF50"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="✓" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSyncWithMainWindowEnabled}" Value="True">
+                                                    <Setter Property="Opacity" Value="1"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+
+                            <!-- Toggle Text -->
+                            <TextBlock VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Senkron"/>
+                                        <Setter Property="FontSize" Value="9"/>
+                                        <Setter Property="Foreground" Value="#757575"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSyncWithMainWindowEnabled}" Value="True">
+                                                <Setter Property="Text" Value="Aktif"/>
+                                                <Setter Property="Foreground" Value="#4CAF50"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Minimize Button -->
                     <Button x:Name="MinimizeButton"
                             Content="−"

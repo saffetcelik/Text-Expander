@@ -18,6 +18,7 @@ namespace OtomatikMetinGenisletici.Views
         private double _panelOpacity = 0.9;
         private bool _isMinimized = false;
         private bool _isClickThroughEnabled = false;
+        private bool _isSyncWithMainWindowEnabled = false;
         private ISettingsService _settingsService;
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -26,6 +27,7 @@ namespace OtomatikMetinGenisletici.Views
         public event EventHandler<bool>? MinimizeRequested;
         public event EventHandler? AddShortcutRequested;
         public event EventHandler<bool>? ClickThroughChanged;
+        public event EventHandler<bool>? SyncWithMainWindowChanged;
 
         public ShortcutPreviewPanel() : this(null)
         {
@@ -37,6 +39,13 @@ namespace OtomatikMetinGenisletici.Views
             InitializeComponent();
             DataContext = this;
             FilterShortcuts();
+
+            // Ayarlardan senkronizasyon durumunu yükle
+            if (_settingsService?.Settings != null)
+            {
+                _isSyncWithMainWindowEnabled = _settingsService.Settings.ShortcutPreviewPanelSyncWithMainWindow;
+                OnPropertyChanged(nameof(IsSyncWithMainWindowEnabled));
+            }
         }
 
         public ObservableCollection<Shortcut> Shortcuts
@@ -97,6 +106,17 @@ namespace OtomatikMetinGenisletici.Views
                 _isClickThroughEnabled = value;
                 OnPropertyChanged();
                 ClickThroughChanged?.Invoke(this, value);
+            }
+        }
+
+        public bool IsSyncWithMainWindowEnabled
+        {
+            get => _isSyncWithMainWindowEnabled;
+            set
+            {
+                _isSyncWithMainWindowEnabled = value;
+                OnPropertyChanged();
+                SyncWithMainWindowChanged?.Invoke(this, value);
             }
         }
 
@@ -228,6 +248,20 @@ namespace OtomatikMetinGenisletici.Views
         private void ClickThroughToggle_Click(object sender, MouseButtonEventArgs e)
         {
             IsClickThroughEnabled = !IsClickThroughEnabled;
+        }
+
+        private void SyncWithMainWindowToggle_Click(object sender, MouseButtonEventArgs e)
+        {
+            IsSyncWithMainWindowEnabled = !IsSyncWithMainWindowEnabled;
+
+            // Ayarlara kaydet
+            if (_settingsService?.Settings != null)
+            {
+                var settings = _settingsService.GetCopy();
+                settings.ShortcutPreviewPanelSyncWithMainWindow = IsSyncWithMainWindowEnabled;
+                _settingsService.UpdateSettings(settings);
+                _ = _settingsService.SaveSettingsAsync();
+            }
         }
 
         private void UpdateMinimizeState()

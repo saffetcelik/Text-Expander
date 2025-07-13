@@ -35,6 +35,7 @@ namespace OtomatikMetinGenisletici.Models
         private double _shortcutPreviewPanelHeight = 481;
         private double _shortcutPreviewPanelLeft = -1; // -1 = otomatik pozisyon
         private double _shortcutPreviewPanelTop = -1;
+        private bool _shortcutPreviewPanelSyncWithMainWindow = false; // Ana pencere ile senkronize hareket
 
         // Pencere Filtreleme Ayarları
         private ObservableCollection<WindowFilter> _windowFilters = new();
@@ -245,6 +246,16 @@ namespace OtomatikMetinGenisletici.Models
             set
             {
                 _shortcutPreviewPanelTop = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool ShortcutPreviewPanelSyncWithMainWindow
+        {
+            get => _shortcutPreviewPanelSyncWithMainWindow;
+            set
+            {
+                _shortcutPreviewPanelSyncWithMainWindow = value;
                 OnPropertyChanged();
             }
         }

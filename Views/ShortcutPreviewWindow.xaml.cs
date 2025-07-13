@@ -77,6 +77,7 @@ namespace OtomatikMetinGenisletici.Views
             PreviewPanel.MinimizeRequested += PreviewPanel_MinimizeRequested;
             PreviewPanel.AddShortcutRequested += PreviewPanel_AddShortcutRequested;
             PreviewPanel.ClickThroughChanged += PreviewPanel_ClickThroughChanged;
+            PreviewPanel.SyncWithMainWindowChanged += PreviewPanel_SyncWithMainWindowChanged;
         }
 
         public void UpdateShortcuts(ObservableCollection<Shortcut> shortcuts)
@@ -358,6 +359,16 @@ namespace OtomatikMetinGenisletici.Views
         {
             SetClickThrough(isEnabled);
         }
+
+        private void PreviewPanel_SyncWithMainWindowChanged(object? sender, bool isEnabled)
+        {
+            // Ana pencere ile senkronizasyon durumu değişti
+            // MainViewModel'e bildirim gönder
+            SyncWithMainWindowChanged?.Invoke(this, isEnabled);
+        }
+
+        // Ana pencere ile senkronizasyon için event
+        public event EventHandler<bool>? SyncWithMainWindowChanged;
 
         private void SetClickThrough(bool enabled)
         {

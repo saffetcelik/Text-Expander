@@ -70,6 +70,9 @@ namespace OtomatikMetinGenisletici.Views
         private const int DEBOUNCE_DELAY_MS = 50; // Daha hızlı response için azaltıldı
         private IImageRecognitionService? _imageRecognitionService;
 
+        // UDF editörü senkronizasyon için event - artık kullanılmıyor, gerçek UDF tracking kullanıyoruz
+        // public static event EventHandler<bool>? UdfEditorVisibilityChanged;
+
         public PreviewOverlay()
         {
             try
@@ -166,7 +169,12 @@ namespace OtomatikMetinGenisletici.Views
                 if (string.IsNullOrEmpty(text?.Trim()))
                 {
                     Console.WriteLine("[PREVIEW] Boş metin - pencere gizleniyor");
-                    Visibility = Visibility.Hidden;
+                    if (Visibility == Visibility.Visible)
+                    {
+                        Visibility = Visibility.Hidden;
+                        // UDF editörü event'ini kaldırdık - artık gerçek UDF tracking kullanıyoruz
+                        // UdfEditorVisibilityChanged?.Invoke(this, false);
+                    }
                     return;
                 }
 
@@ -222,6 +230,9 @@ namespace OtomatikMetinGenisletici.Views
                 {
                     Show(); // Visibility yerine Show() kullan
                     Console.WriteLine("[PREVIEW] Pencere Show() ile gösterildi");
+
+                    // UDF editörü event'ini kaldırdık - artık gerçek UDF tracking kullanıyoruz
+                    // UdfEditorVisibilityChanged?.Invoke(this, true);
                 }
             }
             catch (Exception ex)
@@ -273,7 +284,12 @@ namespace OtomatikMetinGenisletici.Views
                 else
                 {
                     Console.WriteLine($"[PREVIEW] Caret pozisyonu bulunamadı, pencere gizleniyor");
-                    Hide();
+                    if (Visibility == Visibility.Visible)
+                    {
+                        Hide();
+                        // UDF editörü event'ini kaldırdık - artık gerçek UDF tracking kullanıyoruz
+                        // UdfEditorVisibilityChanged?.Invoke(this, false);
+                    }
                 }
             }
             catch (Exception ex)
@@ -305,6 +321,9 @@ namespace OtomatikMetinGenisletici.Views
                 {
                     Hide(); // Visibility yerine Hide() kullan
                     Console.WriteLine("[PREVIEW] Pencere Hide() ile gizlendi");
+
+                    // UDF editörü event'ini kaldırdık - artık gerçek UDF tracking kullanıyoruz
+                    // UdfEditorVisibilityChanged?.Invoke(this, false);
                 }
             }
             catch (Exception ex)

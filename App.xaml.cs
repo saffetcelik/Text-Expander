@@ -136,6 +136,7 @@ public partial class App : Application
                     services.AddSingleton<IWindowBehaviorService, WindowBehaviorService>();
                     services.AddSingleton<IAdvancedInputService, AdvancedInputService>();
                     services.AddSingleton<ITourService, TourService>();
+                    services.AddSingleton<IUdfEditorTrackingService, UdfEditorTrackingService>();
 
                     // Register ViewModels
                     services.AddTransient<MainViewModel>();
