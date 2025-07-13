@@ -60,6 +60,7 @@ appsettings.*.json
 
 # User-specific data files
 smart_suggestions_data.json
+smart_suggestions_data_backup.json
 kisayollar.json
 
 # Temporary WPF files
