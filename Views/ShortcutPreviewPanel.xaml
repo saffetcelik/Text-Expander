@@ -234,26 +234,58 @@
                             ValueChanged="OpacitySlider_ValueChanged"/>
                 </Grid>
 
-                <!-- Close Button - Full Width -->
-                <Button Content="✕ Gizle"
-                        FontSize="10"
-                        Height="22"
-                        HorizontalAlignment="Stretch"
-                        Click="CloseButton_Click">
-                    <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                            <Setter Property="Background" Value="#F0F0F0"/>
-                            <Setter Property="Foreground" Value="#757575"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E0E0E0"/>
-                                    <Setter Property="Foreground" Value="#616161"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
+                <!-- Action Buttons -->
+                <Grid Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="4"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Add Shortcut Button -->
+                    <Button Grid.Column="0"
+                            Content="➕ Kısayol Ekle"
+                            FontSize="10"
+                            Height="22"
+                            HorizontalAlignment="Stretch"
+                            Click="AddShortcutButton_Click">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Setter Property="Background" Value="#E8F5E8"/>
+                                <Setter Property="Foreground" Value="#2E7D32"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#C8E6C9"/>
+                                        <Setter Property="Foreground" Value="#1B5E20"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Close Button -->
+                    <Button Grid.Column="2"
+                            Content="✕ Gizle"
+                            FontSize="10"
+                            Height="22"
+                            HorizontalAlignment="Stretch"
+                            Click="CloseButton_Click">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Setter Property="Background" Value="#F0F0F0"/>
+                                <Setter Property="Foreground" Value="#757575"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#E0E0E0"/>
+                                        <Setter Property="Foreground" Value="#616161"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
             </StackPanel>
         </Grid>
     </Border>

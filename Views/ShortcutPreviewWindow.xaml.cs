@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using OtomatikMetinGenisletici.Models;
 using OtomatikMetinGenisletici.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OtomatikMetinGenisletici.Views
 {
@@ -46,8 +47,9 @@ namespace OtomatikMetinGenisletici.Views
                 PositionWindowToRight();
             }
 
-            // Minimize event handler'ını ekle
+            // Event handler'ları ekle
             PreviewPanel.MinimizeRequested += PreviewPanel_MinimizeRequested;
+            PreviewPanel.AddShortcutRequested += PreviewPanel_AddShortcutRequested;
         }
 
         public void UpdateShortcuts(ObservableCollection<Shortcut> shortcuts)
@@ -259,6 +261,34 @@ namespace OtomatikMetinGenisletici.Views
         {
             Opacity = Math.Max(0.3, Math.Min(1.0, opacity));
             PreviewPanel.PanelOpacity = Opacity;
+        }
+
+        private void PreviewPanel_AddShortcutRequested(object? sender, EventArgs e)
+        {
+            try
+            {
+                // ShortcutDialog'u aç
+                var shortcutDialog = ServiceProviderExtensions.Services.GetRequiredService<ShortcutDialog>();
+                shortcutDialog.Owner = this;
+
+                var result = shortcutDialog.ShowDialog();
+
+                // Dialog başarıyla kapatıldıysa kısayolları yenile
+                if (result == true)
+                {
+                    // Ana penceredeki ViewModel'den güncel kısayolları al
+                    var mainWindow = Application.Current.MainWindow as MainWindow;
+                    if (mainWindow?.DataContext is ViewModels.MainViewModel viewModel)
+                    {
+                        UpdateShortcuts(viewModel.Shortcuts);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Kısayol ekleme penceresi açılırken hata oluştu:\n{ex.Message}",
+                    "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         protected override void OnClosed(EventArgs e)

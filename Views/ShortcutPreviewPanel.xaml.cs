@@ -23,6 +23,7 @@ namespace OtomatikMetinGenisletici.Views
         public event EventHandler? CloseRequested;
         public event EventHandler<double>? OpacityChanged;
         public event EventHandler<bool>? MinimizeRequested;
+        public event EventHandler? AddShortcutRequested;
 
         public ShortcutPreviewPanel() : this(null)
         {
@@ -178,6 +179,11 @@ namespace OtomatikMetinGenisletici.Views
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             CloseRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void AddShortcutButton_Click(object sender, RoutedEventArgs e)
+        {
+            AddShortcutRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
