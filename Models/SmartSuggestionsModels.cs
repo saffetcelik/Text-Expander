@@ -196,6 +196,7 @@ namespace OtomatikMetinGenisletici.Models
         public int TotalWordCount { get; set; }
         public int TotalBigrams { get; set; }
         public int TotalTrigrams { get; set; }
+        public int TotalFourGrams { get; set; }
         public int CompletionPrefixes { get; set; }
         public int UserCorrections { get; set; }
         public List<(string Word, int Count)> MostCommonWords { get; set; } = new();
@@ -209,6 +210,7 @@ namespace OtomatikMetinGenisletici.Models
         public Dictionary<string, int> WordsByLength { get; set; } = new();
         public Dictionary<string, int> BigramsByFrequency { get; set; } = new();
         public Dictionary<string, int> TrigramsByFrequency { get; set; } = new();
+        public Dictionary<string, int> FourGramsByFrequency { get; set; } = new();
         public Dictionary<string, int> WordsByFrequency { get; set; } = new();
         public List<LearningActivity> RecentActivities { get; set; } = new();
     }

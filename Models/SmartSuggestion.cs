@@ -87,6 +87,7 @@ namespace OtomatikMetinGenisletici.Models
         WordCompletion,
         NextWord,
         Phrase,
-        Learned
+        Learned,
+        SentenceCompletion
     }
 }

@@ -7,6 +7,7 @@ namespace OtomatikMetinGenisletici.Models
         public ConcurrentDictionary<string, int> WordFrequencies { get; set; } = new();
         public ConcurrentDictionary<string, int> Bigrams { get; set; } = new();
         public ConcurrentDictionary<string, int> Trigrams { get; set; } = new();
+        public ConcurrentDictionary<string, int> FourGrams { get; set; } = new();
         public ConcurrentDictionary<string, List<string>> CompletionPrefixes { get; set; } = new();
         public ConcurrentDictionary<string, List<string>> UserCorrections { get; set; } = new();
         public DateTime LastUpdated { get; set; } = DateTime.Now;
@@ -39,6 +40,7 @@ namespace OtomatikMetinGenisletici.Models
         public int TotalWordCount { get; set; }
         public int TotalBigrams { get; set; }
         public int TotalTrigrams { get; set; }
+        public int TotalFourGrams { get; set; }
         public int CompletionPrefixes { get; set; }
         public int UserCorrections { get; set; }
         public List<(string Word, int Count)> MostCommonWords { get; set; } = new();

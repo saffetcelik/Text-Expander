@@ -117,6 +117,7 @@ namespace OtomatikMetinGenisletici.Services
                     Console.WriteLine($"[SUGGESTIONS] Toplam öğrenilen kelime: {_learningData.WordFrequencies.Count}");
                     Console.WriteLine($"[SUGGESTIONS] Toplam bigram: {_learningData.Bigrams.Count}");
                     Console.WriteLine($"[SUGGESTIONS] Toplam trigram: {_learningData.Trigrams.Count}");
+                    Console.WriteLine($"[SUGGESTIONS] Toplam 4-gram: {_learningData.FourGrams.Count}");
 
                     var suggestions = new List<SmartSuggestion>();
                     var words = PreprocessText(context);
@@ -142,19 +143,30 @@ namespace OtomatikMetinGenisletici.Services
                         Console.WriteLine($"[SUGGESTIONS]   - '{bg.Key}': {bg.Value}");
                     }
 
-                    // 1. Kelime tamamlama önerileri (sadece son kelime yarım ise)
-                    var lastWord = words.Last();
-                    if (!string.IsNullOrEmpty(lastWord) && lastWord.Length >= 2)
+                    // 1. Cümle başlangıcı kontrolü (en yüksek öncelik)
+                    var sentenceStartSuggestions = GetSentenceStartSuggestions(words, maxSuggestions);
+                    suggestions.AddRange(sentenceStartSuggestions);
+                    Console.WriteLine($"[SUGGESTIONS] {sentenceStartSuggestions.Count} cümle başlangıcı önerisi bulundu");
+
+                    // 2. Kelime tamamlama önerileri (sadece son kelime yarım ise)
+                    if (suggestions.Count < maxSuggestions)
                     {
-                        var completions = GetWordCompletions(lastWord, maxSuggestions);
-                        suggestions.AddRange(completions);
-                        Console.WriteLine($"[SUGGESTIONS] {completions.Count} kelime tamamlama önerisi bulundu");
+                        var lastWord = words.Last();
+                        if (!string.IsNullOrEmpty(lastWord) && lastWord.Length >= 2)
+                        {
+                            var completions = GetWordCompletions(lastWord, maxSuggestions - suggestions.Count);
+                            suggestions.AddRange(completions);
+                            Console.WriteLine($"[SUGGESTIONS] {completions.Count} kelime tamamlama önerisi bulundu");
+                        }
                     }
 
-                    // 2. Sonraki kelime önerileri (context'e göre)
-                    var nextWords = GetNextWordPredictions(words, maxSuggestions);
-                    suggestions.AddRange(nextWords);
-                    Console.WriteLine($"[SUGGESTIONS] {nextWords.Count} sonraki kelime önerisi bulundu");
+                    // 3. Sonraki kelime önerileri (context'e göre)
+                    if (suggestions.Count < maxSuggestions)
+                    {
+                        var nextWords = GetNextWordPredictions(words, maxSuggestions - suggestions.Count);
+                        suggestions.AddRange(nextWords);
+                        Console.WriteLine($"[SUGGESTIONS] {nextWords.Count} sonraki kelime önerisi bulundu");
+                    }
 
                     // 3. Cümle devamı önerileri (bigram/trigram bazlı)
                     var sentenceContinuations = GetSentenceContinuations(words, maxSuggestions);
@@ -254,6 +266,39 @@ namespace OtomatikMetinGenisletici.Services
                 var trigram = $"{words[i]} {words[i + 1]} {words[i + 2]}";
                 _learningData.Trigrams.AddOrUpdate(trigram, 1, (key, oldValue) => oldValue + 1);
             }
+
+            // 4-grams
+            for (int i = 0; i < words.Count - 3; i++)
+            {
+                var fourgram = $"{words[i]} {words[i + 1]} {words[i + 2]} {words[i + 3]}";
+                _learningData.FourGrams.AddOrUpdate(fourgram, 1, (key, oldValue) => oldValue + 1);
+            }
+
+            // Cümle başlangıcı kalıplarını öğren
+            UpdateSentenceStartPatterns(words);
+        }
+
+        private void UpdateSentenceStartPatterns(List<string> words)
+        {
+            if (words.Count < 2) return;
+
+            // İlk kelime ile başlayan kalıpları öğren
+            var firstWord = words[0].ToLowerInvariant();
+
+            // Cümlenin tamamını bir kalıp olarak kaydet
+            var fullSentence = string.Join(" ", words);
+            var sentenceStartKey = $"START_{firstWord}";
+
+            if (!_learningData.CompletionPrefixes.ContainsKey(sentenceStartKey))
+            {
+                _learningData.CompletionPrefixes[sentenceStartKey] = new List<string>();
+            }
+
+            if (!_learningData.CompletionPrefixes[sentenceStartKey].Contains(fullSentence))
+            {
+                _learningData.CompletionPrefixes[sentenceStartKey].Add(fullSentence);
+                Console.WriteLine($"[SENTENCE_START] Cümle başlangıç kalıbı öğrenildi: '{firstWord}' → '{fullSentence}'");
+            }
         }
 
         private void UpdateCompletionPrefixes(List<string> words)
@@ -311,15 +356,52 @@ namespace OtomatikMetinGenisletici.Services
         private List<SmartSuggestion> GetNextWordPredictions(List<string> words, int maxSuggestions)
         {
             var suggestions = new List<SmartSuggestion>();
+            Console.WriteLine($"[N-GRAM] GetNextWordPredictions başlıyor, kelime sayısı: {words.Count}");
 
-            if (words.Count >= 2)
+            // 1. 4-gram tabanlı tahminler (en yüksek öncelik)
+            if (words.Count >= 3 && suggestions.Count < maxSuggestions)
             {
-                // Trigram tabanlı tahminler
+                var trigramKey = $"{words[words.Count - 3]} {words[words.Count - 2]} {words[words.Count - 1]}";
+                Console.WriteLine($"[4-GRAM] Aranan trigram context: '{trigramKey}'");
+
+                var fourgramCandidates = _learningData.FourGrams
+                    .Where(kvp => kvp.Key.StartsWith(trigramKey + " "))
+                    .OrderByDescending(kvp => kvp.Value)
+                    .Take(maxSuggestions);
+
+                foreach (var fourgram in fourgramCandidates)
+                {
+                    var parts = fourgram.Key.Split(' ');
+                    if (parts.Length == 4)
+                    {
+                        var nextWord = parts[3];
+                        var confidence = Math.Min(0.98, fourgram.Value / 20.0 + 0.3); // En yüksek güven
+
+                        suggestions.Add(new SmartSuggestion
+                        {
+                            Text = nextWord,
+                            Confidence = confidence,
+                            Context = trigramKey,
+                            Frequency = fourgram.Value,
+                            Type = SuggestionType.NextWord,
+                            LastUsed = DateTime.Now
+                        });
+
+                        Console.WriteLine($"[4-GRAM] Bulundu: '{nextWord}' (güven: {confidence:P0}, frekans: {fourgram.Value})");
+                    }
+                }
+            }
+
+            // 2. Trigram tabanlı tahminler
+            if (words.Count >= 2 && suggestions.Count < maxSuggestions)
+            {
                 var bigramKey = $"{words[words.Count - 2]} {words[words.Count - 1]}";
+                Console.WriteLine($"[TRIGRAM] Aranan bigram context: '{bigramKey}'");
+
                 var trigramCandidates = _learningData.Trigrams
                     .Where(kvp => kvp.Key.StartsWith(bigramKey + " "))
                     .OrderByDescending(kvp => kvp.Value)
-                    .Take(maxSuggestions);
+                    .Take(maxSuggestions - suggestions.Count);
 
                 foreach (var trigram in trigramCandidates)
                 {
@@ -327,25 +409,32 @@ namespace OtomatikMetinGenisletici.Services
                     if (parts.Length == 3)
                     {
                         var nextWord = parts[2];
-                        var confidence = Math.Min(0.95, trigram.Value / 50.0 + 0.2);
-
-                        suggestions.Add(new SmartSuggestion
+                        if (!suggestions.Any(s => s.Text.Equals(nextWord, StringComparison.OrdinalIgnoreCase)))
                         {
-                            Text = nextWord,
-                            Confidence = confidence,
-                            Context = bigramKey,
-                            Frequency = trigram.Value,
-                            Type = SuggestionType.NextWord,
-                            LastUsed = DateTime.Now
-                        });
+                            var confidence = Math.Min(0.95, trigram.Value / 30.0 + 0.2);
+
+                            suggestions.Add(new SmartSuggestion
+                            {
+                                Text = nextWord,
+                                Confidence = confidence,
+                                Context = bigramKey,
+                                Frequency = trigram.Value,
+                                Type = SuggestionType.NextWord,
+                                LastUsed = DateTime.Now
+                            });
+
+                            Console.WriteLine($"[TRIGRAM] Bulundu: '{nextWord}' (güven: {confidence:P0}, frekans: {trigram.Value})");
+                        }
                     }
                 }
             }
 
+            // 3. Bigram tabanlı tahminler
             if (words.Count >= 1 && suggestions.Count < maxSuggestions)
             {
-                // Bigram tabanlı tahminler
                 var lastWord = words.Last();
+                Console.WriteLine($"[BIGRAM] Aranan unigram context: '{lastWord}'");
+
                 var bigramCandidates = _learningData.Bigrams
                     .Where(kvp => kvp.Key.StartsWith(lastWord + " "))
                     .OrderByDescending(kvp => kvp.Value)
@@ -357,9 +446,9 @@ namespace OtomatikMetinGenisletici.Services
                     if (parts.Length == 2)
                     {
                         var nextWord = parts[1];
-                        if (!suggestions.Any(s => s.Text == nextWord))
+                        if (!suggestions.Any(s => s.Text.Equals(nextWord, StringComparison.OrdinalIgnoreCase)))
                         {
-                            var confidence = Math.Min(0.8, bigram.Value / 30.0 + 0.1);
+                            var confidence = Math.Min(0.8, bigram.Value / 50.0 + 0.1);
 
                             suggestions.Add(new SmartSuggestion
                             {
@@ -370,12 +459,107 @@ namespace OtomatikMetinGenisletici.Services
                                 Type = SuggestionType.NextWord,
                                 LastUsed = DateTime.Now
                             });
+
+                            Console.WriteLine($"[BIGRAM] Bulundu: '{nextWord}' (güven: {confidence:P0}, frekans: {bigram.Value})");
                         }
                     }
                 }
             }
 
+            // 4. Unigram tabanlı tahminler (en düşük öncelik)
+            if (suggestions.Count < maxSuggestions)
+            {
+                Console.WriteLine($"[UNIGRAM] En sık kullanılan kelimelerden öneriler alınıyor");
+
+                var unigramCandidates = _learningData.WordFrequencies
+                    .OrderByDescending(kvp => kvp.Value)
+                    .Take(maxSuggestions - suggestions.Count);
+
+                foreach (var word in unigramCandidates)
+                {
+                    if (!suggestions.Any(s => s.Text.Equals(word.Key, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var confidence = Math.Min(0.5, word.Value / 100.0 + 0.05); // En düşük güven
+
+                        suggestions.Add(new SmartSuggestion
+                        {
+                            Text = word.Key,
+                            Confidence = confidence,
+                            Context = "genel",
+                            Frequency = word.Value,
+                            Type = SuggestionType.NextWord,
+                            LastUsed = DateTime.Now
+                        });
+
+                        Console.WriteLine($"[UNIGRAM] Bulundu: '{word.Key}' (güven: {confidence:P0}, frekans: {word.Value})");
+                    }
+                }
+            }
+
+            Console.WriteLine($"[N-GRAM] Toplam {suggestions.Count} öneri bulundu");
             return suggestions;
+        }
+
+        private List<SmartSuggestion> GetSentenceStartSuggestions(List<string> words, int maxSuggestions)
+        {
+            var suggestions = new List<SmartSuggestion>();
+
+            if (words.Count == 0) return suggestions;
+
+            var firstWord = words[0].ToLowerInvariant();
+            var sentenceStartKey = $"START_{firstWord}";
+
+            Console.WriteLine($"[SENTENCE_START] Cümle başlangıcı kontrol ediliyor: '{firstWord}'");
+
+            if (_learningData.CompletionPrefixes.ContainsKey(sentenceStartKey))
+            {
+                var patterns = _learningData.CompletionPrefixes[sentenceStartKey];
+                Console.WriteLine($"[SENTENCE_START] {patterns.Count} kalıp bulundu");
+
+                foreach (var pattern in patterns.Take(maxSuggestions))
+                {
+                    var patternWords = pattern.Split(' ');
+
+                    // Eğer mevcut context pattern'in başlangıcıyla eşleşiyorsa
+                    if (patternWords.Length > words.Count)
+                    {
+                        bool matches = true;
+                        for (int i = 0; i < words.Count; i++)
+                        {
+                            if (!patternWords[i].Equals(words[i], StringComparison.OrdinalIgnoreCase))
+                            {
+                                matches = false;
+                                break;
+                            }
+                        }
+
+                        if (matches)
+                        {
+                            // Sonraki kelimeyi öner
+                            var nextWord = patternWords[words.Count];
+                            var remainingText = string.Join(" ", patternWords.Skip(words.Count));
+
+                            suggestions.Add(new SmartSuggestion
+                            {
+                                Text = nextWord,
+                                Confidence = 0.99, // En yüksek güven - tam kalıp eşleşmesi
+                                Context = string.Join(" ", words),
+                                Frequency = 1,
+                                Type = SuggestionType.SentenceCompletion,
+                                LastUsed = DateTime.Now
+                            });
+
+                            Console.WriteLine($"[SENTENCE_START] Kalıp eşleşmesi: '{nextWord}' (kalan: '{remainingText}')");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[SENTENCE_START] '{firstWord}' için kalıp bulunamadı");
+            }
+
+            return suggestions.Take(maxSuggestions).ToList();
         }
 
         private List<SmartSuggestion> GetSentenceContinuations(List<string> words, int maxSuggestions)
@@ -521,6 +705,7 @@ namespace OtomatikMetinGenisletici.Services
                     TotalWordCount = _learningData.WordFrequencies.Values.Sum(),
                     TotalBigrams = _learningData.Bigrams.Count,
                     TotalTrigrams = _learningData.Trigrams.Count,
+                    TotalFourGrams = _learningData.FourGrams.Count,
                     CompletionPrefixes = _learningData.CompletionPrefixes.Count,
                     UserCorrections = _learningData.UserCorrections.Count,
                     MostCommonWords = mostCommonWords,
@@ -552,6 +737,7 @@ namespace OtomatikMetinGenisletici.Services
                         TotalWordCount = _learningData.WordFrequencies.Values.Sum(),
                         TotalBigrams = _learningData.Bigrams.Count,
                         TotalTrigrams = _learningData.Trigrams.Count,
+                        TotalFourGrams = _learningData.FourGrams.Count,
                         CompletionPrefixes = _learningData.CompletionPrefixes.Count,
                         UserCorrections = _learningData.UserCorrections.Count,
                         MostCommonWords = _learningData.WordFrequencies
@@ -570,6 +756,7 @@ namespace OtomatikMetinGenisletici.Services
                             .ToDictionary(g => g.Key, g => g.Sum(w => w.Value)),
                         BigramsByFrequency = _learningData.Bigrams.ToDictionary(b => b.Key, b => b.Value),
                         TrigramsByFrequency = _learningData.Trigrams.ToDictionary(t => t.Key, t => t.Value),
+                        FourGramsByFrequency = _learningData.FourGrams.ToDictionary(f => f.Key, f => f.Value),
                         WordsByFrequency = _learningData.WordFrequencies.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
                         RecentActivities = new List<LearningActivity>()
                     };

@@ -52,6 +52,7 @@ namespace OtomatikMetinGenisletici.ViewModels
         public ObservableCollection<WordUsageStatistic> MostUsedWords { get; } = new();
         public ObservableCollection<NGramStatistic> TopBigrams { get; } = new();
         public ObservableCollection<NGramStatistic> TopTrigrams { get; } = new();
+        public ObservableCollection<NGramStatistic> TopFourGrams { get; } = new();
 
         public bool IsSmartSuggestionsEnabled
         {
@@ -3089,6 +3090,28 @@ namespace OtomatikMetinGenisletici.ViewModels
                             Type = "Trigram"
                         });
                     }
+
+                    // 4-grams güncelle
+                    TopFourGrams.Clear();
+                    var topFourGrams = learningData.FourGramsByFrequency
+                        .Where(x => x.Value >= NGramMinFrequency)
+                        .OrderByDescending(x => x.Value)
+                        .Take(NGramDisplayCount)
+                        .ToList();
+
+                    var maxFourGramCount = topFourGrams.FirstOrDefault().Value;
+                    for (int i = 0; i < topFourGrams.Count; i++)
+                    {
+                        var fourgram = topFourGrams[i];
+                        TopFourGrams.Add(new NGramStatistic
+                        {
+                            Rank = i + 1,
+                            NGram = fourgram.Key,
+                            Count = fourgram.Value,
+                            Percentage = maxFourGramCount > 0 ? (fourgram.Value / (double)maxFourGramCount) * 100 : 0,
+                            Type = "4-gram"
+                        });
+                    }
                 });
 
                 Console.WriteLine($"[SMART SUGGESTIONS] N-gram verileri güncellendi");
@@ -3150,6 +3173,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                     MostUsedWords.Clear();
                     TopBigrams.Clear();
                     TopTrigrams.Clear();
+                    TopFourGrams.Clear();
                     SmartSuggestions.Clear();
                 });
 
