@@ -396,7 +396,7 @@ namespace OtomatikMetinGenisletici.Services
                 Console.WriteLine($"[4-GRAM] Aranan trigram context: '{trigramKey}'");
 
                 var fourgramCandidates = _learningData.FourGrams
-                    .Where(kvp => kvp.Key.StartsWith(trigramKey + " "))
+                    .Where(kvp => kvp.Key.StartsWith(trigramKey + " ", StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(kvp => kvp.Value)
                     .Take(maxSuggestions - suggestions.Count);
 
@@ -408,7 +408,8 @@ namespace OtomatikMetinGenisletici.Services
                         var nextWord = parts[3];
                         if (!suggestions.Any(s => s.Text.Equals(nextWord, StringComparison.OrdinalIgnoreCase)))
                         {
-                            var confidence = Math.Min(0.98, fourgram.Value / 20.0 + 0.3); // En yüksek güven
+                            // 4-gram için yüksek güven skoru (0.85-0.98 arası)
+                            var confidence = Math.Min(0.98, 0.85 + (fourgram.Value / 10.0 * 0.13));
 
                             suggestions.Add(new SmartSuggestion
                             {
@@ -433,7 +434,7 @@ namespace OtomatikMetinGenisletici.Services
                 Console.WriteLine($"[TRIGRAM] Aranan bigram context: '{bigramKey}'");
 
                 var trigramCandidates = _learningData.Trigrams
-                    .Where(kvp => kvp.Key.StartsWith(bigramKey + " "))
+                    .Where(kvp => kvp.Key.StartsWith(bigramKey + " ", StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(kvp => kvp.Value)
                     .Take(maxSuggestions - suggestions.Count);
 
@@ -445,7 +446,8 @@ namespace OtomatikMetinGenisletici.Services
                         var nextWord = parts[2];
                         if (!suggestions.Any(s => s.Text.Equals(nextWord, StringComparison.OrdinalIgnoreCase)))
                         {
-                            var confidence = Math.Min(0.95, trigram.Value / 30.0 + 0.2);
+                            // Trigram için orta-yüksek güven skoru (0.75-0.95 arası)
+                            var confidence = Math.Min(0.95, 0.75 + (trigram.Value / 15.0 * 0.20));
 
                             suggestions.Add(new SmartSuggestion
                             {
@@ -470,7 +472,7 @@ namespace OtomatikMetinGenisletici.Services
                 Console.WriteLine($"[BIGRAM] Aranan unigram context: '{lastWord}'");
 
                 var bigramCandidates = _learningData.Bigrams
-                    .Where(kvp => kvp.Key.StartsWith(lastWord + " "))
+                    .Where(kvp => kvp.Key.StartsWith(lastWord + " ", StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(kvp => kvp.Value)
                     .Take(maxSuggestions - suggestions.Count);
 
@@ -482,7 +484,8 @@ namespace OtomatikMetinGenisletici.Services
                         var nextWord = parts[1];
                         if (!suggestions.Any(s => s.Text.Equals(nextWord, StringComparison.OrdinalIgnoreCase)))
                         {
-                            var confidence = Math.Min(0.8, bigram.Value / 50.0 + 0.1);
+                            // Bigram için orta güven skoru (0.60-0.85 arası)
+                            var confidence = Math.Min(0.85, 0.60 + (bigram.Value / 20.0 * 0.25));
 
                             suggestions.Add(new SmartSuggestion
                             {
@@ -500,20 +503,21 @@ namespace OtomatikMetinGenisletici.Services
                 }
             }
 
-            // 4. Unigram tabanlı tahminler (en düşük öncelik)
-            if (suggestions.Count < maxSuggestions)
+            // 4. Unigram tabanlı tahminler (en düşük öncelik) - SADECE CONTEXT YOKSA
+            if (suggestions.Count < maxSuggestions && words.Count == 0)
             {
-                Console.WriteLine($"[UNIGRAM] En sık kullanılan kelimelerden öneriler alınıyor");
+                Console.WriteLine($"[UNIGRAM] Context yok, en sık kullanılan kelimelerden öneriler alınıyor");
 
                 var unigramCandidates = _learningData.WordFrequencies
+                    .Where(kvp => kvp.Value >= 2) // En az 2 kez kullanılmış olmalı
                     .OrderByDescending(kvp => kvp.Value)
-                    .Take(maxSuggestions - suggestions.Count);
+                    .Take(Math.Min(3, maxSuggestions - suggestions.Count)); // Maksimum 3 unigram önerisi
 
                 foreach (var word in unigramCandidates)
                 {
                     if (!suggestions.Any(s => s.Text.Equals(word.Key, StringComparison.OrdinalIgnoreCase)))
                     {
-                        var confidence = Math.Min(0.5, word.Value / 100.0 + 0.05); // En düşük güven
+                        var confidence = Math.Min(0.3, word.Value / 200.0 + 0.05); // Çok düşük güven
 
                         suggestions.Add(new SmartSuggestion
                         {
@@ -529,9 +533,26 @@ namespace OtomatikMetinGenisletici.Services
                     }
                 }
             }
+            else if (words.Count > 0)
+            {
+                Console.WriteLine($"[UNIGRAM] Context mevcut ('{string.Join(" ", words)}'), unigram önerileri atlanıyor");
+            }
 
             Console.WriteLine($"[N-GRAM] Toplam {suggestions.Count} öneri bulundu");
-            return suggestions;
+
+            // Önerileri confidence'a göre sırala
+            var sortedSuggestions = suggestions
+                .OrderByDescending(s => s.Confidence)
+                .ThenByDescending(s => s.Frequency)
+                .ToList();
+
+            Console.WriteLine($"[N-GRAM] Sıralanmış öneriler:");
+            foreach (var suggestion in sortedSuggestions)
+            {
+                Console.WriteLine($"[N-GRAM] - '{suggestion.Text}' (güven: {suggestion.Confidence:P1}, frekans: {suggestion.Frequency}, context: '{suggestion.Context}')");
+            }
+
+            return sortedSuggestions;
         }
 
         private List<SmartSuggestion> GetSentenceStartSuggestions(List<string> words, int maxSuggestions)

@@ -128,34 +128,58 @@ jobs:
         tag_name: ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
         name: "Otomatik Metin Genisletici v${{ steps.version.outputs.VERSION }}"
         body: |
-          ## Otomatik Metin Genisletici v${{ steps.version.outputs.VERSION }}
+          ## 🚀 Otomatik Metin Genisletici v${{ steps.version.outputs.VERSION }}
 
-          ### Indirme
-          - Windows x64: ${{ env.PACKAGE_NAME }}
+          ### 📥 İndirme
+          - **Windows x64**: ${{ env.PACKAGE_NAME }}
 
-          ### Ozellikler
-          - Akilli metin genisletme sistemi
-          - Ogrenme algoritmasi ile akilli oneriler
-          - Modern WPF kullanici arayuzu
-          - Ozellestirebilir tus kombinasyonlari
+          ### 🆕 Bu Sürümdeki Yenilikler (v1.1.3)
+
+          #### 🔧 Kritik Düzeltmeler
+          - **N-gram Algoritması Büyük İyileştirme**:
+            - "gitti" kelimesinin sürekli önerilme sorunu çözüldü
+            - Unigram önerileri artık sadece context yoksa çalışıyor
+            - Context-aware öneriler iyileştirildi
+
+          - **Confidence Skorları Yeniden Düzenlendi**:
+            - 4-gram: 0.85-0.98 (en yüksek öncelik)
+            - Trigram: 0.75-0.95 (yüksek öncelik)
+            - Bigram: 0.60-0.85 (orta öncelik)
+            - Unigram: 0.05-0.30 (düşük öncelik, sadece context yoksa)
+
+          - **Context Matching İyileştirmeleri**:
+            - StringComparison.OrdinalIgnoreCase desteği eklendi
+            - Daha kesin n-gram eşleştirme algoritması
+            - 4-gram önerilerinin UI'da görünmeme sorunu çözüldü
+
+          #### 🚀 Performans İyileştirmeleri
+          - N-gram önerilerinin sıralama algoritması optimize edildi
+          - Öneri kalitesi önemli ölçüde iyileştirildi
+          - Frekans tabanlı sıralama iyileştirildi
+
+          ### 🎯 Temel Özellikler
+          - Akıllı metin genişletme sistemi
+          - N-gram tabanlı öğrenme algoritması ile akıllı öneriler
+          - Modern WPF kullanıcı arayüzü
+          - Özelleştirilebilir tuş kombinasyonları
           - Pencere filtreleme sistemi
           - System tray entegrasyonu
-          - %100 yerel calisma
+          - %100 yerel çalışma
 
-          ### Kurulum
-          1. ZIP dosyasini indirin ve cikarin
-          2. OtomatikMetinGenisletici.exe dosyasini calistirin
-          3. Detayli kurulum icin KURULUM.txt dosyasini okuyun
+          ### 📋 Kurulum
+          1. ZIP dosyasını indirin ve çıkarın
+          2. OtomatikMetinGenisletici.exe dosyasını çalıştırın
+          3. Detaylı kurulum için KURULUM.txt dosyasını okuyun
 
-          ### Sistem Gereksinimleri
+          ### 💻 Sistem Gereksinimleri
           - Windows 10/11 (x64)
           - .NET SDK kurulumu GEREKMEZ (Self-contained)
-          - Yonetici yetkileri (global klavye izleme icin)
+          - Yönetici yetkileri (global klavye izleme için)
 
-          ### Iletisim
-          - E-posta: iletisim@saffetcelik.com.tr
-          - Instagram: instagram.com/kamucoder
-          - GitHub: github.com/saffetcelik
+          ### 📞 İletişim & Destek
+          - **E-posta**: iletisim@saffetcelik.com.tr
+          - **Instagram**: instagram.com/kamucoder
+          - **GitHub**: github.com/saffetcelik
         files: ${{ env.PACKAGE_NAME }}
         draft: false
         prerelease: false
