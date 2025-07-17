@@ -854,7 +854,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                 _uiUpdateTimer?.Stop();
                 _uiUpdateTimer?.Dispose();
 
-                _uiUpdateTimer = new System.Timers.Timer(50); // 50ms debounce
+                _uiUpdateTimer = new System.Timers.Timer(150); // 150ms debounce - performans için artırıldı
                 _uiUpdateTimer.Elapsed += (sender, e) =>
                 {
                     _uiUpdateTimer?.Stop();

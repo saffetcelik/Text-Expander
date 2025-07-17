@@ -111,8 +111,8 @@ namespace OtomatikMetinGenisletici.Services
                 {
                     _suggestionCache[cacheKey] = (new List<SmartSuggestion>(suggestions), DateTime.Now);
 
-                    // Cache temizliği - 50'den fazla entry varsa eski olanları temizle
-                    if (_suggestionCache.Count > 50)
+                    // Cache temizliği - 200'den fazla entry varsa eski olanları temizle (performans için artırıldı)
+                    if (_suggestionCache.Count > 200)
                     {
                         var oldEntries = _suggestionCache
                             .Where(kvp => DateTime.Now - kvp.Value.timestamp > _cacheExpiry)

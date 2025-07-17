@@ -3,6 +3,10 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.IO;
 using OtomatikMetinGenisletici.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OtomatikMetinGenisletici.Services
 {
@@ -15,6 +19,11 @@ namespace OtomatikMetinGenisletici.Services
         private bool _hasUnsavedChanges;
         private readonly ShortcutService? _shortcutService;
 
+        // Performans için Trie veri yapıları
+        private readonly FastTrie _wordCompletionTrie;
+        private readonly FastTrie _bigramTrie;
+        private readonly FastTrie _trigramTrie;
+
 
         public TextLearningEngine(string dataFilePath = "learning_data.json", ShortcutService? shortcutService = null)
         {
@@ -26,12 +35,20 @@ namespace OtomatikMetinGenisletici.Services
                 _learningData = new LearningData();
                 _shortcutService = shortcutService;
 
+                // Trie veri yapılarını başlat
+                _wordCompletionTrie = new FastTrie();
+                _bigramTrie = new FastTrie();
+                _trigramTrie = new FastTrie();
+
                 Console.WriteLine("[DEBUG] Timer oluşturuluyor...");
                 // Her 30 saniyede bir otomatik kaydet
                 _saveTimer = new Timer(AutoSave, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
 
                 Console.WriteLine("[DEBUG] Öğrenme verileri yükleniyor...");
                 LoadLearningData();
+
+                Console.WriteLine("[DEBUG] Trie yapıları oluşturuluyor...");
+                BuildTrieStructures();
 
                 Console.WriteLine("[DEBUG] TextLearningEngine constructor tamamlandı.");
             }
@@ -149,6 +166,7 @@ namespace OtomatikMetinGenisletici.Services
 
         public async Task<List<SmartSuggestion>> GetSuggestionsAsync(string context, int maxSuggestions = 5)
         {
+            // PERFORMANS OPTİMİZASYONU: ConfigureAwait(false) kullanarak UI thread'i bloklamayı önle
             return await Task.Run(() =>
             {
                 lock (_lockObject)
@@ -400,24 +418,78 @@ namespace OtomatikMetinGenisletici.Services
         {
             var suggestions = new List<SmartSuggestion>();
 
-            if (_learningData.CompletionPrefixes.TryGetValue(prefix, out var completions))
+            try
             {
-                foreach (var completion in completions.Take(maxSuggestions))
+                // PERFORMANS OPTİMİZASYONU: Trie kullanarak hızlı arama
+                var trieResults = _wordCompletionTrie.SearchByPrefix(prefix, maxSuggestions);
+
+                foreach (var (word, frequency) in trieResults)
                 {
-                    if (completion != prefix && completion.StartsWith(prefix))
+                    if (word != prefix && word.Length > prefix.Length)
                     {
-                        var frequency = _learningData.WordFrequencies.GetValueOrDefault(completion, 0);
                         var confidence = Math.Min(0.9, frequency / 100.0 + 0.1);
 
                         suggestions.Add(new SmartSuggestion
                         {
-                            Text = completion,
+                            Text = word,
                             Confidence = confidence,
                             Context = prefix,
                             Frequency = frequency,
                             Type = SuggestionType.WordCompletion,
                             LastUsed = DateTime.Now
                         });
+                    }
+                }
+
+                // Fallback: Eğer Trie'den yeterli sonuç gelmezse eski yöntemi kullan
+                if (suggestions.Count < maxSuggestions && _learningData.CompletionPrefixes.TryGetValue(prefix, out var completions))
+                {
+                    var remainingCount = maxSuggestions - suggestions.Count;
+                    var existingTexts = suggestions.Select(s => s.Text).ToHashSet();
+
+                    foreach (var completion in completions.Take(remainingCount))
+                    {
+                        if (completion != prefix && completion.StartsWith(prefix) && !existingTexts.Contains(completion))
+                        {
+                            var frequency = _learningData.WordFrequencies.GetValueOrDefault(completion, 0);
+                            var confidence = Math.Min(0.9, frequency / 100.0 + 0.1);
+
+                            suggestions.Add(new SmartSuggestion
+                            {
+                                Text = completion,
+                                Confidence = confidence,
+                                Context = prefix,
+                                Frequency = frequency,
+                                Type = SuggestionType.WordCompletion,
+                                LastUsed = DateTime.Now
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] GetWordCompletions Trie hatası: {ex.Message}");
+                // Hata durumunda eski yöntemi kullan
+                if (_learningData.CompletionPrefixes.TryGetValue(prefix, out var completions))
+                {
+                    foreach (var completion in completions.Take(maxSuggestions))
+                    {
+                        if (completion != prefix && completion.StartsWith(prefix))
+                        {
+                            var frequency = _learningData.WordFrequencies.GetValueOrDefault(completion, 0);
+                            var confidence = Math.Min(0.9, frequency / 100.0 + 0.1);
+
+                            suggestions.Add(new SmartSuggestion
+                            {
+                                Text = completion,
+                                Confidence = confidence,
+                                Context = prefix,
+                                Frequency = frequency,
+                                Type = SuggestionType.WordCompletion,
+                                LastUsed = DateTime.Now
+                            });
+                        }
                     }
                 }
             }
@@ -824,13 +896,18 @@ namespace OtomatikMetinGenisletici.Services
                 var context = string.Join(" ", words.Skip(i));
                 Console.WriteLine($"[SENTENCE_CONTINUATION] Context aranıyor: '{context}' (uzunluk: {words.Count})");
 
-                // Bigram'larda ara
+                // Bigram'larda ara - Performans optimizasyonu
+                var contextPrefix = context + " ";
+                var contextPrefixLower = contextPrefix.ToLowerInvariant();
+
                 foreach (var bigram in _learningData.Bigrams)
                 {
-                    if (bigram.Key.StartsWith(context + " ", StringComparison.OrdinalIgnoreCase))
+                    // Hızlı string karşılaştırması için optimize edildi
+                    if (bigram.Key.Length > contextPrefix.Length &&
+                        string.Compare(bigram.Key, 0, contextPrefixLower, 0, contextPrefix.Length, StringComparison.OrdinalIgnoreCase) == 0)
                     {
                         var nextWord = bigram.Key.Substring(context.Length + 1);
-                        if (!string.IsNullOrEmpty(nextWord) && !nextWord.Contains(' '))
+                        if (!string.IsNullOrEmpty(nextWord) && nextWord.IndexOf(' ') == -1)
                         {
                             suggestions.Add(new SmartSuggestion
                             {
@@ -1406,6 +1483,63 @@ namespace OtomatikMetinGenisletici.Services
                     .Take(maxResults)
                     .Select(kvp => (kvp.Key, kvp.Value))
                     .ToList();
+            }
+        }
+
+        /// <summary>
+        /// Trie veri yapılarını mevcut verilerle doldurur - Performans optimizasyonu
+        /// </summary>
+        private void BuildTrieStructures()
+        {
+            try
+            {
+                Console.WriteLine("[TRIE] Trie yapıları oluşturuluyor...");
+
+                // Kelime tamamlama için tüm kelimeleri Trie'ye ekle
+                foreach (var kvp in _learningData.WordFrequencies)
+                {
+                    _wordCompletionTrie.Insert(kvp.Key, kvp.Value);
+                }
+
+                // Bigram'ları Trie'ye ekle
+                foreach (var kvp in _learningData.Bigrams)
+                {
+                    _bigramTrie.Insert(kvp.Key, kvp.Value);
+                }
+
+                // Trigram'ları Trie'ye ekle
+                foreach (var kvp in _learningData.Trigrams)
+                {
+                    _trigramTrie.Insert(kvp.Key, kvp.Value);
+                }
+
+                Console.WriteLine($"[TRIE] Trie yapıları oluşturuldu - Kelimeler: {_wordCompletionTrie.GetWordCount()}, Bigramlar: {_bigramTrie.GetWordCount()}, Trigramlar: {_trigramTrie.GetWordCount()}");
+
+                // Memory optimization
+                _wordCompletionTrie.OptimizeMemory();
+                _bigramTrie.OptimizeMemory();
+                _trigramTrie.OptimizeMemory();
+
+                Console.WriteLine("[TRIE] Memory optimization tamamlandı");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Trie yapıları oluşturma hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Yeni kelime öğrenildiğinde Trie'leri günceller
+        /// </summary>
+        private void UpdateTrieStructures(string word, int frequency = 1)
+        {
+            try
+            {
+                _wordCompletionTrie.Insert(word, frequency);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Trie güncelleme hatası: {ex.Message}");
             }
         }
     }
