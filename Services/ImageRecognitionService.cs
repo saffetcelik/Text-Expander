@@ -62,14 +62,21 @@ namespace OtomatikMetinGenisletici.Services
 
                 Console.WriteLine($"[IMAGE RECOGNITION] Aktif pencere: '{title}'");
 
-                // .UDF içeren pencereler için çalış (kullanıcının isteği)
-                if (!title.Contains(".UDF"))
+                // .UDF içeren pencereler veya Döküman Editörü için çalış
+                if (!title.Contains(".UDF") && !title.Contains("Döküman Editörü"))
                 {
-                    Console.WriteLine($"[IMAGE RECOGNITION] Pencere '.UDF' içermiyor, atlanıyor");
+                    Console.WriteLine($"[IMAGE RECOGNITION] Pencere '.UDF' veya 'Döküman Editörü' içermiyor, atlanıyor");
                     return null;
                 }
 
-                Console.WriteLine($"[IMAGE RECOGNITION] .UDF penceresi tespit edildi: '{title}'");
+                if (title.Contains(".UDF"))
+                {
+                    Console.WriteLine($"[IMAGE RECOGNITION] .UDF penceresi tespit edildi: '{title}'");
+                }
+                else if (title.Contains("Döküman Editörü"))
+                {
+                    Console.WriteLine($"[IMAGE RECOGNITION] Döküman Editörü penceresi tespit edildi: '{title}'");
+                }
                 Console.WriteLine($"[IMAGE RECOGNITION] Görsel tanıma başlatılıyor...");
 
                 // Template'i al (cache'li)

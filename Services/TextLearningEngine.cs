@@ -14,32 +14,7 @@ namespace OtomatikMetinGenisletici.Services
         private readonly Timer _saveTimer;
         private bool _hasUnsavedChanges;
         private readonly ShortcutService? _shortcutService;
-        private readonly List<string> _debugLogs = new List<string>();
 
-        private void DebugLog(string message)
-        {
-            var logEntry = $"[{DateTime.Now:HH:mm:ss.fff}] {message}";
-            Console.WriteLine(logEntry);
-            _debugLogs.Add(logEntry);
-
-            // Son 1000 log'u tut
-            if (_debugLogs.Count > 1000)
-            {
-                _debugLogs.RemoveAt(0);
-            }
-        }
-
-        private void SaveDebugLogs()
-        {
-            try
-            {
-                File.WriteAllLines("debug_learning.log", _debugLogs);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Debug log kaydetme hatası: {ex.Message}");
-            }
-        }
 
         public TextLearningEngine(string dataFilePath = "learning_data.json", ShortcutService? shortcutService = null)
         {
@@ -292,7 +267,6 @@ namespace OtomatikMetinGenisletici.Services
             {
                 var bigram = $"{words[i]} {words[i + 1]}";
                 var newCount = _learningData.Bigrams.AddOrUpdate(bigram, 1, (key, oldValue) => oldValue + 1);
-                DebugLog($"[BIGRAM] '{bigram}' → frekans: {newCount}");
             }
 
             // Trigrams
@@ -300,7 +274,6 @@ namespace OtomatikMetinGenisletici.Services
             {
                 var trigram = $"{words[i]} {words[i + 1]} {words[i + 2]}";
                 var newCount = _learningData.Trigrams.AddOrUpdate(trigram, 1, (key, oldValue) => oldValue + 1);
-                DebugLog($"[TRIGRAM] '{trigram}' → frekans: {newCount}");
             }
 
             // 4-grams
@@ -605,29 +578,7 @@ namespace OtomatikMetinGenisletici.Services
                 Console.WriteLine($"[N-GRAM] - '{suggestion.Text}' (güven: {suggestion.Confidence:P1}, frekans: {suggestion.Frequency}, context: '{suggestion.Context}', tip: {suggestion.Type})");
             }
 
-            // Debug bilgilerini dosyaya yaz
-            try
-            {
-                var debugInfo = new
-                {
-                    Timestamp = DateTime.Now,
-                    Context = string.Join(" ", words),
-                    AllSuggestions = allSuggestions.Select(s => new { s.Text, s.Frequency, s.Confidence, s.Type, s.Context }).ToList(),
-                    FinalSuggestions = groupedSuggestions.Select(s => new { s.Text, s.Frequency, s.Confidence, s.Type, s.Context }).ToList(),
-                    BigramData = _learningData.Bigrams.Where(b => b.Key.Contains("ali eve")).ToDictionary(b => b.Key, b => b.Value),
-                    TrigramData = _learningData.Trigrams.Where(t => t.Key.Contains("ali eve")).ToDictionary(t => t.Key, t => t.Value)
-                };
 
-                var debugJson = System.Text.Json.JsonSerializer.Serialize(debugInfo, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText("debug_predictions.json", debugJson);
-
-                // Debug logları da kaydet
-                SaveDebugLogs();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[DEBUG] Dosya yazma hatası: {ex.Message}");
-            }
 
             return groupedSuggestions;
         }

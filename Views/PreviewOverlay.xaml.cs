@@ -355,18 +355,32 @@ namespace OtomatikMetinGenisletici.Views
 
                 Console.WriteLine($"[CARET] Aktif pencere: '{title}'");
 
-                // .UDF pencereleri için önce ImageRecognitionService'i dene
-                if (title.Contains(".UDF") && _imageRecognitionService != null && _imageRecognitionService.IsEnabled)
+                // .UDF pencereleri veya Döküman Editörü için önce ImageRecognitionService'i dene
+                if ((title.Contains(".UDF") || title.Contains("Döküman Editörü")) && _imageRecognitionService != null && _imageRecognitionService.IsEnabled)
                 {
                     var imageCaretPos = _imageRecognitionService.FindCaretByImageRecognition();
                     if (imageCaretPos.HasValue)
                     {
-                        Console.WriteLine($"[CARET] .UDF penceresi - imlec.png ile bulundu: {imageCaretPos.Value.X}, {imageCaretPos.Value.Y}");
+                        if (title.Contains(".UDF"))
+                        {
+                            Console.WriteLine($"[CARET] .UDF penceresi - imlec.png ile bulundu: {imageCaretPos.Value.X}, {imageCaretPos.Value.Y}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[CARET] Döküman Editörü penceresi - imlec.png ile bulundu: {imageCaretPos.Value.X}, {imageCaretPos.Value.Y}");
+                        }
                         return imageCaretPos.Value;
                     }
                     else
                     {
-                        Console.WriteLine($"[CARET] .UDF penceresi - imlec.png ile bulunamadı, standart yöntemlere geçiliyor");
+                        if (title.Contains(".UDF"))
+                        {
+                            Console.WriteLine($"[CARET] .UDF penceresi - imlec.png ile bulunamadı, standart yöntemlere geçiliyor");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[CARET] Döküman Editörü penceresi - imlec.png ile bulunamadı, standart yöntemlere geçiliyor");
+                        }
                     }
                 }
 

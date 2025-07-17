@@ -386,6 +386,10 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                 Console.WriteLine("[DEBUG] Pencere değişikliği algılama hazır (OnKeyPressed içinde kontrol edilecek)");
 
+                // Window focus monitoring başlat ve event'e subscribe ol
+                WindowHelper.StartWindowFocusMonitoring();
+                WindowHelper.WindowFocusChanged += OnWindowFocusChanged;
+
                 // Kısayol önizleme paneli ayarlarda açıksa göster
                 if (IsShortcutPreviewPanelVisible)
                 {
@@ -442,65 +446,37 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine("[DEBUG] TestPreviewOverlay başlıyor...");
-                WriteToLogFile("[DEBUG] TestPreviewOverlay başlıyor...");
-
                 if (_previewOverlay == null)
                 {
                     Console.WriteLine("[ERROR] _previewOverlay null, test edilemiyor");
-                    WriteToLogFile("[ERROR] _previewOverlay null, test edilemiyor");
                     return;
                 }
 
                 Console.WriteLine("[DEBUG] _previewOverlay mevcut, test başlatılıyor...");
-                WriteToLogFile("[DEBUG] _previewOverlay mevcut, test başlatılıyor...");
-
                 // WindowHelper durumunu test et
                 bool shouldBeActive = WindowHelper.ShouldTextExpansionBeActive();
                 Console.WriteLine($"[DEBUG] ShouldTextExpansionBeActive: {shouldBeActive}");
-                WriteToLogFile($"[DEBUG] ShouldTextExpansionBeActive: {shouldBeActive}");
-
                 // Smart Suggestions durumunu test et
                 bool smartEnabled = IsSmartSuggestionsEnabled;
                 Console.WriteLine($"[DEBUG] IsSmartSuggestionsEnabled: {smartEnabled}");
-                WriteToLogFile($"[DEBUG] IsSmartSuggestionsEnabled: {smartEnabled}");
-
                 // İlk açılışta önizlemeyi gizle (sadece yazı yazarken görünecek)
                 HidePreview();
                 Console.WriteLine("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
-                WriteToLogFile("[DEBUG] İlk açılışta önizleme gizlendi (sadece yazı yazarken görünecek)");
-
                 // AYAR DEBUG - Başlangıçta ayarları kontrol et
                 Console.WriteLine($"[AYAR DEBUG] Constructor'da SmartSuggestionsEnabled: {IsSmartSuggestionsEnabled}");
-                WriteToLogFile($"[AYAR DEBUG] Constructor'da SmartSuggestionsEnabled: {IsSmartSuggestionsEnabled}");
-
                 // Akıllı öneriler durumunu test et
                 TestSmartSuggestions();
 
                 Console.WriteLine("[DEBUG] TestPreviewOverlay tamamlandı");
-                WriteToLogFile("[DEBUG] TestPreviewOverlay tamamlandı");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] TestPreviewOverlay hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] TestPreviewOverlay hatası: {ex.Message}");
                 Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
-                WriteToLogFile($"[ERROR] Stack trace: {ex.StackTrace}");
             }
         }
 
-        private void WriteToLogFile(string message)
-        {
-            try
-            {
-                string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "debug_new.log");
-                string logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}\n";
-                File.AppendAllText(logPath, logEntry);
-            }
-            catch
-            {
-                // Log yazma hatası olursa sessizce devam et
-            }
-        }
+
 
         private void InitializePreviewTimer()
         {
@@ -626,8 +602,6 @@ namespace OtomatikMetinGenisletici.ViewModels
         private async void OnKeyPressed(string buffer)
         {
             Console.WriteLine($"[KEYPRESS] *** OnKeyPressed çağrıldı, buffer: '{buffer}' ***");
-            WriteToLogFile($"[KEYPRESS] *** OnKeyPressed çağrıldı, buffer: '{buffer}' ***");
-
             // Yazı yazma zamanını güncelle
             _lastKeyPressTime = DateTime.Now;
 
@@ -639,12 +613,8 @@ namespace OtomatikMetinGenisletici.ViewModels
             if (!string.IsNullOrEmpty(_lastActiveWindow) && _lastActiveWindow != currentActiveWindow)
             {
                 Console.WriteLine($"[FOCUS] Pencere değişti: '{_lastActiveWindow}' -> '{currentActiveWindow}'");
-                WriteToLogFile($"[FOCUS] Pencere değişti: '{_lastActiveWindow}' -> '{currentActiveWindow}'");
-
                 // Pencere değiştiğinde ön izleme penceresini kapat
                 Console.WriteLine("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
-                WriteToLogFile("[FOCUS] Pencere değişti, ön izleme penceresi kapatılıyor");
-
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     HidePreview();
@@ -655,35 +625,25 @@ namespace OtomatikMetinGenisletici.ViewModels
             // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
             bool shouldBeActive = WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled, WindowFilterMode);
             Console.WriteLine($"[KEYPRESS] ShouldTextExpansionBeActive: {shouldBeActive}");
-            WriteToLogFile($"[KEYPRESS] ShouldTextExpansionBeActive: {shouldBeActive}");
-
             if (!shouldBeActive)
             {
                 Console.WriteLine($"[KEYPRESS] OnKeyPressed: Pencere filtreleri nedeniyle işlem yapılmıyor");
-                WriteToLogFile($"[KEYPRESS] OnKeyPressed: Pencere filtreleri nedeniyle işlem yapılmıyor");
                 return;
             }
 
             _contextBuffer = buffer;
             Console.WriteLine($"[KEYPRESS] Context buffer güncellendi: '{_contextBuffer}'");
-            WriteToLogFile($"[KEYPRESS] Context buffer güncellendi: '{_contextBuffer}'");
             Console.WriteLine($"[DEBUG] IsSmartSuggestionsEnabled: {IsSmartSuggestionsEnabled}");
-            WriteToLogFile($"[DEBUG] IsSmartSuggestionsEnabled: {IsSmartSuggestionsEnabled}");
             Console.WriteLine($"[DEBUG] Buffer boş mu: {string.IsNullOrWhiteSpace(buffer)}");
-            WriteToLogFile($"[DEBUG] Buffer boş mu: {string.IsNullOrWhiteSpace(buffer)}");
-
             // Akıllı öneriler etkinse kapsamlı öneri kontrolü yap
             if (IsSmartSuggestionsEnabled && !string.IsNullOrWhiteSpace(buffer))
             {
                 Console.WriteLine($"[DEBUG] Akıllı öneriler etkin, ProcessSmartSuggestionsAsync çağrılıyor...");
-                WriteToLogFile($"[DEBUG] Akıllı öneriler etkin, ProcessSmartSuggestionsAsync çağrılıyor...");
                 await ProcessSmartSuggestionsAsync(buffer);
             }
             else
             {
                 Console.WriteLine($"[DEBUG] Akıllı öneriler atlandı - Enabled: {IsSmartSuggestionsEnabled}, Buffer boş: {string.IsNullOrWhiteSpace(buffer)}");
-                WriteToLogFile($"[DEBUG] Akıllı öneriler atlandı - Enabled: {IsSmartSuggestionsEnabled}, Buffer boş: {string.IsNullOrWhiteSpace(buffer)}");
-
                 // Akıllı öneriler kapalıysa mevcut önerileri temizle
                 _currentSuggestion = "";
                 _currentSmartSuggestions.Clear();
@@ -702,26 +662,18 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[SMART SUGGESTIONS] *** ProcessSmartSuggestionsAsync başlıyor: '{buffer}' ***");
-                WriteToLogFile($"[SMART SUGGESTIONS] *** ProcessSmartSuggestionsAsync başlıyor: '{buffer}' ***");
-
                 var words = buffer.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 Console.WriteLine($"[SMART SUGGESTIONS] Words count: {words.Length}");
-                WriteToLogFile($"[SMART SUGGESTIONS] Words count: {words.Length}");
                 Console.WriteLine($"[SMART SUGGESTIONS] Buffer ends with space: {buffer.EndsWith(" ")}");
-                WriteToLogFile($"[SMART SUGGESTIONS] Buffer ends with space: {buffer.EndsWith(" ")}");
-
                 // 1. ÖNCE KELİME TAMAMLAMA KONTROL ET (henüz tamamlanmamış kelime varsa)
                 bool hasWordCompletion = false;
                 if (words.Length > 0 && !buffer.EndsWith(" "))
                 {
                     var lastWord = words.Last();
                     Console.WriteLine($"[SMART SUGGESTIONS] Last word: '{lastWord}', length: {lastWord.Length}");
-                    WriteToLogFile($"[SMART SUGGESTIONS] Last word: '{lastWord}', length: {lastWord.Length}");
-
                     if (lastWord.Length >= 2)
                     {
                         Console.WriteLine($"[SMART SUGGESTIONS] Kelime tamamlama kontrol ediliyor: '{lastWord}'");
-                        WriteToLogFile($"[SMART SUGGESTIONS] Kelime tamamlama kontrol ediliyor: '{lastWord}'");
                         UpdateWordCompletionAsync(lastWord, buffer);
 
                         // Kelime tamamlama önerisi bulunduysa işaretle
@@ -736,8 +688,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 // 2. SÜREKLI SONRAKI KELİME TAHMİNİ (cümle yapısına göre)
                 // HER DURUMDA sonraki kelimeyi tahmin et - sürekli çalışsın
                 Console.WriteLine($"[SMART SUGGESTIONS] *** SÜREKLİ SONRAKI KELİME TAHMİNİ BAŞLIYOR ***");
-                WriteToLogFile($"[SMART SUGGESTIONS] *** SÜREKLİ SONRAKI KELİME TAHMİNİ BAŞLIYOR ***");
-
                 await PredictNextWordContinuously(words, buffer);
 
                 Console.WriteLine($"[SMART SUGGESTIONS] ProcessSmartSuggestionsAsync tamamlandı. Öneri sayısı: {_currentSmartSuggestions.Count}");
@@ -754,10 +704,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[NEXT WORD] *** PredictNextWordContinuously başlıyor ***");
-                WriteToLogFile($"[NEXT WORD] *** PredictNextWordContinuously başlıyor ***");
                 Console.WriteLine($"[NEXT WORD] Kelime sayısı: {words.Length}, Buffer: '{buffer}'");
-                WriteToLogFile($"[NEXT WORD] Kelime sayısı: {words.Length}, Buffer: '{buffer}'");
-
                 if (words.Length == 0)
                 {
                     Console.WriteLine($"[NEXT WORD] Kelime yok, tahmin atlanıyor");
@@ -777,7 +724,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     // Kullanıcı kelime yazıyor - son kelimeyi çıkarıp önceki kelimeleri analiz et
                     contextWords = words.Take(words.Length - 1).ToArray();
                     Console.WriteLine($"[NEXT WORD] Kullanıcı kelime yazıyor, son kelime çıkarıldı. Analiz edilecek kelimeler: {contextWords.Length}");
-                    WriteToLogFile($"[NEXT WORD] Kullanıcı kelime yazıyor, son kelime çıkarıldı. Analiz edilecek kelimeler: {contextWords.Length}");
                 }
 
                 if (contextWords.Length >= 4)
@@ -808,21 +754,16 @@ namespace OtomatikMetinGenisletici.ViewModels
                 {
                     // Hiç kelime yok - tahmin yapılamaz
                     Console.WriteLine($"[NEXT WORD] Analiz edilecek kelime yok, tahmin atlanıyor");
-                    WriteToLogFile($"[NEXT WORD] Analiz edilecek kelime yok, tahmin atlanıyor");
                     return;
                 }
 
                 Console.WriteLine($"[NEXT WORD] {analysisType} analizi yapılıyor: '{context}'");
-                WriteToLogFile($"[NEXT WORD] {analysisType} analizi yapılıyor: '{context}'");
-
                 // Akıllı öneri servisinden sonraki kelime tahminlerini al
                 var suggestions = await _smartSuggestionsService.GetSuggestionsAsync(context, 5);
 
                 if (suggestions.Any())
                 {
                     Console.WriteLine($"[NEXT WORD] {suggestions.Count} sonraki kelime önerisi bulundu");
-                    WriteToLogFile($"[NEXT WORD] {suggestions.Count} sonraki kelime önerisi bulundu");
-
                     // En iyi öneriyi seç
                     var bestSuggestion = suggestions.First();
                     _currentSuggestion = bestSuggestion.Text;
@@ -830,8 +771,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _currentSmartSuggestions.AddRange(suggestions);
 
                     Console.WriteLine($"[NEXT WORD] En iyi sonraki kelime önerisi: '{bestSuggestion.Text}' (Güven: {bestSuggestion.Confidence:P0})");
-                    WriteToLogFile($"[NEXT WORD] En iyi sonraki kelime önerisi: '{bestSuggestion.Text}' (Güven: {bestSuggestion.Confidence:P0})");
-
                     // UI'ı güncelle
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -845,8 +784,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 else
                 {
                     Console.WriteLine($"[NEXT WORD] {analysisType} için sonraki kelime önerisi bulunamadı");
-                    WriteToLogFile($"[NEXT WORD] {analysisType} için sonraki kelime önerisi bulunamadı");
-
                     // Daha basit analiz dene (bir seviye aşağı)
                     if (words.Length > 1)
                     {
@@ -857,7 +794,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] PredictNextWordContinuously hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] PredictNextWordContinuously hatası: {ex.Message}");
             }
         }
 
@@ -867,8 +803,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[SIMPLE PREDICTION] Basit tahmin sistemi başlıyor");
-                WriteToLogFile($"[SIMPLE PREDICTION] Basit tahmin sistemi başlıyor");
-
                 // Son kelimeye göre basit tahmin
                 var lastWord = words.Last().ToLower();
                 var simplePredictions = GetSimpleNextWordPredictions(lastWord);
@@ -880,8 +814,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _currentSmartSuggestions.AddRange(simplePredictions);
 
                     Console.WriteLine($"[SIMPLE PREDICTION] Basit tahmin bulundu: '{_currentSuggestion}'");
-                    WriteToLogFile($"[SIMPLE PREDICTION] Basit tahmin bulundu: '{_currentSuggestion}'");
-
                     // UI'ı güncelle
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -895,13 +827,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                 else
                 {
                     Console.WriteLine($"[SIMPLE PREDICTION] Basit tahmin de bulunamadı");
-                    WriteToLogFile($"[SIMPLE PREDICTION] Basit tahmin de bulunamadı");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] TrySimplePrediction hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] TrySimplePrediction hatası: {ex.Message}");
             }
 
             return Task.CompletedTask;
@@ -912,8 +842,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[PREVIEW] *** ShowPreview çağrıldı, buffer: '{buffer}' ***");
-                WriteToLogFile($"[PREVIEW] *** ShowPreview çağrıldı, buffer: '{buffer}' ***");
-
                 // Thread safety check
                 if (!Application.Current.Dispatcher.CheckAccess())
                 {
@@ -933,26 +861,21 @@ namespace OtomatikMetinGenisletici.ViewModels
                 if (_previewOverlay == null)
                 {
                     Console.WriteLine("[ERROR] _previewOverlay null, preview gösterilemiyor");
-                    WriteToLogFile("[ERROR] _previewOverlay null, preview gösterilemiyor");
                     return;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] ShowPreview başlangıç hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] ShowPreview başlangıç hatası: {ex.Message}");
                 return;
             }
 
             // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa önizleme gösterme
             bool shouldBeActive = WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled, WindowFilterMode);
             Console.WriteLine($"[PREVIEW] ShouldTextExpansionBeActive: {shouldBeActive}");
-            WriteToLogFile($"[PREVIEW] ShouldTextExpansionBeActive: {shouldBeActive}");
-
             if (!shouldBeActive)
             {
                 Console.WriteLine("[PREVIEW] Pencere filtreleri nedeniyle metin genişletme duraklatıldı");
-                WriteToLogFile("[PREVIEW] Pencere filtreleri nedeniyle metin genişletme duraklatıldı");
                 // Uyarı mesajı gösterme, sadece önizlemeyi gizle
                 HidePreview();
                 return;
@@ -961,7 +884,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             if (string.IsNullOrEmpty(buffer))
             {
                 Console.WriteLine("[PREVIEW] Buffer boş, önizleme gizleniyor");
-                WriteToLogFile("[PREVIEW] Buffer boş, önizleme gizleniyor");
                 HidePreview();
                 return;
             }
@@ -1043,7 +965,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 var suggestion = _currentSmartSuggestions[0];
                 SafeSetPreviewText($"💡 {suggestion.Text} (Ctrl+Space ile kabul et - {suggestion.Confidence:P0})");
                 Console.WriteLine($"[PREVIEW] Akıllı öneri gösteriliyor: {suggestion.Text}");
-                WriteToLogFile($"[PREVIEW] Akıllı öneri gösteriliyor: {suggestion.Text}");
                 return;
             }
 
@@ -1085,21 +1006,18 @@ namespace OtomatikMetinGenisletici.ViewModels
                     {
                         // Tahmin yok - önizlemeyi gizle
                         Console.WriteLine("[PREVIEW] Tahmin yok, önizleme gizleniyor");
-                        WriteToLogFile("[PREVIEW] Tahmin yok, önizleme gizleniyor");
                         HidePreview();
                         return;
                     }
 
                     SafeSetPreviewText(previewText);
                     Console.WriteLine($"[PREVIEW] Sadece tahmin gösteriliyor: {previewText}");
-                    WriteToLogFile($"[PREVIEW] Sadece tahmin gösteriliyor: {previewText}");
                 }
             }
             else
             {
                 // Buffer boş - önizlemeyi gizle
                 Console.WriteLine("[PREVIEW] Buffer boş, önizleme gizleniyor");
-                WriteToLogFile("[PREVIEW] Buffer boş, önizleme gizleniyor");
                 HidePreview();
                 _currentSmartSuggestions.Clear();
 
@@ -1129,8 +1047,6 @@ namespace OtomatikMetinGenisletici.ViewModels
         private async void OnSentenceCompleted(string sentence)
         {
             Console.WriteLine($"[SMART SUGGESTIONS] Cümle tamamlandı: '{sentence}'");
-            WriteToLogFile($"[SMART SUGGESTIONS] Cümle tamamlandı: '{sentence}'");
-
             // Aktif pencere bu uygulama ise veya pencere filtrelerine uymuyorsa işlem yapma
             if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
                 return;
@@ -1138,27 +1054,21 @@ namespace OtomatikMetinGenisletici.ViewModels
             // Cümle temizle - noktalama işaretlerini kaldır
             var cleanSentence = CleanSentence(sentence);
             Console.WriteLine($"[SMART SUGGESTIONS] Temizlenmiş cümle: '{cleanSentence}'");
-            WriteToLogFile($"[SMART SUGGESTIONS] Temizlenmiş cümle: '{cleanSentence}'");
-
             // GELİŞMİŞ ÖĞRENME: Hem kelimeleri hem de kelime çiftlerini öğren
             if (IsSmartSuggestionsEnabled && !string.IsNullOrWhiteSpace(cleanSentence))
             {
                 LearnSimpleWords(cleanSentence);
                 LearnWordPairs(cleanSentence); // Yeni: Kelime çiftlerini öğren
                 Console.WriteLine($"[SMART SUGGESTIONS] Cümle öğrenildi: '{cleanSentence}'");
-                WriteToLogFile($"[SMART SUGGESTIONS] Cümle öğrenildi: '{cleanSentence}'");
-
                 // Akıllı öneriler servisine de öğret
                 try
                 {
                     await _smartSuggestionsService.LearnFromTextAsync(cleanSentence);
                     Console.WriteLine($"[SMART SUGGESTIONS] Cümle akıllı servise öğretildi: '{cleanSentence}'");
-                    WriteToLogFile($"[SMART SUGGESTIONS] Cümle akıllı servise öğretildi: '{cleanSentence}'");
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[ERROR] Akıllı servise öğretme hatası: {ex.Message}");
-                    WriteToLogFile($"[ERROR] Akıllı servise öğretme hatası: {ex.Message}");
                 }
 
                 // Log'a ekle
@@ -1175,8 +1085,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[DEBUG] LearnSimpleWords çağrıldı: '{sentence}'");
-                WriteToLogFile($"[DEBUG] LearnSimpleWords çağrıldı: '{sentence}'");
-
                 // Cümleyi kelimelere ayır
                 var words = sentence.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -1189,17 +1097,14 @@ namespace OtomatikMetinGenisletici.ViewModels
                     {
                         _learnedWords.Add(cleanWord);
                         Console.WriteLine($"[DEBUG] Yeni kelime öğrenildi: '{cleanWord}'");
-                        WriteToLogFile($"[DEBUG] Yeni kelime öğrenildi: '{cleanWord}'");
                     }
                 }
 
                 Console.WriteLine($"[DEBUG] Toplam öğrenilen kelime sayısı: {_learnedWords.Count}");
-                WriteToLogFile($"[DEBUG] Toplam öğrenilen kelime sayısı: {_learnedWords.Count}");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] LearnSimpleWords hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] LearnSimpleWords hatası: {ex.Message}");
             }
         }
 
@@ -1210,9 +1115,6 @@ namespace OtomatikMetinGenisletici.ViewModels
         {
             try
             {
-                Console.WriteLine($"[DEBUG] LearnWordPairs çağrıldı: '{sentence}'");
-                WriteToLogFile($"[DEBUG] LearnWordPairs çağrıldı: '{sentence}'");
-
                 // Cümleyi kelimelere ayır
                 var words = sentence.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -1232,19 +1134,13 @@ namespace OtomatikMetinGenisletici.ViewModels
                         if (!_learnedWordPairs[firstWord].Contains(secondWord))
                         {
                             _learnedWordPairs[firstWord].Add(secondWord);
-                            Console.WriteLine($"[DEBUG] Yeni kelime çifti öğrenildi: '{firstWord}' → '{secondWord}'");
-                            WriteToLogFile($"[DEBUG] Yeni kelime çifti öğrenildi: '{firstWord}' → '{secondWord}'");
                         }
                     }
                 }
-
-                Console.WriteLine($"[DEBUG] Toplam öğrenilen kelime çifti sayısı: {_learnedWordPairs.Count}");
-                WriteToLogFile($"[DEBUG] Toplam öğrenilen kelime çifti sayısı: {_learnedWordPairs.Count}");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] LearnWordPairs hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] LearnWordPairs hatası: {ex.Message}");
             }
         }
 
@@ -1383,15 +1279,12 @@ namespace OtomatikMetinGenisletici.ViewModels
         private bool OnTabPressed()
         {
             Console.WriteLine("[DEBUG] *** Tab tuşu basıldı ***");
-            WriteToLogFile("[DEBUG] *** Tab tuşu basıldı ***");
-
             // Tab artık expansion trigger olarak kullanılmıyor - sadece metin önerileri için
 
             // Eğer pencere filtrelerine uymuyorsa Tab'ı engelleme
             if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
             {
                 Console.WriteLine("[DEBUG] Pencere filtreleri nedeniyle Tab işlemi atlandı - normal Tab işlevi");
-                WriteToLogFile("[DEBUG] Pencere filtreleri nedeniyle Tab işlemi atlandı - normal Tab işlevi");
                 return false; // Tab'ı engelleme
             }
 
@@ -1399,14 +1292,11 @@ namespace OtomatikMetinGenisletici.ViewModels
             if (_currentSmartSuggestions.Count == 0 && string.IsNullOrEmpty(_currentSuggestion))
             {
                 Console.WriteLine("[DEBUG] Öneri yok - Tab tuşunun normal işlevine izin ver");
-                WriteToLogFile("[DEBUG] Öneri yok - Tab tuşunun normal işlevine izin ver");
                 return false; // Tab'ı engelleme - normal işlevine izin ver
             }
 
             // Öneri var - Tab'ı işle ve engelle
             Console.WriteLine("[DEBUG] Öneri var - Tab'ı metin tamamlama için kullan");
-            WriteToLogFile("[DEBUG] Öneri var - Tab'ı metin tamamlama için kullan");
-
             // Async işlemi başlat
             _ = Task.Run(async () => await ProcessTabForTextCompletion());
 
@@ -1422,8 +1312,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 {
                     var suggestion = _currentSmartSuggestions[0];
                     Console.WriteLine($"[DEBUG] *** Tab ile öneri kabul ediliyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
-                    WriteToLogFile($"[DEBUG] *** Tab ile öneri kabul ediliyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
-
                     try
                     {
                         // Öneriyi servis tarafında kabul et (istatistik tutmak için)
@@ -1435,7 +1323,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[ERROR] AcceptSuggestionAsync hatası: {ex.Message}");
-                        WriteToLogFile($"[ERROR] AcceptSuggestionAsync hatası: {ex.Message}");
                     }
 
                     // Önizleme açık kalsın - sadece önerileri temizle
@@ -1465,14 +1352,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _currentSuggestion = "";
 
                     Console.WriteLine("[DEBUG] Tab ile öneri kabul edildi ve temizlendi");
-                    WriteToLogFile("[DEBUG] Tab ile öneri kabul edildi ve temizlendi");
                 }
                 else if (!string.IsNullOrEmpty(_currentSuggestion))
                 {
                     // Güvenli tarafta kalmak için (edge-case) – öneri listesi boş ama string dolu
                     Console.WriteLine($"[DEBUG] *** Tab ile string bazlı öneri kabul ediliyor: {_currentSuggestion} ***");
-                    WriteToLogFile($"[DEBUG] *** Tab ile string bazlı öneri kabul ediliyor: {_currentSuggestion} ***");
-
                     // Önizleme açık kalsın - işlem mesajı göster
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
@@ -1498,7 +1382,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] ProcessTabForTextCompletion hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] ProcessTabForTextCompletion hatası: {ex.Message}");
             }
         }
 
@@ -1743,8 +1626,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[DEBUG] SendTabCharacterToActiveWindow başlıyor");
-                WriteToLogFile($"[DEBUG] SendTabCharacterToActiveWindow başlıyor");
-
                 // AdvancedInputService kullanarak Tab tuşunu simüle et
                 const ushort VK_TAB = 0x09;
                 bool success = await _advancedInputService.SimulateKeyPressAsync(VK_TAB);
@@ -1752,13 +1633,10 @@ namespace OtomatikMetinGenisletici.ViewModels
                 if (success)
                 {
                     Console.WriteLine($"[DEBUG] Tab karakteri başarıyla gönderildi");
-                    WriteToLogFile($"[DEBUG] Tab karakteri başarıyla gönderildi");
                 }
                 else
                 {
                     Console.WriteLine($"[ERROR] Tab karakteri gönderilemedi");
-                    WriteToLogFile($"[ERROR] Tab karakteri gönderilemedi");
-
                     // Fallback: SendKeys kullan
                     await Task.Run(() =>
                     {
@@ -1769,7 +1647,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] SendTabCharacterToActiveWindow hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] SendTabCharacterToActiveWindow hatası: {ex.Message}");
             }
         }
 
@@ -1989,8 +1866,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             {
                 // Önizleme gizleme işlemi
                 Console.WriteLine("[DEBUG] HidePreview çağrıldı");
-                WriteToLogFile("[DEBUG] HidePreview çağrıldı");
-
                 // Thread safety check
                 if (!Application.Current.Dispatcher.CheckAccess())
                 {
@@ -2007,12 +1882,10 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                 _previewOverlay.HidePreview();
                 Console.WriteLine("[PREVIEW] Önizleme gizlendi");
-                WriteToLogFile("[PREVIEW] Önizleme gizlendi");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] HidePreview hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] HidePreview hatası: {ex.Message}");
             }
         }
 
@@ -2027,29 +1900,17 @@ namespace OtomatikMetinGenisletici.ViewModels
         private void UpdateWordCompletionAsync(string partialWord, string fullContext)
         {
             Console.WriteLine($"[DEBUG] *** UpdateWordCompletionAsync çağrıldı ***");
-            WriteToLogFile($"[DEBUG] *** UpdateWordCompletionAsync çağrıldı ***");
             Console.WriteLine($"[DEBUG] Partial word: '{partialWord}'");
-            WriteToLogFile($"[DEBUG] Partial word: '{partialWord}'");
             Console.WriteLine($"[DEBUG] Full context: '{fullContext}'");
-            WriteToLogFile($"[DEBUG] Full context: '{fullContext}'");
-
             try
             {
                 Console.WriteLine($"[DEBUG] Try bloğuna girdi");
-                WriteToLogFile($"[DEBUG] Try bloğuna girdi");
-
                 Console.WriteLine($"[DEBUG] GetSimpleWordCompletions çağrılacak...");
-                WriteToLogFile($"[DEBUG] GetSimpleWordCompletions çağrılacak...");
-
                 // BASİT YAKLAŞIM: Öğrenilen kelimelerden eşleşenleri bul
                 var suggestions = GetSimpleWordCompletions(partialWord);
 
                 Console.WriteLine($"[DEBUG] GetSimpleWordCompletions tamamlandı");
-                WriteToLogFile($"[DEBUG] GetSimpleWordCompletions tamamlandı");
-
                 Console.WriteLine($"[DEBUG] Basit kelime tamamlama önerileri: {suggestions.Count} adet");
-                WriteToLogFile($"[DEBUG] Basit kelime tamamlama önerileri: {suggestions.Count} adet");
-
                 // Mevcut önerileri güncelle
                 _currentSmartSuggestions.Clear();
                 _currentSmartSuggestions.AddRange(suggestions);
@@ -2062,7 +1923,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     {
                         SmartSuggestions.Add(suggestion);
                         Console.WriteLine($"[DEBUG] UI'a eklenen öneri: '{suggestion.Text}'");
-                        WriteToLogFile($"[DEBUG] UI'a eklenen öneri: '{suggestion.Text}'");
                     }
                 });
 
@@ -2071,24 +1931,19 @@ namespace OtomatikMetinGenisletici.ViewModels
                 {
                     _currentSuggestion = suggestions[0].Text;
                     Console.WriteLine($"[DEBUG] Mevcut öneri ayarlandı: '{_currentSuggestion}'");
-                    WriteToLogFile($"[DEBUG] Mevcut öneri ayarlandı: '{_currentSuggestion}'");
                 }
                 else
                 {
                     _currentSuggestion = "";
                     Console.WriteLine($"[DEBUG] Öneri bulunamadı, mevcut öneri temizlendi");
-                    WriteToLogFile($"[DEBUG] Öneri bulunamadı, mevcut öneri temizlendi");
                 }
 
                 Console.WriteLine($"[DEBUG] UpdateWordCompletionAsync tamamlandı, {suggestions.Count} öneri eklendi");
-                WriteToLogFile($"[DEBUG] UpdateWordCompletionAsync tamamlandı, {suggestions.Count} öneri eklendi");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] UpdateWordCompletionAsync hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] UpdateWordCompletionAsync hatası: {ex.Message}");
                 Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
-                WriteToLogFile($"[ERROR] Stack trace: {ex.StackTrace}");
             }
         }
 
@@ -2100,8 +1955,6 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[DEBUG] GetSimpleWordCompletions çağrıldı: '{partialWord}'");
-                WriteToLogFile($"[DEBUG] GetSimpleWordCompletions çağrıldı: '{partialWord}'");
-
                 // Öğrenilen kelimeler listesinde eşleşenleri bul
                 var matches = _learnedWords
                     .Where(word => word.StartsWith(partialWord, StringComparison.OrdinalIgnoreCase) && word.Length > partialWord.Length)
@@ -2110,8 +1963,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     .ToList();
 
                 Console.WriteLine($"[DEBUG] Eşleşen kelimeler: {matches.Count} adet");
-                WriteToLogFile($"[DEBUG] Eşleşen kelimeler: {matches.Count} adet");
-
                 foreach (var match in matches)
                 {
                     suggestions.Add(new SmartSuggestion
@@ -2125,7 +1976,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     });
 
                     Console.WriteLine($"[DEBUG] Öneri eklendi: '{match}'");
-                    WriteToLogFile($"[DEBUG] Öneri eklendi: '{match}'");
                 }
 
                 // Eğer öğrenilen kelimelerden bulamazsa, varsayılan öneriler ekle
@@ -2135,13 +1985,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                     suggestions.AddRange(defaultSuggestions);
 
                     Console.WriteLine($"[DEBUG] Varsayılan öneriler eklendi: {defaultSuggestions.Count} adet");
-                    WriteToLogFile($"[DEBUG] Varsayılan öneriler eklendi: {defaultSuggestions.Count} adet");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] GetSimpleWordCompletions hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] GetSimpleWordCompletions hatası: {ex.Message}");
             }
 
             return suggestions;
@@ -2154,40 +2002,12 @@ namespace OtomatikMetinGenisletici.ViewModels
 
             try
             {
-                Console.WriteLine($"[SIMPLE PREDICTION] GetSimpleNextWordPredictions çağrıldı: '{lastWord}'");
-                WriteToLogFile($"[SIMPLE PREDICTION] GetSimpleNextWordPredictions çağrıldı: '{lastWord}'");
 
-                // Debug: Öğrenilen kelime çiftlerini listele
-                Console.WriteLine($"[DEBUG] Toplam öğrenilen kelime çifti sayısı: {_learnedWordPairs.Count}");
-                WriteToLogFile($"[DEBUG] Toplam öğrenilen kelime çifti sayısı: {_learnedWordPairs.Count}");
-                foreach (var pair in _learnedWordPairs.Take(10))
-                {
-                    Console.WriteLine($"[DEBUG] Kelime çifti: '{pair.Key}' → [{string.Join(", ", pair.Value)}]");
-                    WriteToLogFile($"[DEBUG] Kelime çifti: '{pair.Key}' → [{string.Join(", ", pair.Value)}]");
-                }
-
-                // DEBUG: Basit test verileri ekle (geçici)
-                var testPairs = new Dictionary<string, List<string>>
-                {
-                    {"merhaba", new List<string> {"nasılsın", "arkadaş", "dostum"}},
-                    {"senin", new List<string> {"sorunun", "adın", "işin"}},
-                    {"sorunun", new List<string> {"nedir", "ne", "var"}},
-                    {"nasılsın", new List<string> {"bugün", "neler", "iyi"}},
-                    {"ben", new List<string> {"iyiyim", "çok", "de"}},
-                    {"bugün", new List<string> {"nasıl", "ne", "çok"}},
-                };
-
-                Console.WriteLine($"[DEBUG] Test verileri eklendi: {testPairs.Count} kelime çifti");
-                WriteToLogFile($"[DEBUG] Test verileri eklendi: {testPairs.Count} kelime çifti");
-
-                // Önce öğrenilen kelime çiftlerinden tahmin yap (daha güvenilir)
-                // Case-insensitive arama yap
+                // Öğrenilen kelime çiftlerinden tahmin yap
                 var learnedKey = _learnedWordPairs.Keys.FirstOrDefault(k => k.Equals(lastWord, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(learnedKey))
                 {
                     var learnedPredictions = _learnedWordPairs[learnedKey];
-                    Console.WriteLine($"[LEARNED PREDICTION] '{lastWord}' (key: '{learnedKey}') için {learnedPredictions.Count} öğrenilmiş tahmin bulundu");
-                    WriteToLogFile($"[LEARNED PREDICTION] '{lastWord}' (key: '{learnedKey}') için {learnedPredictions.Count} öğrenilmiş tahmin bulundu");
 
                     foreach (var prediction in learnedPredictions.Take(3))
                     {
@@ -2195,83 +2015,19 @@ namespace OtomatikMetinGenisletici.ViewModels
                         {
                             Text = prediction,
                             Type = SuggestionType.NextWord,
-                            Confidence = 0.9, // Öğrenilmiş tahminler %90 güven
+                            Confidence = 0.9,
                             Context = lastWord,
                             Frequency = 1,
                             LastUsed = DateTime.Now
                         });
-
-                        Console.WriteLine($"[LEARNED PREDICTION] Öğrenilmiş tahmin eklendi: '{prediction}'");
-                        WriteToLogFile($"[LEARNED PREDICTION] Öğrenilmiş tahmin eklendi: '{prediction}'");
                     }
                 }
 
-                // Test verilerinden de tahmin yap (geçici debug)
-                if (testPairs.ContainsKey(lastWord))
-                {
-                    var testPredictions = testPairs[lastWord];
-                    Console.WriteLine($"[TEST PREDICTION] '{lastWord}' için {testPredictions.Count} test tahmin bulundu");
-                    WriteToLogFile($"[TEST PREDICTION] '{lastWord}' için {testPredictions.Count} test tahmin bulundu");
 
-                    foreach (var prediction in testPredictions.Take(2))
-                    {
-                        // Zaten eklenmişse tekrar ekleme
-                        if (!suggestions.Any(s => s.Text.Equals(prediction, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            suggestions.Add(new SmartSuggestion
-                            {
-                                Text = prediction,
-                                Type = SuggestionType.NextWord,
-                                Confidence = 0.8, // Test tahminler %80 güven
-                                Context = lastWord,
-                                Frequency = 1,
-                                LastUsed = DateTime.Now
-                            });
-
-                            Console.WriteLine($"[TEST PREDICTION] Test tahmin eklendi: '{prediction}'");
-                            WriteToLogFile($"[TEST PREDICTION] Test tahmin eklendi: '{prediction}'");
-                        }
-                    }
-                }
-
-                // Test verilerinden de tahmin yap (geçici debug)
-                if (testPairs.ContainsKey(lastWord))
-                {
-                    var testPredictions = testPairs[lastWord];
-                    Console.WriteLine($"[TEST PREDICTION] '{lastWord}' için {testPredictions.Count} test tahmin bulundu");
-                    WriteToLogFile($"[TEST PREDICTION] '{lastWord}' için {testPredictions.Count} test tahmin bulundu");
-
-                    foreach (var prediction in testPredictions.Take(2))
-                    {
-                        // Zaten eklenmişse tekrar ekleme
-                        if (!suggestions.Any(s => s.Text.Equals(prediction, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            suggestions.Add(new SmartSuggestion
-                            {
-                                Text = prediction,
-                                Type = SuggestionType.NextWord,
-                                Confidence = 0.8, // Test tahminler %80 güven
-                                Context = lastWord,
-                                Frequency = 1,
-                                LastUsed = DateTime.Now
-                            });
-
-                            Console.WriteLine($"[TEST PREDICTION] Test tahmin eklendi: '{prediction}'");
-                            WriteToLogFile($"[TEST PREDICTION] Test tahmin eklendi: '{prediction}'");
-                        }
-                    }
-                }
-
-                if (suggestions.Count == 0)
-                {
-                    Console.WriteLine($"[SIMPLE PREDICTION] '{lastWord}' için hiç tahmin bulunamadı");
-                    WriteToLogFile($"[SIMPLE PREDICTION] '{lastWord}' için hiç tahmin bulunamadı");
-                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] GetSimpleNextWordPredictions hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] GetSimpleNextWordPredictions hatası: {ex.Message}");
             }
 
             return suggestions;
@@ -2467,34 +2223,27 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[DEBUG] *** ApplyWordCompletionAsync başlıyor: {fullWord} ***");
-                WriteToLogFile($"[DEBUG] *** ApplyWordCompletionAsync başlıyor: {fullWord} ***");
-
                 // Kullanıcının yazdığı kısmı hesapla
                 string userTypedPart = GetCurrentTypedWord();
                 Console.WriteLine($"[DEBUG] Kullanıcının yazdığı kısım: '{userTypedPart}'");
-                WriteToLogFile($"[DEBUG] Kullanıcının yazdığı kısım: '{userTypedPart}'");
-
                 // Sadece eksik kısmı hesapla
                 string remainingPart = "";
                 if (!string.IsNullOrEmpty(userTypedPart) && fullWord.StartsWith(userTypedPart, StringComparison.OrdinalIgnoreCase))
                 {
                     remainingPart = fullWord.Substring(userTypedPart.Length);
                     Console.WriteLine($"[DEBUG] Eksik kısım: '{remainingPart}'");
-                    WriteToLogFile($"[DEBUG] Eksik kısım: '{remainingPart}'");
                 }
                 else
                 {
                     // Eğer eşleşme yoksa tam kelimeyi kullan
                     remainingPart = fullWord;
                     Console.WriteLine($"[DEBUG] Eşleşme yok, tam kelime kullanılıyor: '{remainingPart}'");
-                    WriteToLogFile($"[DEBUG] Eşleşme yok, tam kelime kullanılıyor: '{remainingPart}'");
                 }
 
                 // Eğer eksik kısım yoksa hiçbir şey yapma
                 if (string.IsNullOrEmpty(remainingPart))
                 {
                     Console.WriteLine($"[DEBUG] Eksik kısım yok, işlem atlandı");
-                    WriteToLogFile($"[DEBUG] Eksik kısım yok, işlem atlandı");
                     return;
                 }
 
@@ -2504,41 +2253,31 @@ namespace OtomatikMetinGenisletici.ViewModels
                     try
                     {
                         Console.WriteLine($"[DEBUG] Sadece eksik kısım yazılıyor: '{remainingPart}'");
-                        WriteToLogFile($"[DEBUG] Sadece eksik kısım yazılıyor: '{remainingPart}'");
-
                         // Clipboard'ı geçici olarak kaydet
                         string originalClipboard = string.Empty;
                         try
                         {
                             originalClipboard = System.Windows.Clipboard.GetText();
                             Console.WriteLine($"[DEBUG] Orijinal clipboard kaydedildi: '{originalClipboard}'");
-                            WriteToLogFile($"[DEBUG] Orijinal clipboard kaydedildi: '{originalClipboard}'");
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine($"[DEBUG] Clipboard okuma hatası: {ex.Message}");
-                            WriteToLogFile($"[DEBUG] Clipboard okuma hatası: {ex.Message}");
                         }
 
                         // Sadece eksik kısmı clipboard'a koy
                         Console.WriteLine($"[DEBUG] Clipboard'a eksik kısım yazılıyor: '{remainingPart}'");
-                        WriteToLogFile($"[DEBUG] Clipboard'a eksik kısım yazılıyor: '{remainingPart}'");
                         System.Windows.Clipboard.SetText(remainingPart);
                         Thread.Sleep(10);
 
                         // Ctrl+V ile yapıştır (eksik kısmı ekler)
                         Console.WriteLine($"[DEBUG] Ctrl+V gönderiliyor...");
-                        WriteToLogFile($"[DEBUG] Ctrl+V gönderiliyor...");
                         SendCtrlV();
 
                         // Kelime tamamlandı - boşluk eklenmez, kullanıcı isterse space tuşuna basabilir
                         Thread.Sleep(50); // Kısa bekleme
                         Console.WriteLine($"[DEBUG] Kelime tamamlandı - boşluk eklenmedi");
-                        WriteToLogFile($"[DEBUG] Kelime tamamlandı - boşluk eklenmedi");
-
                         Console.WriteLine($"[DEBUG] *** ApplyWordCompletionAsync tamamlandı: {fullWord} (boşluk yok) ***");
-                        WriteToLogFile($"[DEBUG] *** ApplyWordCompletionAsync tamamlandı: {fullWord} (boşluk yok) ***");
-
                         // Kelime tamamlandıktan sonra hemen yeni context ile sonraki kelimeyi tahmin et
                         Task.Run(async () =>
                         {
@@ -2550,8 +2289,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                                 // Yeni context oluştur (sadece eksik kısım eklendi - boşluk yok)
                                 var newContext = _contextBuffer + remainingPart;
                                 Console.WriteLine($"[DEBUG] *** TAB SONRASI YENİ TAHMİN *** Context: '{newContext}'");
-                                WriteToLogFile($"[DEBUG] *** TAB SONRASI YENİ TAHMİN *** Context: '{newContext}'");
-
                                 // Context buffer'ı güncelle
                                 _contextBuffer = newContext;
 
@@ -2567,14 +2304,12 @@ namespace OtomatikMetinGenisletici.ViewModels
                                         var previewText = $"🔮 {_currentSuggestion}";
                                         SafeSetPreviewText(previewText);
                                         Console.WriteLine($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
-                                        WriteToLogFile($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
                                     });
                                 }
                             }
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"[ERROR] Kelime sonrası tahmin hatası: {ex.Message}");
-                                WriteToLogFile($"[ERROR] Kelime sonrası tahmin hatası: {ex.Message}");
                             }
                         });
 
@@ -2590,30 +2325,25 @@ namespace OtomatikMetinGenisletici.ViewModels
                                     {
                                         System.Windows.Clipboard.SetText(originalClipboard);
                                         Console.WriteLine($"[DEBUG] Orijinal clipboard geri yüklendi");
-                                        WriteToLogFile($"[DEBUG] Orijinal clipboard geri yüklendi");
                                     }
                                 });
                             }
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"[DEBUG] Clipboard geri yükleme hatası: {ex.Message}");
-                                WriteToLogFile($"[DEBUG] Clipboard geri yükleme hatası: {ex.Message}");
                             }
                         });
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[ERROR] Kelime tamamlama iç hatası: {ex.Message}");
-                        WriteToLogFile($"[ERROR] Kelime tamamlama iç hatası: {ex.Message}");
                     }
                 });
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] Kelime tamamlama hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] Kelime tamamlama hatası: {ex.Message}");
                 Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
-                WriteToLogFile($"[ERROR] Stack trace: {ex.StackTrace}");
             }
         }
 
@@ -2622,33 +2352,26 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[DEBUG] *** ApplySuggestionTextAsync başlıyor: {suggestionText} ***");
-                WriteToLogFile($"[DEBUG] *** ApplySuggestionTextAsync başlıyor: {suggestionText} ***");
-
                 // UI thread'de çalıştır (STA gerekli)
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     try
                     {
                         Console.WriteLine($"[DEBUG] Metin ekleme: {suggestionText}");
-                        WriteToLogFile($"[DEBUG] Metin ekleme: {suggestionText}");
-
                         // Clipboard'ı geçici olarak kaydet
                         string originalClipboard = string.Empty;
                         try
                         {
                             originalClipboard = System.Windows.Clipboard.GetText();
                             Console.WriteLine($"[DEBUG] Orijinal clipboard kaydedildi: '{originalClipboard}'");
-                            WriteToLogFile($"[DEBUG] Orijinal clipboard kaydedildi: '{originalClipboard}'");
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine($"[DEBUG] Clipboard okuma hatası: {ex.Message}");
-                            WriteToLogFile($"[DEBUG] Clipboard okuma hatası: {ex.Message}");
                         }
 
                         // Önce boşluk ekle, sonra öneri metnini ekle
                         Console.WriteLine($"[DEBUG] Önce boşluk ekleniyor...");
-                        WriteToLogFile($"[DEBUG] Önce boşluk ekleniyor...");
                         SendSpace();
 
                         // Kısa bekleme
@@ -2656,7 +2379,6 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                         // Öneri metnini clipboard'a koy
                         Console.WriteLine($"[DEBUG] Clipboard'a metin yazılıyor: '{suggestionText}'");
-                        WriteToLogFile($"[DEBUG] Clipboard'a metin yazılıyor: '{suggestionText}'");
                         System.Windows.Clipboard.SetText(suggestionText);
 
                         // Kısa bekleme
@@ -2664,12 +2386,9 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                         // Ctrl+V ile yapıştır
                         Console.WriteLine($"[DEBUG] Ctrl+V gönderiliyor...");
-                        WriteToLogFile($"[DEBUG] Ctrl+V gönderiliyor...");
                         SendCtrlV();
 
                         Console.WriteLine($"[DEBUG] *** ApplySuggestionTextAsync tamamlandı: boşluk + {suggestionText} ***");
-                        WriteToLogFile($"[DEBUG] *** ApplySuggestionTextAsync tamamlandı: boşluk + {suggestionText} ***");
-
                         // ÖNEMLİ: Öneri eklendikten sonra HEMEN yeni context ile sonraki kelimeyi tahmin et
                         Task.Run(async () =>
                         {
@@ -2681,16 +2400,12 @@ namespace OtomatikMetinGenisletici.ViewModels
                                 // Yeni context oluştur (boşluk + eklenen öneri)
                                 var newContext = _contextBuffer + " " + suggestionText;
                                 Console.WriteLine($"[DEBUG] *** TAB SONRASI YENİ TAHMİN BAŞLIYOR *** Context: '{newContext}'");
-                                WriteToLogFile($"[DEBUG] *** TAB SONRASI YENİ TAHMİN BAŞLIYOR *** Context: '{newContext}'");
-
                                 // Context buffer'ı güncelle
                                 _contextBuffer = newContext;
 
                                 // Kelimeleri ayır ve analiz et
                                 var words = newContext.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
                                 Console.WriteLine($"[DEBUG] TAB SONRASI - Kelime sayısı: {words.Length}, Son kelime: '{(words.Length > 0 ? words.Last() : "YOK")}'");
-                                WriteToLogFile($"[DEBUG] TAB SONRASI - Kelime sayısı: {words.Length}, Son kelime: '{(words.Length > 0 ? words.Last() : "YOK")}'");
-
                                 // HEMEN yeni tahmin yap - hem akıllı servis hem de öğrendiği verilerle
                                 await ProcessSmartSuggestionsAsync(newContext);
 
@@ -2698,8 +2413,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                                 if (_currentSmartSuggestions.Count == 0 && words.Length > 0)
                                 {
                                     Console.WriteLine($"[DEBUG] TAB SONRASI - Akıllı servis sonuç vermedi, öğrendiği verilerle tahmin yapılıyor");
-                                    WriteToLogFile($"[DEBUG] TAB SONRASI - Akıllı servis sonuç vermedi, öğrendiği verilerle tahmin yapılıyor");
-
                                     var lastWord = words.Last().ToLower();
                                     var simplePredictions = GetSimpleNextWordPredictions(lastWord);
 
@@ -2710,8 +2423,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                                         _currentSmartSuggestions.AddRange(simplePredictions);
 
                                         Console.WriteLine($"[DEBUG] TAB SONRASI - Basit tahmin bulundu: '{_currentSuggestion}'");
-                                        WriteToLogFile($"[DEBUG] TAB SONRASI - Basit tahmin bulundu: '{_currentSuggestion}'");
-
                                         // UI'ı güncelle
                                         Application.Current.Dispatcher.Invoke(() =>
                                         {
@@ -2736,14 +2447,12 @@ namespace OtomatikMetinGenisletici.ViewModels
                                         var previewText = $"🔮 {_currentSuggestion}";
                                         SafeSetPreviewText(previewText);
                                         Console.WriteLine($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
-                                        WriteToLogFile($"[DEBUG] Tab sonrası önizleme güncellendi: {previewText}");
                                     });
                                 }
                             }
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"[ERROR] Öneri sonrası tahmin hatası: {ex.Message}");
-                                WriteToLogFile($"[ERROR] Öneri sonrası tahmin hatası: {ex.Message}");
                             }
                         });
 
@@ -2759,30 +2468,25 @@ namespace OtomatikMetinGenisletici.ViewModels
                                     {
                                         System.Windows.Clipboard.SetText(originalClipboard);
                                         Console.WriteLine($"[DEBUG] Orijinal clipboard geri yüklendi");
-                                        WriteToLogFile($"[DEBUG] Orijinal clipboard geri yüklendi");
                                     }
                                 });
                             }
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"[DEBUG] Clipboard geri yükleme hatası: {ex.Message}");
-                                WriteToLogFile($"[DEBUG] Clipboard geri yükleme hatası: {ex.Message}");
                             }
                         });
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[ERROR] Metin ekleme iç hatası: {ex.Message}");
-                        WriteToLogFile($"[ERROR] Metin ekleme iç hatası: {ex.Message}");
                     }
                 });
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] Metin uygulama hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] Metin uygulama hatası: {ex.Message}");
                 Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
-                WriteToLogFile($"[ERROR] Stack trace: {ex.StackTrace}");
             }
         }
 
@@ -2833,7 +2537,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                     {
                         var lastWord = words[words.Length - 1];
                         Console.WriteLine($"[DEBUG] Context buffer'dan son kelime: '{lastWord}'");
-                        WriteToLogFile($"[DEBUG] Context buffer'dan son kelime: '{lastWord}'");
                         return lastWord;
                     }
                 }
@@ -2842,13 +2545,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                 // Bu kısım için KeyboardHookService'den son yazılan kelimeyi almamız gerekiyor
                 // Şimdilik basit bir yaklaşım kullanalım
                 Console.WriteLine($"[DEBUG] Context buffer boş, boş string döndürülüyor");
-                WriteToLogFile($"[DEBUG] Context buffer boş, boş string döndürülüyor");
                 return "";
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] GetCurrentTypedWord hatası: {ex.Message}");
-                WriteToLogFile($"[ERROR] GetCurrentTypedWord hatası: {ex.Message}");
                 return "";
             }
         }
@@ -3640,6 +3341,10 @@ namespace OtomatikMetinGenisletici.ViewModels
             _previewOverlay?.Close();
             _shortcutPreviewWindow?.Close();
 
+            // Window focus monitoring event'ini temizle
+            WindowHelper.WindowFocusChanged -= OnWindowFocusChanged;
+            WindowHelper.StopWindowFocusMonitoring();
+
             // Preview otomatik kapanma timer'ını temizle
             if (_previewAutoHideTimer != null)
             {
@@ -3796,6 +3501,40 @@ namespace OtomatikMetinGenisletici.ViewModels
             OnUdfEditorVisibilityChanged(isVisible);
         }
 
+        /// <summary>
+        /// Pencere odak değişikliği algılandığında çağrılır
+        /// </summary>
+        private void OnWindowFocusChanged(string newWindowTitle, string newProcessName)
+        {
+            try
+            {
+                Console.WriteLine($"[FOCUS] OnWindowFocusChanged: '{newWindowTitle}' (Process: {newProcessName})");
+
+                // Eğer yeni pencere Döküman Editörü veya .UDF içeriyorsa ve önizleme senkronize ise
+                if ((newWindowTitle.Contains("Döküman Editörü") || newWindowTitle.Contains(".UDF")) &&
+                    _isPreviewSyncWithMainWindowEnabled)
+                {
+                    Console.WriteLine("[FOCUS] Uygun pencere açıldı, önizleme penceresi yeniden gösteriliyor");
+
+                    // Metin genişletme aktif olmalı
+                    bool shouldBeActive = WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled, WindowFilterMode);
+                    if (shouldBeActive && !string.IsNullOrEmpty(_contextBuffer))
+                    {
+                        // UI thread'de çalıştır
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            // Önizleme penceresini yeniden göster
+                            ShowPreview(_contextBuffer);
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] OnWindowFocusChanged hatası: {ex.Message}");
+            }
+        }
+
         public void OnUdfEditorVisibilityChanged(bool isVisible)
         {
             try
@@ -3838,3 +3577,4 @@ namespace OtomatikMetinGenisletici.ViewModels
 
     }
 }
+
