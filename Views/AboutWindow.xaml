@@ -38,7 +38,8 @@
 
                 <!-- Version -->
                 <TextBlock Grid.Row="1"
-                           Text="Sürüm 2.0.0 (.NET 8)"
+                           x:Name="VersionTextBlock"
+                           Text="Sürüm 1.1.4 (.NET 8)"
                            FontSize="18"
                            Foreground="White"
                            Opacity="0.9"

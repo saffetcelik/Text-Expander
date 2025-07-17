@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -62,6 +63,9 @@ public partial class MainWindow : Window
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             DataContext = _viewModel;
+
+            // Pencere başlığına versiyon numarasını ekle
+            SetWindowTitleWithVersion();
 
             Console.WriteLine("[DEBUG] NotificationService ayarlanıyor...");
             // NotificationService'e bu MainWindow referansını ver
@@ -504,6 +508,37 @@ public partial class MainWindow : Window
         // Minimize to tray instead of closing
         e.Cancel = true;
         WindowState = WindowState.Minimized;
+    }
+
+    /// <summary>
+    /// Pencere başlığına versiyon numarasını ekler
+    /// </summary>
+    private void SetWindowTitleWithVersion()
+    {
+        try
+        {
+            // Assembly'den versiyon bilgisini al
+            var assembly = Assembly.GetExecutingAssembly();
+            var version = assembly.GetName().Version;
+
+            if (version != null)
+            {
+                // Versiyon formatı: Major.Minor.Build (Revision'ı gösterme)
+                string versionString = $"{version.Major}.{version.Minor}.{version.Build}";
+                Title = $"Gelişmiş Otomatik Metin Genişletici v{versionString}";
+                Console.WriteLine($"[DEBUG] Pencere başlığı ayarlandı: {Title}");
+            }
+            else
+            {
+                Title = "Gelişmiş Otomatik Metin Genişletici";
+                Console.WriteLine("[DEBUG] Versiyon bilgisi alınamadı, varsayılan başlık kullanıldı");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] SetWindowTitleWithVersion hatası: {ex.Message}");
+            Title = "Gelişmiş Otomatik Metin Genişletici";
+        }
     }
 
     protected override void OnClosed(EventArgs e)
