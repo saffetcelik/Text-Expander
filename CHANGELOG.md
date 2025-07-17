@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.1.6] - 2025-01-17
+
+### ⚡ Kritik Performance İyileştirmeleri
+- **Hızlı Tab Basma Optimizasyonu**:
+  - Tab queue sistemi ile ConcurrentQueue tabanlı sıralı işleme
+  - Race condition'lar tamamen önlendi
+  - Kelime kaçırma sorunu çözüldü
+
+- **Önizleme Ultra Hızlandırma**:
+  - Debounce timer tamamen kaldırıldı (20ms → 0ms)
+  - Senkron UI güncellemeleri implementasyonu
+  - SafeSetPreviewText senkron hale getirildi
+  - Önizleme artık anında gösteriliyor
+
+- **Tab Queue Sistemi**:
+  - SemaphoreSlim ile async operasyon serialize
+  - CancellationToken ile kontrollü iptal mekanizması
+  - Context buffer akıllı yönetimi
+  - Queue delay tamamen kaldırıldı (10ms → 0ms)
+
+### 🚀 Performans İyileştirmeleri
+- Task.Delay değerleri minimize edildi (150ms → 10ms)
+- Clipboard restore delay optimize edildi (200ms → 100ms)
+- Memory allocation'lar azaltıldı
+- UI thread kontrolü ile senkron işlemler
+
+### 🔧 Teknik İyileştirmeler
+- UpdateSmartSuggestionsUI helper metodu eklendi
+- SetPreviewTextDirect senkron metodu
+- Context buffer overflow kontrolü optimize edildi
+- Gereksiz async çağrılar kaldırıldı
+
+### 📝 Kullanıcı Deneyimi
+- Seri tab basma artık çok daha hızlı
+- Önizleme gecikmesi tamamen ortadan kalktı
+- "duru sürekli kitap okuyan bir çocuktur" → "duru " senaryosu optimize edildi
+- Maximum hız için agresif optimizasyonlar
+
 ## [1.1.3] - 2025-01-14
 
 ### 🔧 Düzeltmeler

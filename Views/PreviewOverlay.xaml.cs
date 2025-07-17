@@ -65,9 +65,8 @@ namespace OtomatikMetinGenisletici.Views
             public int Bottom;
         }
 
-        private DispatcherTimer? _debounceTimer;
-        private string _pendingText = "";
-        private const int DEBOUNCE_DELAY_MS = 50; // Daha hızlı response için azaltıldı
+        private string _lastSetText = "";
+        // Debounce timer kaldırıldı - senkron işlem için
         private IImageRecognitionService? _imageRecognitionService;
 
         // UDF editörü senkronizasyon için event - artık kullanılmıyor, gerçek UDF tracking kullanıyoruz
@@ -96,8 +95,7 @@ namespace OtomatikMetinGenisletici.Views
                 // Gizli başlat - hızlı
                 Visibility = Visibility.Hidden;
 
-                // Timer'ı lazy initialize et
-                InitializeTimerLazy();
+                // Timer kaldırıldı - senkron işlem için
 
                 // Event handler'ları lazy initialize et
                 InitializeEventHandlersLazy();
@@ -135,29 +133,10 @@ namespace OtomatikMetinGenisletici.Views
             }
         }
 
-        private void InitializeTimerLazy()
-        {
-            // Timer'ı ilk kullanımda oluştur
-            if (_debounceTimer == null)
-            {
-                _debounceTimer = new DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMilliseconds(DEBOUNCE_DELAY_MS)
-                };
-                _debounceTimer.Tick += OnDebounceTimerTick;
-            }
-        }
-
         private void InitializeEventHandlersLazy()
         {
             // Event handler'ları ilk kullanımda ekle
             KeyDown += PreviewOverlay_KeyDown;
-        }
-
-        private void OnDebounceTimerTick(object? sender, EventArgs e)
-        {
-            _debounceTimer?.Stop();
-            ProcessTextUpdate(_pendingText);
         }
 
         private void ProcessTextUpdate(string text)
@@ -302,8 +281,18 @@ namespace OtomatikMetinGenisletici.Views
         {
             try
             {
-                // Debounce timer'ı kaldırıp direkt işleme geçiyoruz (test projesindeki gibi)
-                ProcessTextUpdate(text ?? "");
+                var normalizedText = text ?? "";
+
+                // Aynı text için tekrar işlem yapma - performance optimization
+                if (_lastSetText == normalizedText)
+                {
+                    return;
+                }
+
+                _lastSetText = normalizedText;
+
+                // Hızlı tab basma için direkt işleme geç
+                ProcessTextUpdate(normalizedText);
             }
             catch (Exception ex)
             {

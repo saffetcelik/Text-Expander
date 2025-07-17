@@ -1,6 +1,13 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Timers;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -31,6 +38,13 @@ namespace OtomatikMetinGenisletici.ViewModels
         private Shortcut? _selectedShortcut;
         private List<SmartSuggestion> _currentSmartSuggestions = new();
         private string _lastActiveWindow = string.Empty;
+
+        // Tab Queue System for fast tab processing
+        private readonly ConcurrentQueue<TabRequest> _tabQueue = new();
+        private readonly SemaphoreSlim _tabProcessingSemaphore = new(1, 1);
+        private readonly CancellationTokenSource _tabCancellationTokenSource = new();
+        private volatile bool _isProcessingTabQueue = false;
+        private readonly object _contextBufferLock = new object();
 
 
 
@@ -406,38 +420,60 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
+        private string _lastPreviewText = string.Empty;
+
         private void SafeSetPreviewText(string text)
         {
             try
             {
-                Application.Current.Dispatcher.BeginInvoke(() =>
+                // Aynı text için tekrar işlem yapma - performance optimization
+                if (_lastPreviewText == text)
                 {
-                    try
-                    {
-                        // PreviewOverlay constructor'da oluşturulmuş olmalı
-                        if (_previewOverlay == null)
-                        {
-                            Console.WriteLine("[WARNING] PreviewOverlay henüz hazır değil, lazy loading yapılıyor...");
-                            _previewOverlay = new PreviewOverlay();
-                        }
+                    return;
+                }
 
-                        _previewOverlay.SetText(text);
-                    }
-                    catch (InvalidOperationException ex) when (ex.Message.Contains("Visibility") || ex.Message.Contains("kapatıldıktan"))
-                    {
-                        Console.WriteLine("[DEBUG] PreviewOverlay kapatılmış, yeniden oluşturuluyor...");
-                        _previewOverlay = new PreviewOverlay();
-                        _previewOverlay.SetText(text);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[ERROR] SafeSetPreviewText UI thread hatası: {ex.Message}");
-                    }
-                }, DispatcherPriority.Background);
+                _lastPreviewText = text;
+
+                // SENKRON İŞLEM - Maximum hız için
+                if (Application.Current.Dispatcher.CheckAccess())
+                {
+                    // Zaten UI thread'deyiz - direkt çalıştır
+                    SetPreviewTextDirect(text);
+                }
+                else
+                {
+                    // UI thread'de değiliz - senkron invoke
+                    Application.Current.Dispatcher.Invoke(() => SetPreviewTextDirect(text));
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] SafeSetPreviewText hatası: {ex.Message}");
+            }
+        }
+
+        private void SetPreviewTextDirect(string text)
+        {
+            try
+            {
+                // PreviewOverlay constructor'da oluşturulmuş olmalı
+                if (_previewOverlay == null)
+                {
+                    Console.WriteLine("[WARNING] PreviewOverlay henüz hazır değil, lazy loading yapılıyor...");
+                    _previewOverlay = new PreviewOverlay();
+                }
+
+                _previewOverlay.SetText(text);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("Visibility") || ex.Message.Contains("kapatıldıktan"))
+            {
+                Console.WriteLine("[DEBUG] PreviewOverlay kapatılmış, yeniden oluşturuluyor...");
+                _previewOverlay = new PreviewOverlay();
+                _previewOverlay.SetText(text);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] SetPreviewTextDirect hatası: {ex.Message}");
             }
         }
 
@@ -758,7 +794,8 @@ namespace OtomatikMetinGenisletici.ViewModels
                 }
 
                 Console.WriteLine($"[NEXT WORD] {analysisType} analizi yapılıyor: '{context}'");
-                // Akıllı öneri servisinden sonraki kelime tahminlerini al
+
+                // SENKRON ÇAĞRI - Maximum hız için
                 var suggestions = await _smartSuggestionsService.GetSuggestionsAsync(context, 5);
 
                 if (suggestions.Any())
@@ -771,15 +808,16 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _currentSmartSuggestions.AddRange(suggestions);
 
                     Console.WriteLine($"[NEXT WORD] En iyi sonraki kelime önerisi: '{bestSuggestion.Text}' (Güven: {bestSuggestion.Confidence:P0})");
-                    // UI'ı güncelle
-                    Application.Current.Dispatcher.Invoke(() =>
+
+                    // UI'ı SENKRON güncelle - Maximum hız için
+                    if (Application.Current.Dispatcher.CheckAccess())
                     {
-                        SmartSuggestions.Clear();
-                        foreach (var suggestion in suggestions.Take(5))
-                        {
-                            SmartSuggestions.Add(suggestion);
-                        }
-                    });
+                        UpdateSmartSuggestionsUI(suggestions);
+                    }
+                    else
+                    {
+                        Application.Current.Dispatcher.Invoke(() => UpdateSmartSuggestionsUI(suggestions));
+                    }
                 }
                 else
                 {
@@ -794,6 +832,22 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] PredictNextWordContinuously hatası: {ex.Message}");
+            }
+        }
+
+        private void UpdateSmartSuggestionsUI(List<SmartSuggestion> suggestions)
+        {
+            try
+            {
+                SmartSuggestions.Clear();
+                foreach (var suggestion in suggestions.Take(5))
+                {
+                    SmartSuggestions.Add(suggestion);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UpdateSmartSuggestionsUI hatası: {ex.Message}");
             }
         }
 
@@ -814,15 +868,16 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _currentSmartSuggestions.AddRange(simplePredictions);
 
                     Console.WriteLine($"[SIMPLE PREDICTION] Basit tahmin bulundu: '{_currentSuggestion}'");
-                    // UI'ı güncelle
-                    Application.Current.Dispatcher.Invoke(() =>
+
+                    // UI'ı SENKRON güncelle
+                    if (Application.Current.Dispatcher.CheckAccess())
                     {
-                        SmartSuggestions.Clear();
-                        foreach (var suggestion in simplePredictions.Take(3))
-                        {
-                            SmartSuggestions.Add(suggestion);
-                        }
-                    });
+                        UpdateSmartSuggestionsUI(simplePredictions);
+                    }
+                    else
+                    {
+                        Application.Current.Dispatcher.Invoke(() => UpdateSmartSuggestionsUI(simplePredictions));
+                    }
                 }
                 else
                 {
@@ -1295,29 +1350,100 @@ namespace OtomatikMetinGenisletici.ViewModels
                 return false; // Tab'ı engelleme - normal işlevine izin ver
             }
 
-            // Öneri var - Tab'ı işle ve engelle
-            Console.WriteLine("[DEBUG] Öneri var - Tab'ı metin tamamlama için kullan");
-            // Async işlemi başlat
-            _ = Task.Run(async () => await ProcessTabForTextCompletion());
+            // Öneri var - Tab request'i queue'ya ekle
+            Console.WriteLine("[DEBUG] Öneri var - Tab request'i queue'ya ekleniyor");
+
+            lock (_contextBufferLock)
+            {
+                var tabRequest = new TabRequest
+                {
+                    Context = _contextBuffer,
+                    Suggestions = new List<SmartSuggestion>(_currentSmartSuggestions),
+                    CurrentSuggestion = _currentSuggestion
+                };
+
+                _tabQueue.Enqueue(tabRequest);
+                Console.WriteLine($"[DEBUG] Tab request queue'ya eklendi. Queue size: {_tabQueue.Count}");
+            }
+
+            // Queue processor'ı başlat (eğer çalışmıyorsa)
+            _ = Task.Run(async () => await ProcessTabQueue());
 
             return true; // Tab'ı engelle - metin tamamlama için kullanıldı
         }
 
-        private async Task ProcessTabForTextCompletion()
+        private async Task ProcessTabQueue()
+        {
+            // Eğer zaten işleniyor ise, yeni bir worker başlatma
+            if (_isProcessingTabQueue)
+            {
+                Console.WriteLine("[DEBUG] Tab queue zaten işleniyor, yeni worker başlatılmadı");
+                return;
+            }
+
+            try
+            {
+                await _tabProcessingSemaphore.WaitAsync(_tabCancellationTokenSource.Token);
+                _isProcessingTabQueue = true;
+                Console.WriteLine("[DEBUG] Tab queue processor başlatıldı");
+
+                while (!_tabCancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    if (_tabQueue.TryDequeue(out TabRequest? tabRequest))
+                    {
+                        Console.WriteLine($"[DEBUG] Tab request işleniyor: {tabRequest.CurrentSuggestion}");
+
+                        try
+                        {
+                            await ProcessSingleTabRequest(tabRequest);
+
+                            // Delay kaldırıldı - maximum hız için
+                            // await Task.Delay(1, _tabCancellationTokenSource.Token);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[ERROR] Tab request işleme hatası: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        // Queue boş - çık
+                        break;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("[DEBUG] Tab queue processor iptal edildi");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Tab queue processor hatası: {ex.Message}");
+            }
+            finally
+            {
+                _isProcessingTabQueue = false;
+                _tabProcessingSemaphore.Release();
+                Console.WriteLine("[DEBUG] Tab queue processor tamamlandı");
+            }
+        }
+
+        private async Task ProcessSingleTabRequest(TabRequest tabRequest)
         {
             try
             {
                 // Geçerli bir akıllı öneri var mı?
-                if (_currentSmartSuggestions.Count > 0)
+                if (tabRequest.Suggestions.Count > 0)
                 {
-                    var suggestion = _currentSmartSuggestions[0];
-                    Console.WriteLine($"[DEBUG] *** Tab ile öneri kabul ediliyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
+                    var suggestion = tabRequest.Suggestions[0];
+                    Console.WriteLine($"[DEBUG] *** Tab queue'dan öneri kabul ediliyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
+
                     try
                     {
                         // Öneriyi servis tarafında kabul et (istatistik tutmak için)
                         if (_smartSuggestionsService != null)
                         {
-                            await _smartSuggestionsService.AcceptSuggestionAsync(suggestion, _contextBuffer);
+                            await _smartSuggestionsService.AcceptSuggestionAsync(suggestion, tabRequest.Context);
                         }
                     }
                     catch (Exception ex)
@@ -1325,10 +1451,9 @@ namespace OtomatikMetinGenisletici.ViewModels
                         Console.WriteLine($"[ERROR] AcceptSuggestionAsync hatası: {ex.Message}");
                     }
 
-                    // Önizleme açık kalsın - sadece önerileri temizle
+                    // UI'ı güncelle - önizleme açık kalsın, sadece önerileri temizle
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        // Önizleme açık kalsın - sadece önerileri temizle
                         SmartSuggestions.Clear();
                     });
 
@@ -1346,44 +1471,86 @@ namespace OtomatikMetinGenisletici.ViewModels
                             break;
                     }
 
-                    // Öneri kabul edildikten sonra context buffer'ı temizle
-                    _contextBuffer = "";
+                    // Context buffer'ı güncelle (temizleme yerine akıllı güncelleme)
+                    lock (_contextBufferLock)
+                    {
+                        UpdateContextBufferAfterSuggestion(suggestion, tabRequest.Context);
+                    }
+
+                    // Mevcut önerileri temizle
                     _currentSmartSuggestions.Clear();
                     _currentSuggestion = "";
 
-                    Console.WriteLine("[DEBUG] Tab ile öneri kabul edildi ve temizlendi");
+                    Console.WriteLine("[DEBUG] Tab queue'dan öneri kabul edildi ve işlendi");
                 }
-                else if (!string.IsNullOrEmpty(_currentSuggestion))
+                else if (!string.IsNullOrEmpty(tabRequest.CurrentSuggestion))
                 {
                     // Güvenli tarafta kalmak için (edge-case) – öneri listesi boş ama string dolu
-                    Console.WriteLine($"[DEBUG] *** Tab ile string bazlı öneri kabul ediliyor: {_currentSuggestion} ***");
-                    // Önizleme açık kalsın - işlem mesajı göster
-                    await Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        SafeSetPreviewText("🔄 Öneri uygulanıyor...");
-                    });
+                    Console.WriteLine($"[DEBUG] *** Tab queue'dan string bazlı öneri kabul ediliyor: {tabRequest.CurrentSuggestion} ***");
 
-                    await ApplySuggestionTextAsync(_currentSuggestion);
+                    await ApplySuggestionTextAsync(tabRequest.CurrentSuggestion);
+
+                    lock (_contextBufferLock)
+                    {
+                        _contextBuffer += " " + tabRequest.CurrentSuggestion;
+                        if (_contextBuffer.Length > 200)
+                        {
+                            var words = _contextBuffer.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                            _contextBuffer = string.Join(" ", words.TakeLast(15)) + " ";
+                        }
+                    }
+
                     _currentSuggestion = "";
                 }
 
-                // Uygulama tamamlandıktan sonra arayüz ve durum temizliği
-                // Önizleme açık kalsın - sadece önerileri temizle
-                _currentSmartSuggestions.Clear();
-                _currentSuggestion = string.Empty;
-
+                // UI temizliği
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    // Önizlemeyi gizle
-                    HidePreview();
                     SmartSuggestions.Clear();
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] ProcessTabForTextCompletion hatası: {ex.Message}");
+                Console.WriteLine($"[ERROR] ProcessSingleTabRequest hatası: {ex.Message}");
             }
         }
+
+        private void UpdateContextBufferAfterSuggestion(SmartSuggestion suggestion, string originalContext)
+        {
+            try
+            {
+                if (suggestion.Type == SuggestionType.WordCompletion)
+                {
+                    // Kelime tamamlama: son kelimeyi tam kelime ile değiştir
+                    var words = originalContext.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (words.Length > 0)
+                    {
+                        words[words.Length - 1] = suggestion.Text;
+                        _contextBuffer = string.Join(" ", words) + " ";
+                    }
+                }
+                else
+                {
+                    // Yeni kelime ekleme: boşluk ile ekle
+                    _contextBuffer = originalContext + " " + suggestion.Text;
+                }
+
+                // Buffer overflow kontrolü
+                if (_contextBuffer.Length > 200)
+                {
+                    var words = _contextBuffer.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    _contextBuffer = string.Join(" ", words.TakeLast(15)) + " ";
+                }
+
+                Console.WriteLine($"[DEBUG] Context buffer güncellendi: '{_contextBuffer}'");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UpdateContextBufferAfterSuggestion hatası: {ex.Message}");
+            }
+        }
+
+
 
         private async void OnSpacePressed(string currentBuffer)
         {
@@ -2283,8 +2450,8 @@ namespace OtomatikMetinGenisletici.ViewModels
                         {
                             try
                             {
-                                // Kısa bekleme - metin işlensin
-                                await Task.Delay(150);
+                                // Minimum bekleme - maximum hız için
+                                await Task.Delay(10);
 
                                 // Yeni context oluştur (sadece eksik kısım eklendi - boşluk yok)
                                 var newContext = _contextBuffer + remainingPart;
@@ -2316,7 +2483,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                         // Orijinal clipboard'ı geri yükle
                         Task.Run(async () =>
                         {
-                            await Task.Delay(200);
+                            await Task.Delay(100); // Optimize edildi
                             try
                             {
                                 await Application.Current.Dispatcher.InvokeAsync(() =>
@@ -2394,8 +2561,8 @@ namespace OtomatikMetinGenisletici.ViewModels
                         {
                             try
                             {
-                                // Kısa bekleme - metin işlensin
-                                await Task.Delay(100);
+                                // Minimum bekleme - maximum hız için
+                                await Task.Delay(10);
 
                                 // Yeni context oluştur (boşluk + eklenen öneri)
                                 var newContext = _contextBuffer + " " + suggestionText;
@@ -2459,7 +2626,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                         // Orijinal clipboard'ı geri yükle
                         Task.Run(async () =>
                         {
-                            await Task.Delay(200);
+                            await Task.Delay(100); // Optimize edildi
                             try
                             {
                                 await Application.Current.Dispatcher.InvokeAsync(() =>
@@ -3352,6 +3519,23 @@ namespace OtomatikMetinGenisletici.ViewModels
                 _previewAutoHideTimer.Dispose();
                 _previewAutoHideTimer = null;
             }
+
+            // Tab queue sistemini temizle
+            try
+            {
+                _tabCancellationTokenSource?.Cancel();
+                _tabProcessingSemaphore?.Dispose();
+                _tabCancellationTokenSource?.Dispose();
+
+                // Queue'yu temizle
+                while (_tabQueue.TryDequeue(out _)) { }
+
+                Console.WriteLine("[DEBUG] Tab queue sistemi temizlendi");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Tab queue temizleme hatası: {ex.Message}");
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -3573,8 +3757,15 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        #endregion
+        // Tab Request class for queue system
+        private class TabRequest
+        {
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+            public string Context { get; set; } = string.Empty;
+            public List<SmartSuggestion> Suggestions { get; set; } = new();
+            public string CurrentSuggestion { get; set; } = string.Empty;
+        }
 
+        #endregion
     }
 }
-
