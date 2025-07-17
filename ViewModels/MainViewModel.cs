@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -39,12 +38,15 @@ namespace OtomatikMetinGenisletici.ViewModels
         private List<SmartSuggestion> _currentSmartSuggestions = new();
         private string _lastActiveWindow = string.Empty;
 
-        // Tab Queue System for fast tab processing
-        private readonly ConcurrentQueue<TabRequest> _tabQueue = new();
-        private readonly SemaphoreSlim _tabProcessingSemaphore = new(1, 1);
-        private readonly CancellationTokenSource _tabCancellationTokenSource = new();
-        private volatile bool _isProcessingTabQueue = false;
+        // Basitleştirilmiş Tab işleme sistemi
+        private volatile bool _isProcessingTab = false;
         private readonly object _contextBufferLock = new object();
+        private readonly object _tabProcessingLock = new object();
+
+        // UI güncelleme debounce sistemi
+        private System.Timers.Timer? _uiUpdateTimer;
+        private List<SmartSuggestion> _pendingUISuggestions = new();
+        private readonly object _uiUpdateLock = new object();
 
 
 
@@ -702,7 +704,6 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Console.WriteLine($"[SMART SUGGESTIONS] Words count: {words.Length}");
                 Console.WriteLine($"[SMART SUGGESTIONS] Buffer ends with space: {buffer.EndsWith(" ")}");
                 // 1. ÖNCE KELİME TAMAMLAMA KONTROL ET (henüz tamamlanmamış kelime varsa)
-                bool hasWordCompletion = false;
                 if (words.Length > 0 && !buffer.EndsWith(" "))
                 {
                     var lastWord = words.Last();
@@ -712,11 +713,10 @@ namespace OtomatikMetinGenisletici.ViewModels
                         Console.WriteLine($"[SMART SUGGESTIONS] Kelime tamamlama kontrol ediliyor: '{lastWord}'");
                         UpdateWordCompletionAsync(lastWord, buffer);
 
-                        // Kelime tamamlama önerisi bulunduysa işaretle
+                        // Kelime tamamlama önerisi bulunduysa log
                         if (_currentSmartSuggestions.Count > 0)
                         {
                             Console.WriteLine($"[SMART SUGGESTIONS] Kelime tamamlama önerisi bulundu: {_currentSmartSuggestions.Count} öneri");
-                            hasWordCompletion = true;
                         }
                     }
                 }
@@ -809,15 +809,8 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                     Console.WriteLine($"[NEXT WORD] En iyi sonraki kelime önerisi: '{bestSuggestion.Text}' (Güven: {bestSuggestion.Confidence:P0})");
 
-                    // UI'ı SENKRON güncelle - Maximum hız için
-                    if (Application.Current.Dispatcher.CheckAccess())
-                    {
-                        UpdateSmartSuggestionsUI(suggestions);
-                    }
-                    else
-                    {
-                        Application.Current.Dispatcher.Invoke(() => UpdateSmartSuggestionsUI(suggestions));
-                    }
+                    // UI'ı debounced güncelle - Performans için
+                    UpdateSmartSuggestionsUIDebounced(suggestions);
                 }
                 else
                 {
@@ -851,6 +844,41 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
+        private void UpdateSmartSuggestionsUIDebounced(List<SmartSuggestion> suggestions)
+        {
+            lock (_uiUpdateLock)
+            {
+                _pendingUISuggestions = new List<SmartSuggestion>(suggestions);
+
+                // Timer'ı yeniden başlat
+                _uiUpdateTimer?.Stop();
+                _uiUpdateTimer?.Dispose();
+
+                _uiUpdateTimer = new System.Timers.Timer(50); // 50ms debounce
+                _uiUpdateTimer.Elapsed += (sender, e) =>
+                {
+                    _uiUpdateTimer?.Stop();
+
+                    // UI thread'de güncelle
+                    Application.Current.Dispatcher.BeginInvoke(() =>
+                    {
+                        try
+                        {
+                            lock (_uiUpdateLock)
+                            {
+                                UpdateSmartSuggestionsUI(_pendingUISuggestions);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[ERROR] Debounced UI güncelleme hatası: {ex.Message}");
+                        }
+                    });
+                };
+                _uiUpdateTimer.Start();
+            }
+        }
+
         // BASİT TAHMİN SİSTEMİ (fallback)
         private Task TrySimplePrediction(string[] words)
         {
@@ -869,15 +897,8 @@ namespace OtomatikMetinGenisletici.ViewModels
 
                     Console.WriteLine($"[SIMPLE PREDICTION] Basit tahmin bulundu: '{_currentSuggestion}'");
 
-                    // UI'ı SENKRON güncelle
-                    if (Application.Current.Dispatcher.CheckAccess())
-                    {
-                        UpdateSmartSuggestionsUI(simplePredictions);
-                    }
-                    else
-                    {
-                        Application.Current.Dispatcher.Invoke(() => UpdateSmartSuggestionsUI(simplePredictions));
-                    }
+                    // UI'ı debounced güncelle
+                    UpdateSmartSuggestionsUIDebounced(simplePredictions);
                 }
                 else
                 {
@@ -1086,9 +1107,10 @@ namespace OtomatikMetinGenisletici.ViewModels
         private void OnWordCompleted(string word)
         {
             _contextBuffer += word + " "; // Context için boşluk ekle
-            if (_contextBuffer.Length > 200)
+            if (_contextBuffer.Length > 500) // Uzun metinler için artırıldı
             {
-                _contextBuffer = _contextBuffer.Substring(_contextBuffer.Length - 200);
+                var words = _contextBuffer.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                _contextBuffer = string.Join(" ", words.TakeLast(25)) + " "; // 25 kelimeye çıkarıldı
             }
 
             // Kelimeyi temizle
@@ -1334,7 +1356,6 @@ namespace OtomatikMetinGenisletici.ViewModels
         private bool OnTabPressed()
         {
             Console.WriteLine("[DEBUG] *** Tab tuşu basıldı ***");
-            // Tab artık expansion trigger olarak kullanılmıyor - sadece metin önerileri için
 
             // Eğer pencere filtrelerine uymuyorsa Tab'ı engelleme
             if (!WindowHelper.ShouldTextExpansionBeActive(WindowFilters, IsWindowFilteringEnabled))
@@ -1350,100 +1371,53 @@ namespace OtomatikMetinGenisletici.ViewModels
                 return false; // Tab'ı engelleme - normal işlevine izin ver
             }
 
-            // Öneri var - Tab request'i queue'ya ekle
-            Console.WriteLine("[DEBUG] Öneri var - Tab request'i queue'ya ekleniyor");
-
-            lock (_contextBufferLock)
+            // Eğer zaten tab işleniyor ise, yeni tab'ı engelle
+            lock (_tabProcessingLock)
             {
-                var tabRequest = new TabRequest
+                if (_isProcessingTab)
                 {
-                    Context = _contextBuffer,
-                    Suggestions = new List<SmartSuggestion>(_currentSmartSuggestions),
-                    CurrentSuggestion = _currentSuggestion
-                };
-
-                _tabQueue.Enqueue(tabRequest);
-                Console.WriteLine($"[DEBUG] Tab request queue'ya eklendi. Queue size: {_tabQueue.Count}");
+                    Console.WriteLine("[DEBUG] Tab zaten işleniyor, yeni tab engellendi");
+                    return true; // Tab'ı engelle ama işleme
+                }
+                _isProcessingTab = true;
             }
 
-            // Queue processor'ı başlat (eğer çalışmıyorsa)
-            _ = Task.Run(async () => await ProcessTabQueue());
+            // Öneri var - direkt işle
+            Console.WriteLine("[DEBUG] Öneri var - direkt işleniyor");
+            _ = Task.Run(async () => await ProcessTabDirectly());
 
             return true; // Tab'ı engelle - metin tamamlama için kullanıldı
         }
 
-        private async Task ProcessTabQueue()
+        private async Task ProcessTabDirectly()
         {
-            // Eğer zaten işleniyor ise, yeni bir worker başlatma
-            if (_isProcessingTabQueue)
-            {
-                Console.WriteLine("[DEBUG] Tab queue zaten işleniyor, yeni worker başlatılmadı");
-                return;
-            }
-
             try
             {
-                await _tabProcessingSemaphore.WaitAsync(_tabCancellationTokenSource.Token);
-                _isProcessingTabQueue = true;
-                Console.WriteLine("[DEBUG] Tab queue processor başlatıldı");
+                Console.WriteLine("[DEBUG] Tab direkt işleme başlıyor");
 
-                while (!_tabCancellationTokenSource.Token.IsCancellationRequested)
+                SmartSuggestion? suggestionToApply = null;
+                string contextToUse = "";
+
+                // Mevcut öneri ve context'i güvenli şekilde al
+                lock (_contextBufferLock)
                 {
-                    if (_tabQueue.TryDequeue(out TabRequest? tabRequest))
+                    if (_currentSmartSuggestions.Count > 0)
                     {
-                        Console.WriteLine($"[DEBUG] Tab request işleniyor: {tabRequest.CurrentSuggestion}");
-
-                        try
-                        {
-                            await ProcessSingleTabRequest(tabRequest);
-
-                            // Delay kaldırıldı - maximum hız için
-                            // await Task.Delay(1, _tabCancellationTokenSource.Token);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"[ERROR] Tab request işleme hatası: {ex.Message}");
-                        }
-                    }
-                    else
-                    {
-                        // Queue boş - çık
-                        break;
+                        suggestionToApply = _currentSmartSuggestions[0];
+                        contextToUse = _contextBuffer;
                     }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("[DEBUG] Tab queue processor iptal edildi");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Tab queue processor hatası: {ex.Message}");
-            }
-            finally
-            {
-                _isProcessingTabQueue = false;
-                _tabProcessingSemaphore.Release();
-                Console.WriteLine("[DEBUG] Tab queue processor tamamlandı");
-            }
-        }
 
-        private async Task ProcessSingleTabRequest(TabRequest tabRequest)
-        {
-            try
-            {
-                // Geçerli bir akıllı öneri var mı?
-                if (tabRequest.Suggestions.Count > 0)
+                if (suggestionToApply != null)
                 {
-                    var suggestion = tabRequest.Suggestions[0];
-                    Console.WriteLine($"[DEBUG] *** Tab queue'dan öneri kabul ediliyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
+                    Console.WriteLine($"[DEBUG] *** Tab ile öneri uygulanıyor: {suggestionToApply.Text} ***");
 
+                    // Öneriyi servis tarafında kabul et (istatistik tutmak için)
                     try
                     {
-                        // Öneriyi servis tarafında kabul et (istatistik tutmak için)
                         if (_smartSuggestionsService != null)
                         {
-                            await _smartSuggestionsService.AcceptSuggestionAsync(suggestion, tabRequest.Context);
+                            await _smartSuggestionsService.AcceptSuggestionAsync(suggestionToApply, contextToUse);
                         }
                     }
                     catch (Exception ex)
@@ -1451,67 +1425,72 @@ namespace OtomatikMetinGenisletici.ViewModels
                         Console.WriteLine($"[ERROR] AcceptSuggestionAsync hatası: {ex.Message}");
                     }
 
-                    // UI'ı güncelle - önizleme açık kalsın, sadece önerileri temizle
-                    await Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        SmartSuggestions.Clear();
-                    });
+                    // Öneriyi uygula
+                    await ApplySmartSuggestionDirectly(suggestionToApply, contextToUse);
 
-                    // Öneriyi kullanıcı metnine uygula
-                    switch (suggestion.Type)
-                    {
-                        case SuggestionType.WordCompletion:
-                            // Mevcut kelimeyi seçip tam kelime ile değiştir
-                            await ApplyWordCompletionAsync(suggestion.Text);
-                            break;
-
-                        default:
-                            // Sonraki kelime veya kelime grubu → başına boşluk ekleyerek ekle
-                            await ApplySuggestionTextAsync(suggestion.Text);
-                            break;
-                    }
-
-                    // Context buffer'ı güncelle (temizleme yerine akıllı güncelleme)
-                    lock (_contextBufferLock)
-                    {
-                        UpdateContextBufferAfterSuggestion(suggestion, tabRequest.Context);
-                    }
-
-                    // Mevcut önerileri temizle
-                    _currentSmartSuggestions.Clear();
-                    _currentSuggestion = "";
-
-                    Console.WriteLine("[DEBUG] Tab queue'dan öneri kabul edildi ve işlendi");
+                    Console.WriteLine("[DEBUG] Tab ile öneri başarıyla uygulandı");
                 }
-                else if (!string.IsNullOrEmpty(tabRequest.CurrentSuggestion))
+                else
                 {
-                    // Güvenli tarafta kalmak için (edge-case) – öneri listesi boş ama string dolu
-                    Console.WriteLine($"[DEBUG] *** Tab queue'dan string bazlı öneri kabul ediliyor: {tabRequest.CurrentSuggestion} ***");
-
-                    await ApplySuggestionTextAsync(tabRequest.CurrentSuggestion);
-
-                    lock (_contextBufferLock)
-                    {
-                        _contextBuffer += " " + tabRequest.CurrentSuggestion;
-                        if (_contextBuffer.Length > 200)
-                        {
-                            var words = _contextBuffer.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                            _contextBuffer = string.Join(" ", words.TakeLast(15)) + " ";
-                        }
-                    }
-
-                    _currentSuggestion = "";
+                    Console.WriteLine("[DEBUG] Tab işleme sırasında öneri bulunamadı");
                 }
-
-                // UI temizliği
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    SmartSuggestions.Clear();
-                });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] ProcessSingleTabRequest hatası: {ex.Message}");
+                Console.WriteLine($"[ERROR] ProcessTabDirectly hatası: {ex.Message}");
+            }
+            finally
+            {
+                // Tab işleme flag'ini serbest bırak
+                lock (_tabProcessingLock)
+                {
+                    _isProcessingTab = false;
+                }
+                Console.WriteLine("[DEBUG] Tab işleme tamamlandı");
+            }
+        }
+
+        private async Task ApplySmartSuggestionDirectly(SmartSuggestion suggestion, string originalContext)
+        {
+            try
+            {
+                Console.WriteLine($"[DEBUG] *** Direkt öneri uygulanıyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
+
+                // UI'ı güncelle - önerileri temizle
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    SmartSuggestions.Clear();
+                });
+
+                // Öneriyi kullanıcı metnine uygula
+                switch (suggestion.Type)
+                {
+                    case SuggestionType.WordCompletion:
+                        // Mevcut kelimeyi seçip tam kelime ile değiştir
+                        await ApplyWordCompletionAsync(suggestion.Text);
+                        break;
+
+                    default:
+                        // Sonraki kelime veya kelime grubu → başına boşluk ekleyerek ekle
+                        await ApplySuggestionTextAsync(suggestion.Text);
+                        break;
+                }
+
+                // Context buffer'ı güncelle
+                lock (_contextBufferLock)
+                {
+                    UpdateContextBufferAfterSuggestionDirect(suggestion, originalContext);
+                }
+
+                // Mevcut önerileri temizle
+                _currentSmartSuggestions.Clear();
+                _currentSuggestion = "";
+
+                Console.WriteLine("[DEBUG] Direkt öneri başarıyla uygulandı");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] ApplySmartSuggestionDirectly hatası: {ex.Message}");
             }
         }
 
@@ -1535,11 +1514,11 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _contextBuffer = originalContext + " " + suggestion.Text;
                 }
 
-                // Buffer overflow kontrolü
-                if (_contextBuffer.Length > 200)
+                // Buffer overflow kontrolü - uzun metinler için artırıldı
+                if (_contextBuffer.Length > 500)
                 {
                     var words = _contextBuffer.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    _contextBuffer = string.Join(" ", words.TakeLast(15)) + " ";
+                    _contextBuffer = string.Join(" ", words.TakeLast(25)) + " ";
                 }
 
                 Console.WriteLine($"[DEBUG] Context buffer güncellendi: '{_contextBuffer}'");
@@ -1547,6 +1526,98 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] UpdateContextBufferAfterSuggestion hatası: {ex.Message}");
+            }
+        }
+
+        private void UpdateContextBufferAfterSuggestionDirect(SmartSuggestion suggestion, string originalContext)
+        {
+            try
+            {
+                Console.WriteLine($"[DEBUG] Context buffer güncelleniyor - Öneri: '{suggestion.Text}', Orijinal: '{originalContext}'");
+
+                string newBuffer = "";
+
+                if (suggestion.Type == SuggestionType.WordCompletion)
+                {
+                    // Kelime tamamlama: son kelimeyi tam kelime ile değiştir
+                    var words = originalContext.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (words.Length > 0)
+                    {
+                        words[words.Length - 1] = suggestion.Text;
+                        newBuffer = string.Join(" ", words) + " ";
+                    }
+                    else
+                    {
+                        newBuffer = suggestion.Text + " ";
+                    }
+                }
+                else
+                {
+                    // Yeni kelime ekleme: duplicate kontrolü ile
+                    var originalWords = originalContext.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    var suggestionWords = suggestion.Text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                    // Son kelimeler ile öneri kelimeleri arasında overlap var mı kontrol et
+                    bool hasOverlap = false;
+                    if (originalWords.Length > 0 && suggestionWords.Length > 0)
+                    {
+                        // Son birkaç kelimeyi kontrol et
+                        int checkCount = Math.Min(originalWords.Length, suggestionWords.Length);
+                        for (int i = 1; i <= checkCount; i++)
+                        {
+                            var lastWords = originalWords.TakeLast(i).ToArray();
+                            var firstWords = suggestionWords.Take(i).ToArray();
+
+                            if (lastWords.SequenceEqual(firstWords, StringComparer.OrdinalIgnoreCase))
+                            {
+                                Console.WriteLine($"[DEBUG] Overlap detected: {string.Join(" ", lastWords)}");
+                                hasOverlap = true;
+
+                                // Overlap'i kaldır
+                                var remainingSuggestion = string.Join(" ", suggestionWords.Skip(i));
+                                if (!string.IsNullOrEmpty(remainingSuggestion))
+                                {
+                                    newBuffer = originalContext.TrimEnd() + " " + remainingSuggestion + " ";
+                                }
+                                else
+                                {
+                                    newBuffer = originalContext.TrimEnd() + " ";
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!hasOverlap)
+                    {
+                        // Normal ekleme
+                        if (originalContext.EndsWith(" "))
+                        {
+                            newBuffer = originalContext + suggestion.Text + " ";
+                        }
+                        else
+                        {
+                            newBuffer = originalContext + " " + suggestion.Text + " ";
+                        }
+                    }
+                }
+
+                _contextBuffer = newBuffer;
+
+                // Buffer overflow kontrolü - uzun metinler için optimize edildi
+                if (_contextBuffer.Length > 500)
+                {
+                    var words = _contextBuffer.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    _contextBuffer = string.Join(" ", words.TakeLast(25)) + " ";
+                }
+
+                Console.WriteLine($"[DEBUG] Context buffer direkt güncellendi: '{_contextBuffer}'");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UpdateContextBufferAfterSuggestionDirect hatası: {ex.Message}");
+                // Fallback: basit ekleme
+                _contextBuffer = originalContext + " " + suggestion.Text + " ";
             }
         }
 
@@ -3520,21 +3591,30 @@ namespace OtomatikMetinGenisletici.ViewModels
                 _previewAutoHideTimer = null;
             }
 
-            // Tab queue sistemini temizle
+            // Tab işleme sistemini temizle
             try
             {
-                _tabCancellationTokenSource?.Cancel();
-                _tabProcessingSemaphore?.Dispose();
-                _tabCancellationTokenSource?.Dispose();
-
-                // Queue'yu temizle
-                while (_tabQueue.TryDequeue(out _)) { }
-
-                Console.WriteLine("[DEBUG] Tab queue sistemi temizlendi");
+                lock (_tabProcessingLock)
+                {
+                    _isProcessingTab = false;
+                }
+                Console.WriteLine("[DEBUG] Tab işleme sistemi temizlendi");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] Tab queue temizleme hatası: {ex.Message}");
+                Console.WriteLine($"[ERROR] Tab işleme temizleme hatası: {ex.Message}");
+            }
+
+            // UI güncelleme timer'ını temizle
+            try
+            {
+                _uiUpdateTimer?.Stop();
+                _uiUpdateTimer?.Dispose();
+                Console.WriteLine("[DEBUG] UI güncelleme timer'ı temizlendi");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UI timer temizleme hatası: {ex.Message}");
             }
         }
 
@@ -3757,14 +3837,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             }
         }
 
-        // Tab Request class for queue system
-        private class TabRequest
-        {
-            public DateTime Timestamp { get; set; } = DateTime.Now;
-            public string Context { get; set; } = string.Empty;
-            public List<SmartSuggestion> Suggestions { get; set; } = new();
-            public string CurrentSuggestion { get; set; } = string.Empty;
-        }
+
 
         #endregion
     }

@@ -43,6 +43,8 @@ namespace OtomatikMetinGenisletici.Services
         }
 
         private readonly HashSet<string> _learnedSentences = new();
+        private readonly Dictionary<string, DateTime> _recentContexts = new();
+        private readonly object _contextTrackingLock = new object();
 
         public async Task LearnFromTextAsync(string text)
         {
@@ -104,12 +106,45 @@ namespace OtomatikMetinGenisletici.Services
                     _hasUnsavedChanges = true;
 
                     Console.WriteLine($"[LEARNING] Öğrenme tamamlandı. Toplam kelime: {_learningData.TotalWordsLearned}");
-
-                    // Öğrenme sonrası hemen kaydet
-                    SaveLearningData();
-                    Console.WriteLine($"[LEARNING] Veriler kaydedildi.");
                 }
             });
+        }
+
+        private bool IsRecentContext(string context)
+        {
+            lock (_contextTrackingLock)
+            {
+                var normalizedContext = context.Trim().ToLowerInvariant();
+
+                if (_recentContexts.TryGetValue(normalizedContext, out var lastSeen))
+                {
+                    // Son 2 saniye içinde aynı context kullanıldıysa true döndür
+                    if (DateTime.Now - lastSeen < TimeSpan.FromSeconds(2))
+                    {
+                        Console.WriteLine($"[CONTEXT_TRACKING] Recent context detected: '{context}'");
+                        return true;
+                    }
+                }
+
+                // Context'i güncelle
+                _recentContexts[normalizedContext] = DateTime.Now;
+
+                // Eski context'leri temizle (10'dan fazla varsa)
+                if (_recentContexts.Count > 10)
+                {
+                    var oldContexts = _recentContexts
+                        .Where(kvp => DateTime.Now - kvp.Value > TimeSpan.FromSeconds(10))
+                        .Select(kvp => kvp.Key)
+                        .ToList();
+
+                    foreach (var oldContext in oldContexts)
+                    {
+                        _recentContexts.Remove(oldContext);
+                    }
+                }
+
+                return false;
+            }
         }
 
         public async Task<List<SmartSuggestion>> GetSuggestionsAsync(string context, int maxSuggestions = 5)
@@ -121,6 +156,14 @@ namespace OtomatikMetinGenisletici.Services
                     Console.WriteLine($"[SUGGESTIONS] *** ÖNERİ ARANMAYA BAŞLANIYOR ***");
                     Console.WriteLine($"[SUGGESTIONS] Context: '{context}'");
                     Console.WriteLine($"[SUGGESTIONS] Max suggestions: {maxSuggestions}");
+
+                    // Recent context kontrolü - performans için
+                    if (IsRecentContext(context))
+                    {
+                        Console.WriteLine($"[SUGGESTIONS] Recent context detected, öneri atlandı");
+                        return new List<SmartSuggestion>();
+                    }
+
                     Console.WriteLine($"[SUGGESTIONS] Toplam öğrenilen kelime: {_learningData.WordFrequencies.Count}");
                     Console.WriteLine($"[SUGGESTIONS] Toplam bigram: {_learningData.Bigrams.Count}");
                     Console.WriteLine($"[SUGGESTIONS] Toplam trigram: {_learningData.Trigrams.Count}");
@@ -654,6 +697,15 @@ namespace OtomatikMetinGenisletici.Services
             var currentContext = string.Join(" ", words).ToLowerInvariant();
             Console.WriteLine($"[SENTENCE_COMPLETION] Cümle tamamlama aranıyor: '{currentContext}'");
 
+            // Uzun context için özel işlem - son 8 kelimeyi kullan
+            var contextForMatching = currentContext;
+            if (words.Count > 8)
+            {
+                var lastWords = words.TakeLast(8).ToList();
+                contextForMatching = string.Join(" ", lastWords).ToLowerInvariant();
+                Console.WriteLine($"[SENTENCE_COMPLETION] Uzun context tespit edildi, son 8 kelime kullanılıyor: '{contextForMatching}'");
+            }
+
             // Sonraki kelime ve frekanslarını topla
             var nextWordFrequencies = new Dictionary<string, int>();
 
@@ -670,31 +722,60 @@ namespace OtomatikMetinGenisletici.Services
                 foreach (var sentence in sentences)
                 {
                     var sentenceLower = sentence.ToLowerInvariant();
-                    Console.WriteLine($"[SENTENCE_COMPLETION] Kontrol ediliyor: '{sentenceLower}' vs '{currentContext}'");
+                    Console.WriteLine($"[SENTENCE_COMPLETION] Kontrol ediliyor: '{sentenceLower}' vs '{contextForMatching}'");
 
-                    // Eğer öğrenilen cümle mevcut context ile başlıyorsa
+                    // Hem tam context hem de kısaltılmış context ile eşleştir
+                    bool isMatch = false;
+                    string matchingContext = "";
+
+                    // Önce tam context ile dene
                     if (sentenceLower.StartsWith(currentContext + " ") || sentenceLower.Equals(currentContext))
+                    {
+                        isMatch = true;
+                        matchingContext = currentContext;
+                    }
+                    // Sonra kısaltılmış context ile dene (uzun metinler için)
+                    else if (contextForMatching != currentContext &&
+                             (sentenceLower.Contains(" " + contextForMatching + " ") ||
+                              sentenceLower.StartsWith(contextForMatching + " ") ||
+                              sentenceLower.Equals(contextForMatching)))
+                    {
+                        isMatch = true;
+                        matchingContext = contextForMatching;
+                        Console.WriteLine($"[SENTENCE_COMPLETION] ✅ Kısaltılmış context ile eşleşme: '{contextForMatching}'");
+                    }
+
+                    if (isMatch)
                     {
                         Console.WriteLine($"[SENTENCE_COMPLETION] ✅ Eşleşme bulundu: '{sentenceLower}'");
 
-                        // Kalan kısmı al
-                        var remaining = sentence.Substring(currentContext.Length).Trim();
-                        Console.WriteLine($"[SENTENCE_COMPLETION] Kalan kısım: '{remaining}'");
-
-                        if (!string.IsNullOrEmpty(remaining))
+                        // Eşleşen context'in pozisyonunu bul
+                        int contextIndex = sentenceLower.IndexOf(matchingContext);
+                        if (contextIndex >= 0)
                         {
-                            // İlk kelimeyi al (sonraki kelime önerisi için)
-                            var nextWords = remaining.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                            if (nextWords.Length > 0)
+                            // Kalan kısmı al
+                            var startIndex = contextIndex + matchingContext.Length;
+                            if (startIndex < sentence.Length)
                             {
-                                var nextWord = nextWords[0].ToLowerInvariant();
+                                var remaining = sentence.Substring(startIndex).Trim();
+                                Console.WriteLine($"[SENTENCE_COMPLETION] Kalan kısım: '{remaining}'");
 
-                                // Bu sonraki kelimenin frekansını artır
-                                if (!nextWordFrequencies.ContainsKey(nextWord))
-                                    nextWordFrequencies[nextWord] = 0;
-                                nextWordFrequencies[nextWord]++;
+                                if (!string.IsNullOrEmpty(remaining))
+                                {
+                                    // İlk kelimeyi al (sonraki kelime önerisi için)
+                                    var nextWords = remaining.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                                    if (nextWords.Length > 0)
+                                    {
+                                        var nextWord = nextWords[0].ToLowerInvariant();
 
-                                Console.WriteLine($"[SENTENCE_COMPLETION] ✅ Kelime eklendi: '{nextWord}' (toplam frekans: {nextWordFrequencies[nextWord]})");
+                                        // Bu sonraki kelimenin frekansını artır
+                                        if (!nextWordFrequencies.ContainsKey(nextWord))
+                                            nextWordFrequencies[nextWord] = 0;
+                                        nextWordFrequencies[nextWord]++;
+
+                                        Console.WriteLine($"[SENTENCE_COMPLETION] ✅ Kelime eklendi: '{nextWord}' (toplam frekans: {nextWordFrequencies[nextWord]})");
+                                    }
+                                }
                             }
                         }
                     }
@@ -734,10 +815,14 @@ namespace OtomatikMetinGenisletici.Services
 
             if (words.Count == 0) return suggestions;
 
-            // Son 1-3 kelimeye göre devam önerileri
-            for (int i = Math.Max(0, words.Count - 3); i < words.Count; i++)
+            // Uzun metinler için daha fazla context kullan
+            int contextRange = words.Count > 10 ? 5 : 3; // Uzun metinlerde 5 kelimeye kadar context
+
+            // Son 1-contextRange kelimeye göre devam önerileri
+            for (int i = Math.Max(0, words.Count - contextRange); i < words.Count; i++)
             {
                 var context = string.Join(" ", words.Skip(i));
+                Console.WriteLine($"[SENTENCE_CONTINUATION] Context aranıyor: '{context}' (uzunluk: {words.Count})");
 
                 // Bigram'larda ara
                 foreach (var bigram in _learningData.Bigrams)
@@ -832,7 +917,6 @@ namespace OtomatikMetinGenisletici.Services
                         (key, oldValue) => oldValue + 2);
 
                     _hasUnsavedChanges = true;
-                    SaveLearningData();
                 }
             });
         }
@@ -845,7 +929,6 @@ namespace OtomatikMetinGenisletici.Services
                 {
                     _learningData.TotalSuggestionsRejected++;
                     _hasUnsavedChanges = true;
-                    SaveLearningData();
                 }
             });
         }

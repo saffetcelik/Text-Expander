@@ -11,6 +11,11 @@ namespace OtomatikMetinGenisletici.Services
         private bool _isEnabled;
         private AppSettings _settings;
 
+        // Basit cache mekanizması
+        private readonly Dictionary<string, (List<SmartSuggestion> suggestions, DateTime timestamp)> _suggestionCache = new();
+        private readonly object _cacheLock = new object();
+        private readonly TimeSpan _cacheExpiry = TimeSpan.FromSeconds(5); // 5 saniye cache
+
         public bool IsEnabled => _isEnabled;
 
         public event Action<List<SmartSuggestion>>? SuggestionsUpdated;
@@ -73,14 +78,53 @@ namespace OtomatikMetinGenisletici.Services
             if (!_isEnabled || string.IsNullOrWhiteSpace(context))
                 return new List<SmartSuggestion>();
 
+            // Cache kontrolü
+            var cacheKey = $"{context}_{maxSuggestions}";
+            lock (_cacheLock)
+            {
+                if (_suggestionCache.TryGetValue(cacheKey, out var cached))
+                {
+                    if (DateTime.Now - cached.timestamp < _cacheExpiry)
+                    {
+                        Console.WriteLine($"[CACHE] Cache'den öneri döndürülüyor: {context}");
+                        return new List<SmartSuggestion>(cached.suggestions);
+                    }
+                    else
+                    {
+                        // Eski cache'i temizle
+                        _suggestionCache.Remove(cacheKey);
+                    }
+                }
+            }
+
             try
             {
                 var suggestions = await _learningEngine.GetSuggestionsAsync(context, maxSuggestions);
-                
+
                 // Minimum kelime uzunluğu filtresi
                 suggestions = suggestions
                     .Where(s => s.Text.Length >= _settings.MinWordLength)
                     .ToList();
+
+                // Cache'e kaydet
+                lock (_cacheLock)
+                {
+                    _suggestionCache[cacheKey] = (new List<SmartSuggestion>(suggestions), DateTime.Now);
+
+                    // Cache temizliği - 50'den fazla entry varsa eski olanları temizle
+                    if (_suggestionCache.Count > 50)
+                    {
+                        var oldEntries = _suggestionCache
+                            .Where(kvp => DateTime.Now - kvp.Value.timestamp > _cacheExpiry)
+                            .Select(kvp => kvp.Key)
+                            .ToList();
+
+                        foreach (var oldKey in oldEntries)
+                        {
+                            _suggestionCache.Remove(oldKey);
+                        }
+                    }
+                }
 
                 SuggestionsUpdated?.Invoke(suggestions);
                 return suggestions;
@@ -247,6 +291,12 @@ namespace OtomatikMetinGenisletici.Services
         {
             _settingsService.SettingsChanged -= OnSettingsChanged;
             _learningEngine?.Dispose();
+
+            // Cache'i temizle
+            lock (_cacheLock)
+            {
+                _suggestionCache.Clear();
+            }
         }
 
         // Veri Yönetimi Fonksiyonları
