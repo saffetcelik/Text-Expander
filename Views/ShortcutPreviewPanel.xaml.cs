@@ -40,11 +40,13 @@ namespace OtomatikMetinGenisletici.Views
             DataContext = this;
             FilterShortcuts();
 
-            // Ayarlardan senkronizasyon durumunu yükle
+            // Ayarlardan değerleri yükle
             if (_settingsService?.Settings != null)
             {
                 _isSyncWithMainWindowEnabled = _settingsService.Settings.ShortcutPreviewPanelSyncWithMainWindow;
+                _panelOpacity = _settingsService.Settings.ShortcutPreviewPanelOpacity;
                 OnPropertyChanged(nameof(IsSyncWithMainWindowEnabled));
+                OnPropertyChanged(nameof(PanelOpacity));
             }
         }
 
@@ -134,6 +136,12 @@ namespace OtomatikMetinGenisletici.Views
             if (_settingsService != null)
             {
                 _settingsService.SettingsChanged += OnSettingsChanged;
+
+                // Ayarlardan değerleri yükle
+                _isSyncWithMainWindowEnabled = _settingsService.Settings.ShortcutPreviewPanelSyncWithMainWindow;
+                _panelOpacity = _settingsService.Settings.ShortcutPreviewPanelOpacity;
+                OnPropertyChanged(nameof(IsSyncWithMainWindowEnabled));
+                OnPropertyChanged(nameof(PanelOpacity));
             }
 
             OnPropertyChanged(nameof(ActiveTriggerKey));

@@ -16,6 +16,11 @@ namespace OtomatikMetinGenisletici.Services
         private readonly object _cacheLock = new object();
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromSeconds(5); // 5 saniye cache
 
+        // Recent suggestion paste tracking - yapıştırılan önerileri takip et
+        private readonly Dictionary<string, DateTime> _recentSuggestionPastes = new();
+        private readonly object _pasteLock = new object();
+        private readonly TimeSpan _pasteTrackingDuration = TimeSpan.FromSeconds(3); // 3 saniye takip
+
         public bool IsEnabled => _isEnabled;
 
         public event Action<List<SmartSuggestion>>? SuggestionsUpdated;
@@ -64,6 +69,10 @@ namespace OtomatikMetinGenisletici.Services
                 Console.WriteLine($"[SMART SUGGESTIONS] - Toplam bigram: {stats.TotalBigrams}");
                 Console.WriteLine($"[SMART SUGGESTIONS] - Toplam trigram: {stats.TotalTrigrams}");
                 Console.WriteLine($"[SMART SUGGESTIONS] - Son güncelleme: {stats.LastLearningSession}");
+
+                // Yakın zamanda yapıştırılmış öneri kontrolü için callback set et
+                _learningEngine.SetRecentlyPastedSuggestionCheck(IsRecentlyPastedSuggestion);
+                Console.WriteLine("[SMART SUGGESTIONS] Yapıştırılmış öneri kontrolü callback'i ayarlandı");
 
                 Console.WriteLine("[SMART SUGGESTIONS] InitializeAsync tamamlandı.");
             }
@@ -189,6 +198,70 @@ namespace OtomatikMetinGenisletici.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Öneri reddetme hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Bir öneri metninin yakın zamanda yapıştırıldığını kaydet
+        /// </summary>
+        public void MarkSuggestionAsPasted(string suggestionText)
+        {
+            if (string.IsNullOrWhiteSpace(suggestionText))
+                return;
+
+            lock (_pasteLock)
+            {
+                var normalizedText = suggestionText.Trim().ToLowerInvariant();
+                _recentSuggestionPastes[normalizedText] = DateTime.Now;
+                Console.WriteLine($"[SUGGESTION_PASTE] Öneri yapıştırıldı olarak işaretlendi: '{suggestionText}'");
+
+                // Eski kayıtları temizle
+                CleanupOldPasteRecords();
+            }
+        }
+
+        /// <summary>
+        /// Bir metnin yakın zamanda yapıştırılmış bir öneri olup olmadığını kontrol et
+        /// </summary>
+        public bool IsRecentlyPastedSuggestion(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return false;
+
+            lock (_pasteLock)
+            {
+                var normalizedText = text.Trim().ToLowerInvariant();
+
+                if (_recentSuggestionPastes.TryGetValue(normalizedText, out var pasteTime))
+                {
+                    var timeSincePaste = DateTime.Now - pasteTime;
+                    if (timeSincePaste <= _pasteTrackingDuration)
+                    {
+                        Console.WriteLine($"[SUGGESTION_PASTE] Yakın zamanda yapıştırılmış öneri algılandı: '{text}' (geçen süre: {timeSincePaste.TotalSeconds:F1}s)");
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        private void CleanupOldPasteRecords()
+        {
+            var cutoffTime = DateTime.Now - _pasteTrackingDuration;
+            var keysToRemove = _recentSuggestionPastes
+                .Where(kvp => kvp.Value < cutoffTime)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var key in keysToRemove)
+            {
+                _recentSuggestionPastes.Remove(key);
+            }
+
+            if (keysToRemove.Count > 0)
+            {
+                Console.WriteLine($"[SUGGESTION_PASTE] {keysToRemove.Count} eski yapıştırma kaydı temizlendi");
             }
         }
 

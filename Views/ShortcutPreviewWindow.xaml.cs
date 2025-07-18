@@ -60,16 +60,20 @@ namespace OtomatikMetinGenisletici.Views
             _normalWidth = Width; // Normal genişliği kaydet
 
             // Pozisyonu ayarla
+            Console.WriteLine($"[SHORTCUT_PREVIEW] Pozisyon ayarlanıyor - Kaydedilmiş: Left={_settingsService.Settings.ShortcutPreviewPanelLeft}, Top={_settingsService.Settings.ShortcutPreviewPanelTop}");
+
             if (_settingsService.Settings.ShortcutPreviewPanelLeft >= 0 &&
                 _settingsService.Settings.ShortcutPreviewPanelTop >= 0)
             {
                 // Kaydedilmiş pozisyonu kullan
                 Left = _settingsService.Settings.ShortcutPreviewPanelLeft;
                 Top = _settingsService.Settings.ShortcutPreviewPanelTop;
+                Console.WriteLine($"[SHORTCUT_PREVIEW] Kaydedilmiş pozisyon kullanıldı: Left={Left}, Top={Top}");
             }
             else
             {
-                // İlk açılışta ekranın sağına yerleştir
+                // İlk açılışta ana pencereye göre yerleştir
+                Console.WriteLine("[SHORTCUT_PREVIEW] İlk açılış, ana pencereye göre pozisyon hesaplanıyor");
                 PositionWindowToRight();
             }
 
@@ -87,38 +91,73 @@ namespace OtomatikMetinGenisletici.Views
 
         private void PositionWindowToRight()
         {
+            Console.WriteLine("[SHORTCUT_PREVIEW] PositionWindowToRight çağrıldı");
+
             // Ana pencereyi bul
             var mainWindow = Application.Current.MainWindow;
+            Console.WriteLine($"[SHORTCUT_PREVIEW] Ana pencere: {mainWindow?.GetType().Name}");
 
-            if (mainWindow != null && mainWindow.IsLoaded)
+            if (mainWindow != null)
             {
+                Console.WriteLine($"[SHORTCUT_PREVIEW] Ana pencere durumu - IsLoaded: {mainWindow.IsLoaded}, Left: {mainWindow.Left}, Top: {mainWindow.Top}, Width: {mainWindow.Width}, Height: {mainWindow.Height}");
+
+                // Ana pencere yüklenmemişse, yüklenmesini bekle
+                if (!mainWindow.IsLoaded)
+                {
+                    Console.WriteLine("[SHORTCUT_PREVIEW] Ana pencere henüz yüklenmemiş, Loaded event'ini bekliyoruz");
+                    mainWindow.Loaded += (s, e) => {
+                        Console.WriteLine("[SHORTCUT_PREVIEW] Ana pencere yüklendi, pozisyon yeniden hesaplanıyor");
+                        PositionWindowToRight();
+                    };
+
+                    // Geçici olarak ekranın sağ tarafına yerleştir
+                    var tempWorkingArea = SystemParameters.WorkArea;
+                    Left = tempWorkingArea.Right - Width - 10;
+                    Top = (tempWorkingArea.Height - Height) / 2;
+                    Console.WriteLine($"[SHORTCUT_PREVIEW] Geçici pozisyon: Left={Left}, Top={Top}");
+                    return;
+                }
+
                 // Ana pencereye yapışık olarak konumlandır
-                Left = mainWindow.Left + mainWindow.Width + 5; // 5px boşluk
-                Top = mainWindow.Top; // Ana pencere ile aynı yükseklikte başla
+                double newLeft = mainWindow.Left + mainWindow.Width + 5; // 5px boşluk
+                double newTop = mainWindow.Top; // Ana pencere ile aynı yükseklikte başla
+
+                Console.WriteLine($"[SHORTCUT_PREVIEW] Hesaplanan pozisyon: Left={newLeft}, Top={newTop}");
 
                 // Eğer ekran dışına taşarsa, ana pencerenin soluna yerleştir
                 var workingArea = SystemParameters.WorkArea;
-                if (Left + Width > workingArea.Right)
+                Console.WriteLine($"[SHORTCUT_PREVIEW] Çalışma alanı: Right={workingArea.Right}, Bottom={workingArea.Bottom}");
+
+                if (newLeft + Width > workingArea.Right)
                 {
-                    Left = mainWindow.Left - Width - 5; // Ana pencerenin soluna
+                    newLeft = mainWindow.Left - Width - 5; // Ana pencerenin soluna
+                    Console.WriteLine($"[SHORTCUT_PREVIEW] Ekran dışına taşıyor, sol tarafa yerleştiriliyor: Left={newLeft}");
                 }
 
                 // Dikey olarak ekran sınırları içinde tut
-                if (Top + Height > workingArea.Bottom)
+                if (newTop + Height > workingArea.Bottom)
                 {
-                    Top = workingArea.Bottom - Height - 10;
+                    newTop = workingArea.Bottom - Height - 10;
+                    Console.WriteLine($"[SHORTCUT_PREVIEW] Alt sınırı aşıyor, yukarı kaydırılıyor: Top={newTop}");
                 }
-                if (Top < workingArea.Top)
+                if (newTop < workingArea.Top)
                 {
-                    Top = workingArea.Top + 10;
+                    newTop = workingArea.Top + 10;
+                    Console.WriteLine($"[SHORTCUT_PREVIEW] Üst sınırı aşıyor, aşağı kaydırılıyor: Top={newTop}");
                 }
+
+                Left = newLeft;
+                Top = newTop;
+                Console.WriteLine($"[SHORTCUT_PREVIEW] Final pozisyon: Left={Left}, Top={Top}");
             }
             else
             {
+                Console.WriteLine("[SHORTCUT_PREVIEW] Ana pencere bulunamadı, ekranın sağ tarafına yerleştiriliyor");
                 // Ana pencere bulunamazsa ekranın sağ tarafına yerleştir (eski davranış)
                 var workingArea = SystemParameters.WorkArea;
                 Left = workingArea.Right - Width - 10; // 10px margin
                 Top = (workingArea.Height - Height) / 2; // Dikey olarak ortala
+                Console.WriteLine($"[SHORTCUT_PREVIEW] Fallback pozisyon: Left={Left}, Top={Top}");
             }
         }
 

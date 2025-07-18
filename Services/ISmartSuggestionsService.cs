@@ -13,6 +13,10 @@ namespace OtomatikMetinGenisletici.Services
         Task LearnFromTextAsync(string text);
         Task AcceptSuggestionAsync(SmartSuggestion suggestion, string context);
         Task RejectSuggestionAsync(SmartSuggestion suggestion, string context);
+
+        // Suggestion paste tracking
+        void MarkSuggestionAsPasted(string suggestionText);
+        bool IsRecentlyPastedSuggestion(string text);
         
         Task<LearningStatistics> GetStatisticsAsync();
         Task<DetailedStatistics> GetLearningDataAsync();

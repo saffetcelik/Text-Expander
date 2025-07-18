@@ -1106,19 +1106,17 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         private void OnWordCompleted(string word)
         {
-            _contextBuffer += word + " "; // Context için boşluk ekle
-            if (_contextBuffer.Length > 500) // Uzun metinler için artırıldı
-            {
-                var words = _contextBuffer.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                _contextBuffer = string.Join(" ", words.TakeLast(25)) + " "; // 25 kelimeye çıkarıldı
-            }
+            // NOT: Context buffer artık OnKeyPressed'de güncelleniyor
+            // Bu metod sadece kelime tamamlama event'i için kullanılıyor
+            // Çift ekleme sorununu önlemek için context buffer güncellemesi kaldırıldı
+
+            Console.WriteLine($"[WORD_COMPLETED] Kelime tamamlandı: '{word}' (Context buffer OnKeyPressed'de güncelleniyor)");
 
             // Kelimeyi temizle
             var cleanWord = word.Trim();
 
             // NOT: Kısayol genişletme artık OnWordCompleted'de yapılmıyor
             // Sadece seçili tuş kombinasyonu event'lerinde yapılacak
-            // Bu metod sadece context buffer'ı güncellemek için kullanılıyor
         }
 
         private async void OnSentenceCompleted(string sentence)
@@ -2461,6 +2459,9 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[DEBUG] *** ApplyWordCompletionAsync başlıyor: {fullWord} ***");
+
+                // Bu kelime tamamlamasını yakın zamanda yapıştırılacak olarak işaretle
+                _smartSuggestionsService?.MarkSuggestionAsPasted(fullWord);
                 // Kullanıcının yazdığı kısmı hesapla
                 string userTypedPart = GetCurrentTypedWord();
                 Console.WriteLine($"[DEBUG] Kullanıcının yazdığı kısım: '{userTypedPart}'");
@@ -2590,6 +2591,9 @@ namespace OtomatikMetinGenisletici.ViewModels
             try
             {
                 Console.WriteLine($"[DEBUG] *** ApplySuggestionTextAsync başlıyor: {suggestionText} ***");
+
+                // Bu öneriyi yakın zamanda yapıştırılacak olarak işaretle
+                _smartSuggestionsService?.MarkSuggestionAsPasted(suggestionText);
                 // UI thread'de çalıştır (STA gerekli)
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
@@ -2608,12 +2612,20 @@ namespace OtomatikMetinGenisletici.ViewModels
                             Console.WriteLine($"[DEBUG] Clipboard okuma hatası: {ex.Message}");
                         }
 
-                        // Önce boşluk ekle, sonra öneri metnini ekle
-                        Console.WriteLine($"[DEBUG] Önce boşluk ekleniyor...");
-                        SendSpace();
+                        // Context buffer'ın sonunda boşluk var mı kontrol et
+                        bool needsSpace = !_contextBuffer.EndsWith(" ");
 
-                        // Kısa bekleme
-                        Thread.Sleep(50);
+                        if (needsSpace)
+                        {
+                            Console.WriteLine($"[DEBUG] Context buffer sonunda boşluk yok, boşluk ekleniyor...");
+                            SendSpace();
+                            // Kısa bekleme
+                            Thread.Sleep(50);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[DEBUG] Context buffer sonunda zaten boşluk var, ekstra boşluk eklenmiyor...");
+                        }
 
                         // Öneri metnini clipboard'a koy
                         Console.WriteLine($"[DEBUG] Clipboard'a metin yazılıyor: '{suggestionText}'");
@@ -2626,7 +2638,7 @@ namespace OtomatikMetinGenisletici.ViewModels
                         Console.WriteLine($"[DEBUG] Ctrl+V gönderiliyor...");
                         SendCtrlV();
 
-                        Console.WriteLine($"[DEBUG] *** ApplySuggestionTextAsync tamamlandı: boşluk + {suggestionText} ***");
+                        Console.WriteLine($"[DEBUG] *** ApplySuggestionTextAsync tamamlandı: {(needsSpace ? "boşluk + " : "")}{suggestionText} ***");
                         // ÖNEMLİ: Öneri eklendikten sonra HEMEN yeni context ile sonraki kelimeyi tahmin et
                         Task.Run(async () =>
                         {
@@ -2635,8 +2647,10 @@ namespace OtomatikMetinGenisletici.ViewModels
                                 // Minimum bekleme - maximum hız için
                                 await Task.Delay(10);
 
-                                // Yeni context oluştur (boşluk + eklenen öneri)
-                                var newContext = _contextBuffer + " " + suggestionText;
+                                // Yeni context oluştur - eğer context buffer sonunda boşluk yoksa ekle
+                                var newContext = _contextBuffer.EndsWith(" ") ?
+                                    _contextBuffer + suggestionText :
+                                    _contextBuffer + " " + suggestionText;
                                 Console.WriteLine($"[DEBUG] *** TAB SONRASI YENİ TAHMİN BAŞLIYOR *** Context: '{newContext}'");
                                 // Context buffer'ı güncelle
                                 _contextBuffer = newContext;
@@ -3514,6 +3528,43 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] Kısayol önizleme paneli gösterilirken hata: {ex.Message}");
+            }
+        }
+
+        public void ResetShortcutPreviewPanelPosition()
+        {
+            try
+            {
+                Console.WriteLine("[DEBUG] Kısayol önizleme paneli pozisyonu sıfırlanıyor...");
+
+                // Ayarlarda pozisyonu -1 yap (otomatik pozisyon)
+                var settings = _settingsService.GetCopy();
+                settings.ShortcutPreviewPanelLeft = -1;
+                settings.ShortcutPreviewPanelTop = -1;
+                _settingsService.UpdateSettings(settings);
+                _ = _settingsService.SaveSettingsAsync();
+
+                // Eğer panel açıksa, kapatıp yeniden aç
+                if (_shortcutPreviewWindow != null)
+                {
+                    Console.WriteLine("[DEBUG] Panel açık, kapatılıp yeniden açılıyor...");
+                    HideShortcutPreviewPanel();
+
+                    // Kısa bir bekleme sonrası yeniden aç
+                    Task.Delay(100).ContinueWith(_ =>
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            ShowShortcutPreviewPanel();
+                        });
+                    });
+                }
+
+                Console.WriteLine("[DEBUG] Kısayol önizleme paneli pozisyonu sıfırlandı");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Kısayol önizleme paneli pozisyonu sıfırlanırken hata: {ex.Message}");
             }
         }
 

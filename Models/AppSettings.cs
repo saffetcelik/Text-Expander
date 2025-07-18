@@ -31,8 +31,8 @@ namespace OtomatikMetinGenisletici.Models
         // Kısayol Önizleme Paneli Ayarları
         private bool _shortcutPreviewPanelVisible = true; // Varsayılan: açılışta açık
         private double _shortcutPreviewPanelOpacity = 0.9;
-        private double _shortcutPreviewPanelWidth = 290;
-        private double _shortcutPreviewPanelHeight = 481;
+        private double _shortcutPreviewPanelWidth = 390;
+        private double _shortcutPreviewPanelHeight = 535;
         private double _shortcutPreviewPanelLeft = -1; // -1 = otomatik pozisyon
         private double _shortcutPreviewPanelTop = -1;
         private bool _shortcutPreviewPanelSyncWithMainWindow = false; // Ana pencere ile senkronize hareket

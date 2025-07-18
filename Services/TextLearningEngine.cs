@@ -18,6 +18,7 @@ namespace OtomatikMetinGenisletici.Services
         private readonly Timer _saveTimer;
         private bool _hasUnsavedChanges;
         private readonly ShortcutService? _shortcutService;
+        private Func<string, bool>? _isRecentlyPastedSuggestionCheck;
 
         // Performans için Trie veri yapıları
         private readonly FastTrie _wordCompletionTrie;
@@ -63,6 +64,14 @@ namespace OtomatikMetinGenisletici.Services
         private readonly Dictionary<string, DateTime> _recentContexts = new();
         private readonly object _contextTrackingLock = new object();
 
+        /// <summary>
+        /// Yakın zamanda yapıştırılmış öneri kontrolü için callback set et
+        /// </summary>
+        public void SetRecentlyPastedSuggestionCheck(Func<string, bool> checkFunction)
+        {
+            _isRecentlyPastedSuggestionCheck = checkFunction;
+        }
+
         public async Task LearnFromTextAsync(string text)
         {
             if (string.IsNullOrWhiteSpace(text) || text.Length < 3)
@@ -75,6 +84,13 @@ namespace OtomatikMetinGenisletici.Services
             if (_shortcutService?.IsRecentlyExpandedText(text) == true)
             {
                 Console.WriteLine($"[LEARNING] *** KISAYOL GENİŞLETMESİ ALGILANDI, ÖĞRENME ATLANIYOR: '{text}' ***");
+                return;
+            }
+
+            // Yakın zamanda yapıştırılmış öneri kontrolü
+            if (_isRecentlyPastedSuggestionCheck?.Invoke(text) == true)
+            {
+                Console.WriteLine($"[LEARNING] *** YAKIN ZAMANDA YAPIŞTIRILMIŞ ÖNERİ ALGILANDI, ÖĞRENME ATLANIYOR: '{text}' ***");
                 return;
             }
 
