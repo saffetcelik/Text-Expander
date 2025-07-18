@@ -48,6 +48,15 @@ jobs:
       run: |
         dotnet publish OtomatikMetinGenisletici.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
 
+    - name: Install Inno Setup
+      shell: pwsh
+      run: |
+        $url = "https://jrsoftware.org/download.php/is.exe"
+        $output = "innosetup.exe"
+        Invoke-WebRequest -Uri $url -OutFile $output
+        Start-Process -FilePath $output -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
+        Write-Host "Inno Setup installed"
+
     - name: Create KURULUM.txt
       shell: pwsh
       run: |
@@ -106,11 +115,48 @@ jobs:
           }
         }
 
-    - name: Create package
+    - name: Update setup script version
       shell: pwsh
       run: |
         $version = "${{ steps.version.outputs.VERSION }}"
-        $name = "MetinGenisletici-x64-v$version.zip"
+        $content = Get-Content setup.iss -Raw
+        $content = $content -replace "AppVersion=[\d\.]+", "AppVersion=$version"
+        $content = $content -replace "AppVerName=Otomatik Metin Genişletici v[\d\.]+", "AppVerName=Otomatik Metin Genişletici v$version"
+        $content = $content -replace "OutputBaseFilename=MetinGenisletici-Setup-v[\d\.]+", "OutputBaseFilename=MetinGenisletici-Setup-v$version"
+        Set-Content setup.iss -Value $content -Encoding UTF8
+        Write-Host "Updated setup.iss version to $version"
+
+    - name: Create installer
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.VERSION }}"
+        $isccPath = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+        if (-not (Test-Path $isccPath)) {
+          $isccPath = "${env:ProgramFiles}\Inno Setup 6\ISCC.exe"
+        }
+
+        if (Test-Path $isccPath) {
+          & "$isccPath" setup.iss
+          Write-Host "Installer created successfully"
+
+          $setupFile = "installer\MetinGenisletici-Setup-v$version.exe"
+          if (Test-Path $setupFile) {
+            echo "SETUP_NAME=MetinGenisletici-Setup-v$version.exe" >> $env:GITHUB_ENV
+            Write-Host "Setup file: $setupFile"
+          } else {
+            Write-Host "Setup file not found!"
+            exit 1
+          }
+        } else {
+          Write-Host "Inno Setup compiler not found!"
+          exit 1
+        }
+
+    - name: Create portable package
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.VERSION }}"
+        $name = "MetinGenisletici-Portable-v$version.zip"
 
         New-Item -ItemType Directory -Path release -Force
         Copy-Item publish/OtomatikMetinGenisletici.exe release/
@@ -131,7 +177,8 @@ jobs:
           ## 🚀 Otomatik Metin Genisletici v${{ steps.version.outputs.VERSION }}
 
           ### 📥 İndirme
-          - **Windows x64**: ${{ env.PACKAGE_NAME }}
+          - **Setup (Önerilen)**: ${{ env.SETUP_NAME }}
+          - **Portable Versiyon**: ${{ env.PACKAGE_NAME }}
 
           ### 🆕 Bu Sürümdeki Yenilikler (v${{ steps.version.outputs.VERSION }})
 
@@ -150,7 +197,15 @@ jobs:
           - %100 yerel çalışma
 
           ### 📋 Kurulum
-          1. ZIP dosyasını indirin ve çıkarın
+
+          #### Setup Versiyonu (Önerilen)
+          1. MetinGenisletici-Setup-v${{ steps.version.outputs.VERSION }}.exe dosyasını indirin
+          2. Setup dosyasını çalıştırın ve kurulum sihirbazını takip edin
+          3. Program otomatik olarak Program Files'a kurulacak
+          4. Start Menu'den veya masaüstü kısayolundan çalıştırın
+
+          #### Portable Versiyon
+          1. ZIP dosyasını indirin ve istediğiniz klasöre çıkarın
           2. OtomatikMetinGenisletici.exe dosyasını çalıştırın
           3. Detaylı kurulum için KURULUM.txt dosyasını okuyun
 
@@ -163,7 +218,9 @@ jobs:
           - **E-posta**: iletisim@saffetcelik.com.tr
           - **Instagram**: instagram.com/kamucoder
           - **GitHub**: github.com/saffetcelik
-        files: ${{ env.PACKAGE_NAME }}
+        files: |
+          installer/${{ env.SETUP_NAME }}
+          ${{ env.PACKAGE_NAME }}
         draft: false
         prerelease: false
       env:
