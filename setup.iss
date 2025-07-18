@@ -2,8 +2,8 @@
 ; Uygulama bilgileri
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
 AppName=Otomatik Metin Genişletici
-AppVersion=1.2.1
-AppVerName=Otomatik Metin Genişletici v1.2.1
+AppVersion=1.2.2
+AppVerName=Otomatik Metin Genişletici v1.2.2
 AppPublisher=Saffet Celik
 AppPublisherURL=https://github.com/saffetcelik/Text-Expander
 AppSupportURL=https://github.com/saffetcelik/Text-Expander/issues
@@ -11,16 +11,17 @@ AppUpdatesURL=https://github.com/saffetcelik/Text-Expander/releases
 AppCopyright=© 2024 Saffet Celik
 
 ; Kurulum ayarları
-DefaultDirName={autopf}\Otomatik Metin Genisletici
+DefaultDirName={userappdata}\Otomatik Metin Genisletici
 DefaultGroupName=Otomatik Metin Genişletici
 AllowNoIcons=yes
 LicenseFile=LICENSE
 OutputDir=installer
-OutputBaseFilename=MetinGenisletici-Setup-v1.2.1
+OutputBaseFilename=MetinGenisletici-Setup-v1.2.2
 SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+PrivilegesRequired=lowest
 
 ; Sistem gereksinimleri
 MinVersion=10.0
@@ -35,7 +36,7 @@ Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1
 
 [Files]
