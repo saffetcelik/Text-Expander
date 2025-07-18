@@ -51,11 +51,22 @@ jobs:
     - name: Install Inno Setup
       shell: pwsh
       run: |
-        $url = "https://jrsoftware.org/download.php/is.exe"
-        $output = "innosetup.exe"
-        Invoke-WebRequest -Uri $url -OutFile $output
-        Start-Process -FilePath $output -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
-        Write-Host "Inno Setup installed"
+        # Chocolatey ile Inno Setup kurulumu (daha güvenilir)
+        Write-Host "Installing Inno Setup via Chocolatey..."
+        choco install innosetup -y --no-progress
+
+        # Kurulum kontrolü
+        $isccPath = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+        if (-not (Test-Path $isccPath)) {
+          $isccPath = "${env:ProgramFiles}\Inno Setup 6\ISCC.exe"
+        }
+
+        if (Test-Path $isccPath) {
+          Write-Host "Inno Setup installed successfully at: $isccPath"
+        } else {
+          Write-Host "Inno Setup installation failed!"
+          exit 1
+        }
 
     - name: Create KURULUM.txt
       shell: pwsh
