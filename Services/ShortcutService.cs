@@ -87,7 +87,7 @@ namespace OtomatikMetinGenisletici.Services
         // Learning exclusion tracking
         private string _lastExpandedText = string.Empty;
         private DateTime _lastExpansionEndTime = DateTime.MinValue;
-        private const int LEARNING_EXCLUSION_WINDOW_MS = 2000; // 2 saniye öğrenme hariç tutma penceresi
+        private const int LEARNING_EXCLUSION_WINDOW_MS = 5000; // 5 saniye öğrenme hariç tutma penceresi (artırıldı)
 
         public ObservableCollection<Models.Shortcut> Shortcuts => _shortcuts;
 
@@ -116,6 +116,25 @@ namespace OtomatikMetinGenisletici.Services
             // Genişletilen metin, gelen metnin içinde yer alıyor mu?
             if (normalizedText.Contains(normalizedExpanded))
                 return true;
+
+            // Ters kontrol: Gelen metin, genişletilen metnin içinde yer alıyor mu?
+            if (normalizedExpanded.Contains(normalizedText))
+                return true;
+
+            // Kısayol + genişletme kombinasyonlarını algıla (örn: "safsaffet")
+            foreach (var shortcut in _shortcuts)
+            {
+                var shortcutKey = shortcut.Key.ToLowerInvariant();
+                var expansion = shortcut.Expansion.ToLowerInvariant();
+
+                // "shortcut + expansion" pattern'ini algıla
+                if (normalizedText.Contains(shortcutKey + expansion) ||
+                    normalizedText.Contains(expansion + shortcutKey))
+                {
+                    Console.WriteLine($"[EXPANSION_DETECTION] Kısayol+genişletme kombinasyonu algılandı: '{text}'");
+                    return true;
+                }
+            }
 
             // Gelen metin, genişletilen metnin içinde yer alıyor mu?
             if (normalizedExpanded.Contains(normalizedText))
@@ -257,26 +276,12 @@ namespace OtomatikMetinGenisletici.Services
                     // Clipboard erişim hatası durumunda boş string kullan
                 }
 
-                // Akıllı genişletme stratejisi
-                if (expansion.StartsWith(shortcutKey, StringComparison.OrdinalIgnoreCase))
-                {
-                    // APPEND MODE: Genişletme kısayol ile başlıyorsa, sadece devamını ekle
-                    string completionText = expansion.Substring(shortcutKey.Length);
-                    Clipboard.SetText(completionText);
+                // HER ZAMAN REPLACE MODE KULLAN - Tekrarlama problemini önlemek için
+                // Bu sayede "saf" → "saffet" her zaman temiz bir şekilde çalışır
+                // ve "safsaffet" gibi birleşik metinler oluşmaz
 
-                    // Kısa bekleme
-                    Thread.Sleep(10);
-
-                    // Sadece eksik kısmı yapıştır - SendInput ile Ctrl+V
-                    SendCtrlVWithSendInput();
-                }
-                else
-                {
-                    // REPLACE MODE: Genişletme kısayol ile başlamıyorsa, kısayolu sil ve tam metni yaz
-
-                    // Modern SendInput ile Ctrl+Backspace + yapıştır
-                    ReplaceTextWithSendInput(0, expansion); // characterCount artık kullanılmıyor
-                }
+                // Modern SendInput ile Ctrl+Backspace + yapıştır
+                ReplaceTextWithSendInput(0, expansion); // characterCount artık kullanılmıyor
 
                 // Orijinal clipboard içeriğini geri yükle (async)
                 Task.Run(async () =>

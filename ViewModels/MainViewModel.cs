@@ -43,6 +43,10 @@ namespace OtomatikMetinGenisletici.ViewModels
         private readonly object _contextBufferLock = new object();
         private readonly object _tabProcessingLock = new object();
 
+        // Tab ile kabul edilen metinleri geçici olarak sakla - sadece cümle tamamlandığında öğrenme loglarına ekle
+        private readonly List<string> _pendingTabAcceptedTexts = new List<string>();
+        private readonly object _pendingTabTextsLock = new object();
+
         // UI güncelleme debounce sistemi
         private System.Timers.Timer? _uiUpdateTimer;
         private List<SmartSuggestion> _pendingUISuggestions = new();
@@ -349,6 +353,9 @@ namespace OtomatikMetinGenisletici.ViewModels
                 await _smartSuggestionsService.InitializeAsync();
 
                 Console.WriteLine("[DEBUG] Event'ler bağlanıyor...");
+
+                // Tab ile kabul edilen metinlerin öğrenme loglarına eklenmesi için event'i dinle
+                _smartSuggestionsService.TabAcceptedTextLearned += OnTabAcceptedTextLearned;
                 _shortcutService.Shortcuts.CollectionChanged += (s, e) =>
                 {
                     FilterShortcuts();
@@ -1150,6 +1157,9 @@ namespace OtomatikMetinGenisletici.ViewModels
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     AddToLearningLog(cleanSentence);
+
+                    // Cümle tamamlandığında pending tab metinlerini de öğrenme loglarına ekle
+                    AddPendingTabTextsToLearningLog();
                 });
             }
         }
@@ -1399,10 +1409,18 @@ namespace OtomatikMetinGenisletici.ViewModels
                 // Mevcut öneri ve context'i güvenli şekilde al
                 lock (_contextBufferLock)
                 {
+                    Console.WriteLine($"[DEBUG] Mevcut context buffer: '{_contextBuffer}'");
+                    Console.WriteLine($"[DEBUG] Mevcut öneri sayısı: {_currentSmartSuggestions.Count}");
+
                     if (_currentSmartSuggestions.Count > 0)
                     {
                         suggestionToApply = _currentSmartSuggestions[0];
                         contextToUse = _contextBuffer;
+                        Console.WriteLine($"[DEBUG] Uygulanacak öneri: '{suggestionToApply.Text}' (Type: {suggestionToApply.Type})");
+                    }
+                    else
+                    {
+                        Console.WriteLine("[DEBUG] Hiç öneri yok!");
                     }
                 }
 
@@ -1423,10 +1441,42 @@ namespace OtomatikMetinGenisletici.ViewModels
                         Console.WriteLine($"[ERROR] AcceptSuggestionAsync hatası: {ex.Message}");
                     }
 
-                    // Öneriyi uygula
-                    await ApplySmartSuggestionDirectly(suggestionToApply, contextToUse);
+                    // Öneriyi TYPING ile uygula (öğrenme sistemine girmesi için)
+                    // NOT: Öğrenme sistemi artık ApplySmartSuggestionAsTyping içinde çağrılıyor
+                    await ApplySmartSuggestionAsTyping(suggestionToApply, contextToUse);
 
-                    Console.WriteLine("[DEBUG] Tab ile öneri başarıyla uygulandı");
+                    Console.WriteLine("[DEBUG] Tab ile öneri başarıyla uygulandı (typing mode)");
+
+                    // ANINDA yeni context ile öneri ara - delay yok
+                    Console.WriteLine("[DEBUG] *** ANINDA yeni öneriler aranıyor ***");
+
+                    string currentContext;
+                    lock (_contextBufferLock)
+                    {
+                        currentContext = _contextBuffer;
+                        Console.WriteLine($"[DEBUG] Güncellenmiş context buffer: '{currentContext}'");
+                    }
+
+                    // Hemen yeni öneriler ara - async olmadan
+                    try
+                    {
+                        Console.WriteLine($"[DEBUG] ANINDA yeni context ile öneri aranıyor: '{currentContext}'");
+                        await ProcessSmartSuggestionsAsync(currentContext);
+
+                        // Preview'ı hemen güncelle
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            if (!string.IsNullOrEmpty(_currentSuggestion))
+                            {
+                                ShowPreview(currentContext);
+                                Console.WriteLine($"[DEBUG] Preview güncellendi: '{_currentSuggestion}'");
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ERROR] ANINDA öneri arama hatası: {ex.Message}");
+                    }
                 }
                 else
                 {
@@ -1445,6 +1495,72 @@ namespace OtomatikMetinGenisletici.ViewModels
                     _isProcessingTab = false;
                 }
                 Console.WriteLine("[DEBUG] Tab işleme tamamlandı");
+            }
+        }
+
+        /// <summary>
+        /// Tab ile kabul edilen önerileri typing ile uygular - öğrenme sistemine girmesi için
+        /// </summary>
+        private async Task ApplySmartSuggestionAsTyping(SmartSuggestion suggestion, string originalContext)
+        {
+            try
+            {
+                Console.WriteLine($"[DEBUG] *** Typing ile öneri uygulanıyor: {suggestion.Text} (Type: {suggestion.Type}) ***");
+
+                // UI'ı güncelle - önerileri temizle
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    SmartSuggestions.Clear();
+                });
+
+                // Öneriyi kullanıcı metnine uygula
+                switch (suggestion.Type)
+                {
+                    case SuggestionType.WordCompletion:
+                        // Mevcut kelimeyi seçip tam kelime ile değiştir
+                        await ApplyWordCompletionAsTyping(suggestion.Text);
+                        break;
+
+                    default:
+                        // Sonraki kelime veya kelime grubu → başına boşluk ekleyerek ekle
+                        await ApplySuggestionTextAsTyping(suggestion.Text);
+                        break;
+                }
+
+                // Context buffer'ı güncelle - AGRESIF GÜNCELLEME
+                lock (_contextBufferLock)
+                {
+                    Console.WriteLine($"[DEBUG] Context buffer güncelleme öncesi: '{_contextBuffer}'");
+
+                    // Önce mevcut güncelleme metodunu çağır
+                    UpdateContextBufferAfterSuggestionDirect(suggestion, originalContext);
+
+                    // Sonra manuel olarak da güncelle - çifte güvence
+                    string textToAdd = suggestion.Type == SuggestionType.WordCompletion ?
+                        GetRemainingPartOfWord(suggestion.Text) :
+                        " " + suggestion.Text;
+
+                    if (!string.IsNullOrEmpty(textToAdd))
+                    {
+                        _contextBuffer += textToAdd;
+                        if (_contextBuffer.Length > 200)
+                        {
+                            _contextBuffer = _contextBuffer.Substring(_contextBuffer.Length - 200);
+                        }
+                    }
+
+                    Console.WriteLine($"[DEBUG] Context buffer güncelleme sonrası: '{_contextBuffer}'");
+                }
+
+                // Mevcut önerileri temizle
+                _currentSmartSuggestions.Clear();
+                _currentSuggestion = "";
+
+                Console.WriteLine("[DEBUG] Typing ile öneri başarıyla uygulandı");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] ApplySmartSuggestionAsTyping hatası: {ex.Message}");
             }
         }
 
@@ -1854,6 +1970,183 @@ namespace OtomatikMetinGenisletici.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] SendTextToActiveWindowFallback hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Kelime tamamlamayı clipboard ile yapar - Türkçe karakter desteği için
+        /// </summary>
+        private async Task ApplyWordCompletionAsTyping(string fullWord)
+        {
+            try
+            {
+                Console.WriteLine($"[DEBUG] *** ApplyWordCompletionAsTyping (Clipboard Mode) başlıyor: {fullWord} ***");
+
+                // Kullanıcının yazdığı kısmı hesapla
+                string userTypedPart = GetCurrentTypedWord();
+                Console.WriteLine($"[DEBUG] Kullanıcının yazdığı kısım: '{userTypedPart}'");
+
+                // Sadece eksik kısmı hesapla
+                string remainingPart = "";
+                if (!string.IsNullOrEmpty(userTypedPart) && fullWord.StartsWith(userTypedPart, StringComparison.OrdinalIgnoreCase))
+                {
+                    remainingPart = fullWord.Substring(userTypedPart.Length);
+                    Console.WriteLine($"[DEBUG] Eksik kısım: '{remainingPart}'");
+                }
+                else
+                {
+                    // Eğer eşleşme yoksa tam kelimeyi yaz
+                    remainingPart = fullWord;
+                    Console.WriteLine($"[DEBUG] Tam kelime yazılacak: '{remainingPart}'");
+                }
+
+                if (!string.IsNullOrEmpty(remainingPart))
+                {
+                    // TAB İLE KABUL EDİLEN METNİ ÖZEL ÖĞRENME SİSTEMİNE GÖNDER
+                    // PASTE TRACKING SİSTEMİNİ TAMAMEN BYPASS ET
+                    try
+                    {
+                        Console.WriteLine($"[TAB_LEARNING] *** Tab ile kabul edilen kelime ÖZEL öğrenme sistemine gönderiliyor: '{fullWord}' ***");
+
+                        // Özel tab öğrenme metodunu kullan
+                        if (_smartSuggestionsService != null)
+                        {
+                            await _smartSuggestionsService.LearnFromTabAcceptedTextAsync(fullWord);
+                            Console.WriteLine($"[TAB_LEARNING] *** Tab kelime ÖZEL YÖNTEMLE öğrenildi: '{fullWord}' ***");
+                        }
+
+                        // Tab ile kabul edilen metni KeyboardHookService'in sentence buffer'ına ekle
+                        _keyboardHookService?.AddTabCompletedTextToSentenceBuffer(remainingPart);
+                        Console.WriteLine($"[TAB_LEARNING] *** Tab kelime KeyboardHookService sentence buffer'ına eklendi: '{remainingPart}' ***");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ERROR] Tab kelime öğrenme hatası: {ex.Message}");
+                    }
+
+                    // Clipboard ile eksik kısmı yaz - Türkçe karakter desteği için
+                    bool success = await _advancedInputService.SendTextAsync(remainingPart);
+
+                    if (success)
+                    {
+                        Console.WriteLine($"[DEBUG] Kelime tamamlandı (clipboard): {fullWord}");
+
+                        // Context buffer'ı güncelle
+                        lock (_contextBufferLock)
+                        {
+                            _contextBuffer += remainingPart;
+                            if (_contextBuffer.Length > 200)
+                            {
+                                _contextBuffer = _contextBuffer.Substring(_contextBuffer.Length - 200);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[ERROR] Clipboard başarısız, fallback kullanılıyor");
+                        // Fallback: eski yöntem
+                        await ApplyWordCompletionAsync(fullWord);
+                    }
+                }
+
+                Console.WriteLine($"[DEBUG] *** ApplyWordCompletionAsTyping tamamlandı: {fullWord} ***");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] ApplyWordCompletionAsTyping hatası: {ex.Message}");
+                // Fallback: eski yöntem
+                await ApplyWordCompletionAsync(fullWord);
+            }
+        }
+
+        /// <summary>
+        /// Sonraki kelime önerisini clipboard ile yapar - Türkçe karakter desteği için
+        /// </summary>
+        private async Task ApplySuggestionTextAsTyping(string suggestionText)
+        {
+            try
+            {
+                Console.WriteLine($"[DEBUG] *** ApplySuggestionTextAsTyping (Clipboard Mode) başlıyor: {suggestionText} ***");
+
+                // TAB İLE KABUL EDİLEN METNİ ÖZEL ÖĞRENME SİSTEMİNE GÖNDER
+                // PASTE TRACKING SİSTEMİNİ TAMAMEN BYPASS ET
+                try
+                {
+                    Console.WriteLine($"[TAB_LEARNING] *** Tab ile kabul edilen sonraki kelime ÖZEL öğrenme sistemine gönderiliyor: '{suggestionText}' ***");
+
+                    // Özel tab öğrenme metodunu kullan
+                    if (_smartSuggestionsService != null)
+                    {
+                        await _smartSuggestionsService.LearnFromTabAcceptedTextAsync(suggestionText);
+                        Console.WriteLine($"[TAB_LEARNING] *** Tab sonraki kelime ÖZEL YÖNTEMLE öğrenildi: '{suggestionText}' ***");
+                    }
+
+                    // Tab ile kabul edilen metni KeyboardHookService'in sentence buffer'ına ekle
+                    // Context buffer'ın sonunda boşluk var mı kontrol et
+                    bool needsSpace = !_contextBuffer.EndsWith(" ");
+                    var textToAdd = needsSpace ? " " + suggestionText : suggestionText;
+                    _keyboardHookService?.AddTabCompletedTextToSentenceBuffer(textToAdd);
+                    Console.WriteLine($"[TAB_LEARNING] *** Tab sonraki kelime KeyboardHookService sentence buffer'ına eklendi: '{textToAdd}' ***");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Tab sonraki kelime öğrenme hatası: {ex.Message}");
+                }
+
+                // Başına boşluk ekle
+                string textToType = " " + suggestionText;
+
+                // Clipboard ile yaz - Türkçe karakter desteği için
+                bool success = await _advancedInputService.SendTextAsync(textToType);
+
+                if (success)
+                {
+                    Console.WriteLine($"[DEBUG] Sonraki kelime eklendi (clipboard): {suggestionText}");
+
+                    // Context buffer'ı güncelle
+                    lock (_contextBufferLock)
+                    {
+                        _contextBuffer += textToType;
+                        if (_contextBuffer.Length > 200)
+                        {
+                            _contextBuffer = _contextBuffer.Substring(_contextBuffer.Length - 200);
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"[ERROR] Clipboard başarısız, fallback kullanılıyor");
+                    // Fallback: eski yöntem
+                    await ApplySuggestionTextAsync(suggestionText);
+                }
+
+                Console.WriteLine($"[DEBUG] *** ApplySuggestionTextAsTyping tamamlandı: {suggestionText} ***");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] ApplySuggestionTextAsTyping hatası: {ex.Message}");
+                // Fallback: eski yöntem
+                await ApplySuggestionTextAsync(suggestionText);
+            }
+        }
+
+        /// <summary>
+        /// Kelime tamamlama için eksik kısmı hesaplar
+        /// </summary>
+        private string GetRemainingPartOfWord(string fullWord)
+        {
+            try
+            {
+                string userTypedPart = GetCurrentTypedWord();
+                if (!string.IsNullOrEmpty(userTypedPart) && fullWord.StartsWith(userTypedPart, StringComparison.OrdinalIgnoreCase))
+                {
+                    return fullWord.Substring(userTypedPart.Length);
+                }
+                return fullWord;
+            }
+            catch
+            {
+                return fullWord;
             }
         }
 
@@ -3173,6 +3466,62 @@ namespace OtomatikMetinGenisletici.ViewModels
             });
         }
 
+        /// <summary>
+        /// Tab ile kabul edilen metinleri geçici olarak sakla - sadece cümle tamamlandığında öğrenme loglarına ekle
+        /// </summary>
+        private void OnTabAcceptedTextLearned(string text)
+        {
+            try
+            {
+                Console.WriteLine($"[TAB_LEARNING] *** OnTabAcceptedTextLearned event alındı: '{text}' ***");
+
+                // Tab ile kabul edilen metni pending listesine ekle - hemen öğrenme loglarına ekleme
+                lock (_pendingTabTextsLock)
+                {
+                    _pendingTabAcceptedTexts.Add(text);
+                    Console.WriteLine($"[TAB_LEARNING] *** Tab metni pending listesine eklendi: '{text}' (Toplam pending: {_pendingTabAcceptedTexts.Count}) ***");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] OnTabAcceptedTextLearned hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Pending tab metinlerini öğrenme loglarına ekle ve listeyi temizle
+        /// </summary>
+        private void AddPendingTabTextsToLearningLog()
+        {
+            try
+            {
+                List<string> textsToAdd;
+
+                // Pending listesini kopyala ve temizle
+                lock (_pendingTabTextsLock)
+                {
+                    if (_pendingTabAcceptedTexts.Count == 0)
+                    {
+                        Console.WriteLine("[TAB_LEARNING] Pending tab metni yok, işlem atlandı");
+                        return;
+                    }
+
+                    textsToAdd = new List<string>(_pendingTabAcceptedTexts);
+                    _pendingTabAcceptedTexts.Clear();
+                    Console.WriteLine($"[TAB_LEARNING] *** {textsToAdd.Count} pending tab metni öğrenme loglarına eklenecek ***");
+                }
+
+                // NOT: Pending tab metinlerini öğrenme loglarına ekleme
+                // Ana cümle zaten öğrenme loglarına ekleniyor, tab ile kabul edilen metinler o cümlenin parçaları
+                // Aynı cümleyi iki kez loglamak gereksiz
+                Console.WriteLine($"[TAB_LEARNING] *** {textsToAdd.Count} pending tab metni temizlendi (öğrenme loglarına eklenmedi): [{string.Join(", ", textsToAdd)}] ***");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] AddPendingTabTextsToLearningLog hatası: {ex.Message}");
+            }
+        }
+
         public void AddToLearningLog(string sentence)
         {
             var timestamp = DateTime.Now;
@@ -3613,6 +3962,7 @@ namespace OtomatikMetinGenisletici.ViewModels
             {
                 _smartSuggestionsService.SuggestionsUpdated -= OnSmartSuggestionsUpdated;
                 _smartSuggestionsService.SuggestionAccepted -= OnSmartSuggestionAccepted;
+                _smartSuggestionsService.TabAcceptedTextLearned -= OnTabAcceptedTextLearned;
                 _smartSuggestionsService.Dispose();
             }
 
@@ -3730,6 +4080,39 @@ namespace OtomatikMetinGenisletici.ViewModels
 
         private void OnEnterPressed(string currentBuffer)
         {
+            // Enter tuşu ile cümle tamamlandı - öğrenme sistemine gönder
+            try
+            {
+                Console.WriteLine($"[ENTER_LEARNING] Enter tuşu basıldı, cümle tamamlandı: '{currentBuffer}'");
+
+                if (!string.IsNullOrWhiteSpace(currentBuffer) && currentBuffer.Trim().Length > 5)
+                {
+                    // Cümleyi öğrenme sistemine gönder
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _smartSuggestionsService.LearnFromTextAsync(currentBuffer.Trim());
+                            Console.WriteLine($"[ENTER_LEARNING] Cümle başarıyla öğrenildi: '{currentBuffer.Trim()}'");
+
+                            // Enter ile cümle tamamlandığında pending tab metinlerini de öğrenme loglarına ekle
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                AddPendingTabTextsToLearningLog();
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[ERROR] Enter öğrenme hatası: {ex.Message}");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] OnEnterPressed hatası: {ex.Message}");
+            }
+
             HandleExpansionTrigger(ExpansionTriggerKey.Enter, currentBuffer);
         }
 

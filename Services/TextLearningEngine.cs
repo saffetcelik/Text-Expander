@@ -19,6 +19,7 @@ namespace OtomatikMetinGenisletici.Services
         private bool _hasUnsavedChanges;
         private readonly ShortcutService? _shortcutService;
         private Func<string, bool>? _isRecentlyPastedSuggestionCheck;
+        private Func<string, bool>? _isRecentlyTabAcceptedSuggestionCheck;
 
         // Performans için Trie veri yapıları
         private readonly FastTrie _wordCompletionTrie;
@@ -72,6 +73,11 @@ namespace OtomatikMetinGenisletici.Services
             _isRecentlyPastedSuggestionCheck = checkFunction;
         }
 
+        public void SetRecentlyTabAcceptedSuggestionCheck(Func<string, bool> checkFunction)
+        {
+            _isRecentlyTabAcceptedSuggestionCheck = checkFunction;
+        }
+
         public async Task LearnFromTextAsync(string text)
         {
             if (string.IsNullOrWhiteSpace(text) || text.Length < 3)
@@ -87,10 +93,49 @@ namespace OtomatikMetinGenisletici.Services
                 return;
             }
 
-            // Yakın zamanda yapıştırılmış öneri kontrolü
-            if (_isRecentlyPastedSuggestionCheck?.Invoke(text) == true)
+            // Tab ile kabul edilen öneriler için öncelikli kontrol
+            bool isTabAccepted = _isRecentlyTabAcceptedSuggestionCheck?.Invoke(text) == true;
+
+            if (isTabAccepted)
             {
-                Console.WriteLine($"[LEARNING] *** YAKIN ZAMANDA YAPIŞTIRILMIŞ ÖNERİ ALGILANDI, ÖĞRENME ATLANIYOR: '{text}' ***");
+                Console.WriteLine($"[LEARNING] *** TAB İLE KABUL EDİLEN METİN ÖZEL İŞLENİYOR: '{text}' ***");
+                // Tab ile kabul edilen metinler PASTE KONTROLÜNDEN MUAF
+                // Direkt öğrenme sistemine gir
+
+                // Tab ile kabul edilen metinler için frekans artırımı
+                var words = PreprocessText(text);
+                foreach (var word in words)
+                {
+                    if (word.Length >= 2)
+                    {
+                        var newCount = _learningData.WordFrequencies.AddOrUpdate(word, 3, (key, oldValue) => oldValue + 3); // Üçlü artırım
+                        Console.WriteLine($"[TAB_LEARNING] Kelime frekansı artırıldı: '{word}' (+3) → Yeni frekans: {newCount}");
+
+                        // DEBUG: "kalma" ile başlayan kelimelerin tab frekans güncellemelerini özel logla
+                        if (word.StartsWith("kalma"))
+                        {
+                            Console.WriteLine($"[TAB_FREQ_UPDATE] *** '{word}' TAB ile frekansı güncellendi: {newCount} ***");
+                        }
+                    }
+                }
+
+                // Tab metinleri için paste kontrolünü atla
+                Console.WriteLine($"[TAB_LEARNING] Tab metni paste kontrolünden muaf tutuldu: '{text}'");
+            }
+            else
+            {
+                // Normal metinler için paste kontrolü
+                if (_isRecentlyPastedSuggestionCheck?.Invoke(text) == true)
+                {
+                    Console.WriteLine($"[LEARNING] *** YAKIN ZAMANDA YAPIŞTIRILMIŞ ÖNERİ ALGILANDI, ÖĞRENME ATLANIYOR: '{text}' ***");
+                    return;
+                }
+            }
+
+            // Tekrarlayan pattern kontrolü - "safsaffet", "ahahmet" gibi metinleri filtrele
+            if (HasSuspiciousRepeatingPattern(text))
+            {
+                Console.WriteLine($"[LEARNING] *** TEKRARLAYAN PATTERN ALGILANDI, ÖĞRENME ATLANIYOR: '{text}' ***");
                 return;
             }
 
@@ -141,6 +186,46 @@ namespace OtomatikMetinGenisletici.Services
                     Console.WriteLine($"[LEARNING] Öğrenme tamamlandı. Toplam kelime: {_learningData.TotalWordsLearned}");
                 }
             });
+        }
+
+        /// <summary>
+        /// Tekrarlayan pattern'leri algılar (örn: "safsaffet", "ahahmet", "abcabc")
+        /// </summary>
+        private bool HasSuspiciousRepeatingPattern(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || text.Length < 6)
+                return false;
+
+            var normalizedText = text.Trim().ToLowerInvariant();
+
+            // 1. Aynı kelime/kısayolun tekrarını algıla (örn: "safsaf", "ahah")
+            for (int i = 2; i <= normalizedText.Length / 2; i++)
+            {
+                var prefix = normalizedText.Substring(0, i);
+                if (normalizedText.StartsWith(prefix + prefix))
+                {
+                    Console.WriteLine($"[PATTERN_DETECTION] Tekrarlayan prefix algılandı: '{prefix}' in '{text}'");
+                    return true;
+                }
+            }
+
+            // 2. Kısa tekrarlayan segmentleri algıla (2-4 karakter)
+            for (int segmentLength = 2; segmentLength <= 4; segmentLength++)
+            {
+                for (int i = 0; i <= normalizedText.Length - segmentLength * 2; i++)
+                {
+                    var segment = normalizedText.Substring(i, segmentLength);
+                    var nextSegment = normalizedText.Substring(i + segmentLength, segmentLength);
+
+                    if (segment == nextSegment)
+                    {
+                        Console.WriteLine($"[PATTERN_DETECTION] Tekrarlayan segment algılandı: '{segment}' in '{text}'");
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private bool IsRecentContext(string context)
@@ -273,6 +358,32 @@ namespace OtomatikMetinGenisletici.Services
 
                     Console.WriteLine($"[SUGGESTIONS] *** ÖNERİ SONUÇLARI (FREKANS ÖNCELIKLI SIRALAMA) ***");
                     Console.WriteLine($"[SUGGESTIONS] Toplam {finalSuggestions.Count} öneri döndürülüyor");
+
+                    // DEBUG: Benzer kelimelerin frekanslarını kontrol et
+                    if (context.Contains("işlem"))
+                    {
+                        Console.WriteLine($"[DEBUG] 'işlem' context'i algılandı, 'kalmadı' ve 'kalmadıki' frekansları kontrol ediliyor:");
+                        if (_learningData.WordFrequencies.TryGetValue("kalmadı", out int kalmadiFrekans))
+                        {
+                            Console.WriteLine($"[DEBUG] 'kalmadı' frekansı: {kalmadiFrekans}");
+                        }
+                        if (_learningData.WordFrequencies.TryGetValue("kalmadıki", out int kalmadikiFrekans))
+                        {
+                            Console.WriteLine($"[DEBUG] 'kalmadıki' frekansı: {kalmadikiFrekans}");
+                        }
+
+                        // Tüm "kalma" ile başlayan kelimeleri listele
+                        var kalmaWords = _learningData.WordFrequencies
+                            .Where(kvp => kvp.Key.StartsWith("kalma"))
+                            .OrderByDescending(kvp => kvp.Value)
+                            .ToList();
+                        Console.WriteLine($"[DEBUG] 'kalma' ile başlayan tüm kelimeler:");
+                        foreach (var word in kalmaWords)
+                        {
+                            Console.WriteLine($"[DEBUG] - '{word.Key}': {word.Value}");
+                        }
+                    }
+
                     foreach (var suggestion in finalSuggestions)
                     {
                         Console.WriteLine($"[SUGGESTIONS] → '{suggestion.Text}' (FREKANS: {suggestion.Frequency}, güven: {suggestion.Confidence:P0}, tip: {suggestion.Type})");
@@ -332,7 +443,13 @@ namespace OtomatikMetinGenisletici.Services
             {
                 if (word.Length >= 2) // Çok kısa kelimeleri atla
                 {
-                    _learningData.WordFrequencies.AddOrUpdate(word, 1, (key, oldValue) => oldValue + 1);
+                    var newCount = _learningData.WordFrequencies.AddOrUpdate(word, 1, (key, oldValue) => oldValue + 1);
+
+                    // DEBUG: "kalma" ile başlayan kelimelerin frekans güncellemelerini logla
+                    if (word.StartsWith("kalma"))
+                    {
+                        Console.WriteLine($"[FREQ_UPDATE] '{word}' frekansı güncellendi: {newCount}");
+                    }
                 }
             }
         }
@@ -631,17 +748,25 @@ namespace OtomatikMetinGenisletici.Services
                             // Bigram için orta güven skoru (0.60-0.85 arası)
                             var confidence = Math.Min(0.85, 0.60 + (bigram.Value / 20.0 * 0.25));
 
+                            // FREKANS BOOST: Kelime frekansını da dikkate al
+                            var finalFrequency = bigram.Value;
+                            if (_learningData.WordFrequencies.TryGetValue(nextWord, out int wordFreq))
+                            {
+                                finalFrequency = Math.Max(bigram.Value, wordFreq / 2); // Kelime frekansının yarısını kullan
+                                Console.WriteLine($"[BIGRAM] '{nextWord}' kelime frekansı ile güçlendirildi: {bigram.Value} → {finalFrequency}");
+                            }
+
                             allSuggestions.Add(new SmartSuggestion
                             {
                                 Text = nextWord,
                                 Confidence = confidence,
                                 Context = lastWord,
-                                Frequency = bigram.Value,
+                                Frequency = finalFrequency,
                                 Type = SuggestionType.NextWord,
                                 LastUsed = DateTime.Now
                             });
 
-                            Console.WriteLine($"[BIGRAM] Bulundu: '{nextWord}' (güven: {confidence:P0}, frekans: {bigram.Value})");
+                            Console.WriteLine($"[BIGRAM] Bulundu: '{nextWord}' (güven: {confidence:P0}, frekans: {finalFrequency})");
                         }
                     }
                 }
@@ -696,6 +821,15 @@ namespace OtomatikMetinGenisletici.Services
                 .Select(g => {
                     var best = g.OrderByDescending(s => s.Frequency).ThenByDescending(s => s.Confidence).First();
                     Console.WriteLine($"[N-GRAM] Grup '{g.Key}': En iyi → frekans: {best.Frequency}, güven: {best.Confidence:P1}, tip: {best.Type}");
+
+                    // FREKANS BOOST: Kelime frekansını da kontrol et
+                    if (_learningData.WordFrequencies.TryGetValue(best.Text, out int wordFreq))
+                    {
+                        // Kelime frekansı yüksekse öneriyi güçlendir
+                        best.Frequency = Math.Max(best.Frequency, wordFreq);
+                        Console.WriteLine($"[N-GRAM] '{g.Key}' kelime frekansı ile güçlendirildi: {wordFreq} → toplam: {best.Frequency}");
+                    }
+
                     return best;
                 })
                 .OrderByDescending(s => s.Frequency)

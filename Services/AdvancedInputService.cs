@@ -10,6 +10,7 @@ namespace OtomatikMetinGenisletici.Services
     public interface IAdvancedInputService
     {
         Task<bool> SendTextAsync(string text);
+        Task<bool> SendTextAsTypingAsync(string text); // Yeni: Karakter karakter yazma
         Task<bool> SimulateCtrlVAsync();
         Task<bool> SimulateKeyPressAsync(ushort virtualKeyCode);
         Task<string?> GetClipboardTextAsync();
@@ -274,5 +275,161 @@ namespace OtomatikMetinGenisletici.Services
                 }
             });
         }
+
+        /// <summary>
+        /// Metni karakter karakter yazarak gönderir - öğrenme sistemine girmesi için
+        /// Türkçe karakterler için clipboard fallback kullanır
+        /// </summary>
+        public async Task<bool> SendTextAsTypingAsync(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return false;
+
+            try
+            {
+                Console.WriteLine($"[ADVANCED INPUT] Typing text: '{text}'");
+
+                // Türkçe karakterleri kontrol et
+                bool hasTurkishChars = ContainsTurkishCharacters(text);
+
+                if (hasTurkishChars)
+                {
+                    Console.WriteLine($"[ADVANCED INPUT] Türkçe karakter algılandı, clipboard fallback kullanılıyor");
+                    // Türkçe karakterler varsa clipboard kullan ama öğrenme sistemine girmesi için işaretle
+                    return await SendTextAsync(text);
+                }
+
+                // ASCII karakterler için SendInput kullan
+                return await Task.Run(() =>
+                {
+                    foreach (char c in text)
+                    {
+                        try
+                        {
+                            // ASCII karakter için VkKeyScan kullan
+                            short vkResult = VkKeyScan(c);
+                            if (vkResult == -1)
+                            {
+                                Console.WriteLine($"[WARNING] VkKeyScan failed for character '{c}', skipping");
+                                continue;
+                            }
+
+                            byte vk = (byte)(vkResult & 0xFF);
+                            byte shift = (byte)((vkResult >> 8) & 0xFF);
+
+                            List<INPUT> inputs = new List<INPUT>();
+
+                            // Shift gerekiyorsa önce Shift bas
+                            if ((shift & 1) != 0) // Shift key needed
+                            {
+                                inputs.Add(new INPUT
+                                {
+                                    type = INPUT_KEYBOARD,
+                                    U = new InputUnion
+                                    {
+                                        ki = new KEYBDINPUT
+                                        {
+                                            wVk = VK_SHIFT,
+                                            dwFlags = 0,
+                                            time = 0,
+                                            dwExtraInfo = GetMessageExtraInfo()
+                                        }
+                                    }
+                                });
+                            }
+
+                            // Ana karakter - key down
+                            inputs.Add(new INPUT
+                            {
+                                type = INPUT_KEYBOARD,
+                                U = new InputUnion
+                                {
+                                    ki = new KEYBDINPUT
+                                    {
+                                        wVk = vk,
+                                        dwFlags = 0,
+                                        time = 0,
+                                        dwExtraInfo = GetMessageExtraInfo()
+                                    }
+                                }
+                            });
+
+                            // Ana karakter - key up
+                            inputs.Add(new INPUT
+                            {
+                                type = INPUT_KEYBOARD,
+                                U = new InputUnion
+                                {
+                                    ki = new KEYBDINPUT
+                                    {
+                                        wVk = vk,
+                                        dwFlags = KEYEVENTF_KEYUP,
+                                        time = 0,
+                                        dwExtraInfo = GetMessageExtraInfo()
+                                    }
+                                }
+                            });
+
+                            // Shift'i bırak
+                            if ((shift & 1) != 0)
+                            {
+                                inputs.Add(new INPUT
+                                {
+                                    type = INPUT_KEYBOARD,
+                                    U = new InputUnion
+                                    {
+                                        ki = new KEYBDINPUT
+                                        {
+                                            wVk = VK_SHIFT,
+                                            dwFlags = KEYEVENTF_KEYUP,
+                                            time = 0,
+                                            dwExtraInfo = GetMessageExtraInfo()
+                                        }
+                                    }
+                                });
+                            }
+
+                            // Input'u gönder
+                            uint result = SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
+
+                            // Kısa bekleme
+                            Thread.Sleep(2);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[ERROR] Character '{c}' typing failed: {ex.Message}");
+                        }
+                    }
+
+                    Console.WriteLine($"[ADVANCED INPUT] Text typed successfully: '{text}'");
+                    return true;
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] SendTextAsTypingAsync hatası: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Metinde Türkçe karakterleri kontrol eder
+        /// </summary>
+        private bool ContainsTurkishCharacters(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return false;
+
+            // Türkçe karakterler: ç, ğ, ı, ö, ş, ü ve büyük harfleri
+            char[] turkishChars = { 'ç', 'ğ', 'ı', 'ö', 'ş', 'ü', 'Ç', 'Ğ', 'İ', 'Ö', 'Ş', 'Ü' };
+
+            return text.IndexOfAny(turkishChars) >= 0;
+        }
+
+        // VkKeyScan için P/Invoke
+        [DllImport("user32.dll")]
+        private static extern short VkKeyScan(char ch);
+
+        private const ushort VK_SHIFT = 0x10;
     }
 }

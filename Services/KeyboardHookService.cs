@@ -48,6 +48,26 @@ namespace OtomatikMetinGenisletici.Services
         public event Func<bool>? TabPressed; // Func<bool> - true döndürürse Tab engellenir
         public event Action<string>? SpacePressed;
 
+        /// <summary>
+        /// Tab ile eklenen metni sentence buffer'a ekler
+        /// </summary>
+        public void AddTabCompletedTextToSentenceBuffer(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
+            try
+            {
+                Console.WriteLine($"[KEYBOARD_HOOK] Tab ile eklenen metin sentence buffer'a ekleniyor: '{text}'");
+                _sentenceBuffer.Append(text);
+                Console.WriteLine($"[KEYBOARD_HOOK] Güncellenmiş sentence buffer: '{_sentenceBuffer}'");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] AddTabCompletedTextToSentenceBuffer hatası: {ex.Message}");
+            }
+        }
+
         // Yeni tuş kombinasyonu event'leri
         public event Action<string>? EnterPressed;
         public event Action<string>? ShiftSpacePressed;
@@ -255,6 +275,17 @@ namespace OtomatikMetinGenisletici.Services
                         {
                             Console.WriteLine($"[DEBUG] Word ignored (duplicate): '{word}'");
                             WriteToLogFile($"[DEBUG] Word ignored (duplicate): '{word}'");
+                        }
+                    }
+                    else
+                    {
+                        // Word buffer boş ama boşluk basıldı - tab ile eklenen metinden sonra manuel boşluk
+                        // Sentence buffer'ın sonunda boşluk yoksa ekle
+                        if (_sentenceBuffer.Length > 0 && !_sentenceBuffer.ToString().EndsWith(" "))
+                        {
+                            _sentenceBuffer.Append(" ");
+                            Console.WriteLine($"[DEBUG] Manuel boşluk eklendi (tab sonrası), sentence buffer: '{_sentenceBuffer}'");
+                            WriteToLogFile($"[DEBUG] Manuel boşluk eklendi (tab sonrası), sentence buffer: '{_sentenceBuffer}'");
                         }
                     }
 

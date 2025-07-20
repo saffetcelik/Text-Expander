@@ -21,10 +21,16 @@ namespace OtomatikMetinGenisletici.Services
         private readonly object _pasteLock = new object();
         private readonly TimeSpan _pasteTrackingDuration = TimeSpan.FromSeconds(3); // 3 saniye takip
 
+        // Tab ile kabul edilen öneriler için tracking
+        private readonly Dictionary<string, DateTime> _recentTabAcceptedSuggestions = new();
+        private readonly object _tabAcceptLock = new object();
+        private readonly TimeSpan _tabAcceptTrackingDuration = TimeSpan.FromSeconds(5); // 5 saniye takip
+
         public bool IsEnabled => _isEnabled;
 
         public event Action<List<SmartSuggestion>>? SuggestionsUpdated;
         public event Action<SmartSuggestion>? SuggestionAccepted;
+        public event Action<string>? TabAcceptedTextLearned;
 
         public SmartSuggestionsService(ISettingsService settingsService, ShortcutService? shortcutService = null)
         {
@@ -73,6 +79,10 @@ namespace OtomatikMetinGenisletici.Services
                 // Yakın zamanda yapıştırılmış öneri kontrolü için callback set et
                 _learningEngine.SetRecentlyPastedSuggestionCheck(IsRecentlyPastedSuggestion);
                 Console.WriteLine("[SMART SUGGESTIONS] Yapıştırılmış öneri kontrolü callback'i ayarlandı");
+
+                // Tab ile kabul edilen öneri kontrolü için callback set et
+                _learningEngine.SetRecentlyTabAcceptedSuggestionCheck(IsRecentlyTabAcceptedSuggestion);
+                Console.WriteLine("[SMART SUGGESTIONS] Tab ile kabul edilen öneri kontrolü callback'i ayarlandı");
 
                 Console.WriteLine("[SMART SUGGESTIONS] InitializeAsync tamamlandı.");
             }
@@ -177,12 +187,116 @@ namespace OtomatikMetinGenisletici.Services
 
             try
             {
+                // Tab ile kabul edilen öneriyi işaretle
+                MarkSuggestionAsTabAccepted(suggestion.Text);
+
                 await _learningEngine.AcceptSuggestionAsync(suggestion, context);
                 SuggestionAccepted?.Invoke(suggestion);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Öneri kabul etme hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Tab ile kabul edilen metinler için özel öğrenme metodu
+        /// Paste tracking sistemini tamamen bypass eder
+        /// </summary>
+        public async Task LearnFromTabAcceptedTextAsync(string text)
+        {
+            if (!_isEnabled || string.IsNullOrWhiteSpace(text))
+                return;
+
+            try
+            {
+                Console.WriteLine($"[TAB_LEARNING] *** Tab özel öğrenme başlıyor: '{text}' ***");
+
+                // Tab metni için özel işaretleme - paste kontrolünden muaf
+                lock (_tabAcceptLock)
+                {
+                    var normalizedText = text.Trim().ToLowerInvariant();
+                    _recentTabAcceptedSuggestions[normalizedText] = DateTime.Now;
+                    Console.WriteLine($"[TAB_LEARNING] Tab metni özel olarak işaretlendi: '{text}'");
+                }
+
+                // Direkt öğrenme sistemine gönder
+                await _learningEngine.LearnFromTextAsync(text);
+                Console.WriteLine($"[TAB_LEARNING] *** Tab metni başarıyla öğrenildi: '{text}' ***");
+
+                // Event'i tetikle - MainViewModel pending listesine ekleyecek
+                // Pending metinler sadece cümle tamamlandığında (nokta veya Enter ile) öğrenme loglarına eklenecek
+                TabAcceptedTextLearned?.Invoke(text);
+                Console.WriteLine($"[TAB_LEARNING] *** TabAcceptedTextLearned event tetiklendi (pending): '{text}' ***");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Tab özel öğrenme hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Tab ile kabul edilen öneriyi işaretler
+        /// </summary>
+        public void MarkSuggestionAsTabAccepted(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
+            lock (_tabAcceptLock)
+            {
+                var normalizedText = text.Trim().ToLowerInvariant();
+                _recentTabAcceptedSuggestions[normalizedText] = DateTime.Now;
+                Console.WriteLine($"[TAB_ACCEPT] *** Öneri tab ile kabul edildi olarak işaretlendi: '{text}' ***");
+                Console.WriteLine($"[TAB_ACCEPT] Toplam tab kabul edilen öneri sayısı: {_recentTabAcceptedSuggestions.Count}");
+
+                // Eski kayıtları temizle
+                var expiredKeys = _recentTabAcceptedSuggestions
+                    .Where(kvp => DateTime.Now - kvp.Value > _tabAcceptTrackingDuration)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var key in expiredKeys)
+                {
+                    _recentTabAcceptedSuggestions.Remove(key);
+                    Console.WriteLine($"[TAB_ACCEPT] Eski tab kabul kaydı temizlendi: '{key}'");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Bir metnin tab ile kabul edilmiş bir öneri olup olmadığını kontrol eder
+        /// </summary>
+        public bool IsRecentlyTabAcceptedSuggestion(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return false;
+
+            lock (_tabAcceptLock)
+            {
+                var normalizedText = text.Trim().ToLowerInvariant();
+                Console.WriteLine($"[TAB_ACCEPT] Tab kabul kontrolü yapılıyor: '{text}' (normalized: '{normalizedText}')");
+
+                if (_recentTabAcceptedSuggestions.TryGetValue(normalizedText, out var acceptTime))
+                {
+                    var timeSinceAccept = DateTime.Now - acceptTime;
+                    if (timeSinceAccept <= _tabAcceptTrackingDuration)
+                    {
+                        Console.WriteLine($"[TAB_ACCEPT] *** Tab ile kabul edilmiş öneri algılandı: '{text}' (geçen süre: {timeSinceAccept.TotalSeconds:F1}s) ***");
+                        return true;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[TAB_ACCEPT] Tab kabul süresi dolmuş: '{text}' (geçen süre: {timeSinceAccept.TotalSeconds:F1}s)");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"[TAB_ACCEPT] Tab kabul kaydı bulunamadı: '{text}'");
+                    Console.WriteLine($"[TAB_ACCEPT] Mevcut tab kabul kayıtları: {string.Join(", ", _recentTabAcceptedSuggestions.Keys)}");
+                }
+
+                return false;
             }
         }
 
@@ -222,6 +336,7 @@ namespace OtomatikMetinGenisletici.Services
 
         /// <summary>
         /// Bir metnin yakın zamanda yapıştırılmış bir öneri olup olmadığını kontrol et
+        /// NOT: Tab ile kabul edilen öneriler artık typing ile yazıldığı için bu kontrolden muaf
         /// </summary>
         public bool IsRecentlyPastedSuggestion(string text)
         {
@@ -238,6 +353,7 @@ namespace OtomatikMetinGenisletici.Services
                     if (timeSincePaste <= _pasteTrackingDuration)
                     {
                         Console.WriteLine($"[SUGGESTION_PASTE] Yakın zamanda yapıştırılmış öneri algılandı: '{text}' (geçen süre: {timeSincePaste.TotalSeconds:F1}s)");
+                        Console.WriteLine($"[SUGGESTION_PASTE] NOT: Tab ile kabul edilen öneriler artık typing ile yazıldığı için öğrenme sistemine girecek");
                         return true;
                     }
                 }

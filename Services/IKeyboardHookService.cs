@@ -20,5 +20,10 @@ namespace OtomatikMetinGenisletici.Services
         void StartListening();
         void StopListening();
         bool IsListening { get; }
+
+        /// <summary>
+        /// Tab ile eklenen metni sentence buffer'a ekler
+        /// </summary>
+        void AddTabCompletedTextToSentenceBuffer(string text);
     }
 }

@@ -7,16 +7,22 @@ namespace OtomatikMetinGenisletici.Services
         bool IsEnabled { get; }
         event Action<List<SmartSuggestion>>? SuggestionsUpdated;
         event Action<SmartSuggestion>? SuggestionAccepted;
+        event Action<string>? TabAcceptedTextLearned;
         
         Task InitializeAsync();
         Task<List<SmartSuggestion>> GetSuggestionsAsync(string context, int maxSuggestions = 5);
         Task LearnFromTextAsync(string text);
+        Task LearnFromTabAcceptedTextAsync(string text); // Tab özel öğrenme
         Task AcceptSuggestionAsync(SmartSuggestion suggestion, string context);
         Task RejectSuggestionAsync(SmartSuggestion suggestion, string context);
 
         // Suggestion paste tracking
         void MarkSuggestionAsPasted(string suggestionText);
         bool IsRecentlyPastedSuggestion(string text);
+
+        // Tab acceptance tracking
+        void MarkSuggestionAsTabAccepted(string suggestionText);
+        bool IsRecentlyTabAcceptedSuggestion(string text);
         
         Task<LearningStatistics> GetStatisticsAsync();
         Task<DetailedStatistics> GetLearningDataAsync();
