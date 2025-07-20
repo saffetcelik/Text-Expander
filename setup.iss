@@ -2,8 +2,8 @@
 ; Uygulama bilgileri
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
 AppName=Otomatik Metin Genişletici
-AppVersion=1.2.2
-AppVerName=Otomatik Metin Genişletici v1.2.2
+AppVersion=1.2.3
+AppVerName=Otomatik Metin Genişletici v1.2.3
 AppPublisher=Saffet Celik
 AppPublisherURL=https://github.com/saffetcelik/Text-Expander
 AppSupportURL=https://github.com/saffetcelik/Text-Expander/issues
@@ -16,7 +16,7 @@ DefaultGroupName=Otomatik Metin Genişletici
 AllowNoIcons=yes
 LicenseFile=LICENSE
 OutputDir=installer
-OutputBaseFilename=MetinGenisletici-Setup-v1.2.2
+OutputBaseFilename=MetinGenisletici-Setup-v1.2.3
 SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes

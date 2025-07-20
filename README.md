@@ -399,7 +399,16 @@ dotnet build
 
 ## 🔄 Sürüm Geçmişi
 
-### v1.0.0 (Mevcut)
+### v1.2.3 (Mevcut)
+- ✅ Tab ile kabul edilen metinlerin öğrenme logları sorunu düzeltildi
+- ✅ Kelime kelime ayrı öğrenme sorunu çözüldü
+- ✅ Tab ile tamamlanan cümlelerin eksik algılanması düzeltildi
+- ✅ Manuel boşluk algılama sistemi iyileştirildi
+- ✅ Detaylı debug logging sistemi eklendi
+- ✅ Aktif öğrenme sistemi debug araçları
+- ✅ Modern event-driven architecture
+
+### v1.2.2
 - ✅ Temel kısayol genişletme
 - ✅ Akıllı öğrenme sistemi
 - ✅ Modern WPF arayüzü
@@ -407,7 +416,7 @@ dotnet build
 - ✅ Pencere filtreleme
 - ✅ Sistem tepsisi entegrasyonu
 
-### v1.1.0 (Planlanan)
+### v1.3.0 (Planlanan)
 - 🔄 Çoklu dil desteği
 - 🔄 Tema sistemi
 - 🔄 Gelişmiş istatistikler
